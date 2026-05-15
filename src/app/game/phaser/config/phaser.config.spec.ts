@@ -3,7 +3,7 @@ import { vi } from 'vitest';
 vi.mock('phaser', () => ({
   default: {
     AUTO: 'AUTO',
-    Scale: { FIT: 'FIT', CENTER_BOTH: 'CENTER_BOTH' },
+    Scale: { RESIZE: 'RESIZE', CENTER_BOTH: 'CENTER_BOTH' },
     Scene: class MockScene {
       constructor(readonly key?: string) {}
     },
@@ -25,7 +25,7 @@ describe('Phaser game options', () => {
     expect(config.width).toBe(1920);
     expect(config.height).toBe(1080);
     expect(config.backgroundColor).toBe('#02070c');
-    expect(config.scale).toEqual({ mode: 'FIT', autoCenter: 'CENTER_BOTH' });
+    expect(config.scale).toEqual({ mode: 'RESIZE', autoCenter: 'CENTER_BOTH' });
   });
 
   it('does not configure gameplay state, economy, inventory, contracts, or saves', () => {
@@ -44,6 +44,7 @@ describe('Phaser game options', () => {
     expect(config.width).toBe(1920);
     expect(config.height).toBe(1080);
     expect(config.backgroundColor).toBe('#02070c');
+    expect(config.scale).toEqual({ mode: 'RESIZE', autoCenter: 'CENTER_BOTH' });
     expect(config.scene).toEqual([MainBaseScene]);
   });
 });

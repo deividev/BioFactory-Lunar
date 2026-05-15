@@ -9,7 +9,7 @@ export interface PhaserGameOptions {
   readonly height: number;
   readonly backgroundColor: string;
   readonly scale: {
-    readonly mode: 'FIT';
+    readonly mode: 'RESIZE';
     readonly autoCenter: 'CENTER_BOTH';
   };
 }
@@ -21,7 +21,7 @@ export function createPhaserGameOptions(parent: string): PhaserGameOptions {
     height: PHASER_GAME_SIZE.height,
     backgroundColor: '#02070c',
     scale: {
-      mode: 'FIT',
+      mode: 'RESIZE',
       autoCenter: 'CENTER_BOTH'
     }
   };

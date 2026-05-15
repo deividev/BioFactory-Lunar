@@ -1,0 +1,57 @@
+// ============================================================
+// Biofactory: Lunar — Runtime Theme Tokens
+//
+// Canonical source for all semantic CSS custom properties.
+// Import once from src/styles.scss:
+//   @use './styles/theme/theme-tokens';
+//
+// Palette origin: docs/03_assets/media_gdd/media/image2.png
+// Design reference (NOT a runtime import):
+//   skills/biofactory-lunar-ui-palette/assets/palette.tokens.css
+//
+// Token taxonomy:
+//   --bf-surface-*  : base layer fills (dark backgrounds, panel fills)
+//   --bf-text-*     : typographic fills
+//   --bf-border-*   : stroke and outline definitions
+//   --bf-accent-*   : role-keyed interactive and status hues
+// ============================================================
+
+:root {
+  // ── Surfaces ─────────────────────────────────────────────
+  // Deep canvas — app root background and Phaser host wrapper fill
+  --bf-surface-canvas: #0b1220;
+  // Primary panel — top-level card and drawer fills
+  --bf-surface-panel: #0f172a;
+  // Raised layer — inset panels, secondary cards
+  --bf-surface-raised: #1e293b;
+  // Elevated layer — tooltips, dropdowns, active surface states
+  --bf-surface-elevated: #334155;
+
+  // ── Text ─────────────────────────────────────────────────
+  // Primary body copy, HUD labels, headings
+  --bf-text-primary: #e2e6f0;
+  // Secondary / de-emphasised copy and metadata
+  --bf-text-muted: #94a3b8;
+
+  // ── Borders ──────────────────────────────────────────────
+  // Subtle outline — inactive panels, stage surface, grid lines
+  --bf-border-subtle: rgba(112, 211, 252, 0.22);
+  // Strong outline — active panels, interactive ring, focused states
+  --bf-border-strong: rgba(0, 230, 255, 0.75);
+
+  // ── Accents ──────────────────────────────────────────────
+  // Interactive / highlight — default CTA, links, selection ring
+  --bf-accent-interactive: #00e6ff;
+  // Success — confirm actions, healthy crop state, positive feedback
+  --bf-accent-success: #22cc5e;
+  // Info / resource — resource badges, secondary info labels
+  --bf-accent-info: #70d3fc;
+  // Warning — caution alerts, resource low threshold
+  --bf-accent-warning: #f59e0b;
+  // Danger — critical alerts, error state, destructive actions
+  --bf-accent-danger: #ef4444;
+  // Tech / research — tech-tree nodes, advanced research indicators
+  --bf-accent-tech: #a78bfa;
+  // Experimental — prototype research slots, special module states
+  --bf-accent-experimental: #f472b6;
+}

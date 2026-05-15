@@ -1,40 +1,23 @@
 ﻿:host {
-  display: grid;
+  display: block;
   width: 100%;
+  height: 100%;
   min-height: 0;
 }
 
 .phaser-game {
-  width: min(100%, 96rem);
-  max-width: 100%;
-  max-height: calc(100vh - 12rem);
-  min-height: clamp(14rem, 52vh, 24rem);
-  height: auto;
-  aspect-ratio: 16 / 9;
-  margin-inline: auto;
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
   overflow: hidden;
-  border-radius: 1rem;
-  background: #02070c;
+  background: var(--bf-surface-canvas);
 }
 
 .phaser-game canvas {
   display: block;
   width: 100% !important;
-  height: auto !important;
+  height: 100% !important;
   max-width: 100%;
-  aspect-ratio: 16 / 9;
-}
-
-@media (max-width: 720px) {
-  .phaser-game {
-    width: 100%;
-  }
-}
-
-@media (max-height: 720px) {
-  .phaser-game {
-    width: min(100%, 72rem);
-    max-height: calc(100vh - 9rem);
-    min-height: clamp(12rem, 46vh, 18rem);
-  }
+  max-height: 100%;
 }

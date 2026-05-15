@@ -17,18 +17,21 @@ describe('game shell responsive styling contract', () => {
     expect(shellStyles).toContain('flex-wrap: wrap;');
     expect(shellStyles).toMatch(/@media\s*\(max-width:\s*720px\)/);
     expect(shellStyles).toMatch(/@media\s*\(max-height:\s*720px\)/);
-    expect(shellStyles).toContain('padding: clamp(');
+    expect(shellStyles).toContain('height: 100dvh;');
+    expect(shellStyles).toContain('padding: 0;');
+    expect(shellStyles).toContain('.stage > app-phaser-game');
+    expect(shellStyles).toContain('overflow: hidden;');
 
     expect(globalStyles).toContain('overflow-x: hidden;');
     expect(globalStyles).toContain('overflow-y: auto;');
   });
 
-  it('keeps the Phaser host inside a responsive 16:9 frame instead of forcing a fixed desktop canvas width', () => {
+  it('makes the Phaser host consume the remaining viewport under the header responsively', () => {
     const phaserStyles = readSiblingFile('../../game/phaser/phaser-game.scss');
 
-    expect(phaserStyles).toContain('aspect-ratio: 16 / 9;');
-    expect(phaserStyles).toContain('max-width: 100%;');
-    expect(phaserStyles).toContain('width: min(100%,');
-    expect(phaserStyles).toContain('height: auto !important;');
+    expect(phaserStyles).toContain('width: 100%;');
+    expect(phaserStyles).toContain('height: 100%;');
+    expect(phaserStyles).toContain('max-height: 100%;');
+    expect(phaserStyles).toContain('height: 100% !important;');
   });
 });

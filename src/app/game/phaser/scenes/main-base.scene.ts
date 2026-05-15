@@ -1,21 +1,33 @@
 ﻿import Phaser from 'phaser';
 
+const TEMP_BACKGROUND_KEY = 'main-base-background';
+const TEMP_BACKGROUND_PATH = 'assets/backgrounds/bg_lunar_prototype.png';
+
 export class MainBaseScene extends Phaser.Scene {
+  private background?: Phaser.GameObjects.Image;
+
   constructor() {
     super('MainBaseScene');
   }
 
-  create(): void {
-    const { width, height } = this.scale;
+  preload(): void {
+    if (!this.textures.exists(TEMP_BACKGROUND_KEY)) {
+      this.load.image(TEMP_BACKGROUND_KEY, TEMP_BACKGROUND_PATH);
+    }
+  }
 
-    this.add.rectangle(width / 2, height / 2, width, height, 0x02070c);
-    this.add.circle(width * 0.76, height * 0.24, 56, 0x9adff2, 0.25);
-    this.add.rectangle(width / 2, height * 0.76, width * 0.72, 120, 0x162231, 0.92);
-    this.add.rectangle(width / 2, height * 0.65, 280, 120, 0x2f5368, 0.92);
-    this.add.text(width / 2, height * 0.48, 'Biofactory: Lunar visual placeholder', {
-      color: '#e8f7ff',
-      fontFamily: 'monospace',
-      fontSize: '32px'
-    }).setOrigin(0.5);
+  create(): void {
+    this.background = this.add.image(0, 0, TEMP_BACKGROUND_KEY);
+
+    this.layoutBackground(this.scale.width, this.scale.height);
+    this.scale.on('resize', this.handleResize, this);
+  }
+
+  private handleResize(gameSize: { width: number; height: number }): void {
+    this.layoutBackground(gameSize.width, gameSize.height);
+  }
+
+  private layoutBackground(width: number, height: number): void {
+    this.background?.setPosition(width / 2, height / 2).setDisplaySize(width, height);
   }
 }

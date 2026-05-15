@@ -12,8 +12,8 @@ export function createPhaserGameConfig(parent: string): Phaser.Types.Core.GameCo
     height: options.height,
     backgroundColor: options.backgroundColor,
     scale: {
-      mode: Phaser.Scale.FIT,
-      autoCenter: Phaser.Scale.CENTER_BOTH
+      mode: Phaser.Scale[options.scale.mode],
+      autoCenter: Phaser.Scale[options.scale.autoCenter]
     },
     scene: [MainBaseScene]
   };
