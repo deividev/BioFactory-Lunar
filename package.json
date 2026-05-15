@@ -1,0 +1,48 @@
+{
+    "name": "biofactory-lunar",
+    "version": "0.0.0",
+    "private": true,
+    "type": "module",
+    "packageManager": "pnpm@10.28.2",
+    "scripts": {
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "typecheck": "tsc --noEmit",
+        "build": "ng build --base-href ./",
+        "dev": "ng serve --host 127.0.0.1 --port 4200",
+        "electron:build": "tsc -p tsconfig.electron.json",
+        "electron:start": "pnpm build && pnpm electron:build && electron .",
+        "electron:wait": "wait-on http://127.0.0.1:4200 && pnpm electron:build && cross-env BIOFACTORY_DEV_SERVER_URL=http://127.0.0.1:4200 electron .",
+        "electron:watch": "tsc -p tsconfig.electron.json --watch --preserveWatchOutput",
+        "electron:serve": "wait-on http://127.0.0.1:4200 file:./dist-electron/electron/main.js && cross-env BIOFACTORY_DEV_SERVER_URL=http://127.0.0.1:4200 nodemon --delay 750ms --watch dist-electron/electron --ext js --exec \"electron .\"",
+        "electron:dev": "concurrently -k \"pnpm dev\" \"pnpm electron:watch\" \"pnpm electron:serve\"",
+        "electron:smoke": "pnpm build && pnpm electron:build && electron ."
+    },
+    "engines": {
+        "node": ">=22.0.0",
+        "pnpm": ">=10.0.0"
+    },
+    "devDependencies": {
+        "@angular/build": "21.2.0",
+        "@angular/cli": "21.2.0",
+        "@angular/compiler-cli": "21.2.0",
+        "@types/node": "25.5.0",
+        "concurrently": "9.2.1",
+        "cross-env": "10.1.0",
+        "electron": "42.1.0",
+        "nodemon": "3.1.14",
+        "typescript": "5.9.3",
+        "vitest": "4.0.18",
+        "wait-on": "9.0.10"
+    },
+    "dependencies": {
+        "@angular/common": "21.2.0",
+        "@angular/compiler": "21.2.0",
+        "@angular/core": "21.2.0",
+        "@angular/platform-browser": "21.2.0",
+        "phaser": "3.90.0",
+        "rxjs": "7.8.2",
+        "tslib": "2.8.1"
+    },
+    "main": "dist-electron/electron/main.js"
+}
