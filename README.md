@@ -1,4 +1,4 @@
-﻿# Biofactory: Lunar
+# Biofactory: Lunar
 
 Biofactory: Lunar is a desktop-first 2D management game prototype built with Angular, Phaser, and Electron. The current public scaffold proves the technical foundation: Angular owns the app shell, Phaser renders a visual placeholder, Electron provides a secure desktop shell, and all project workflows use pnpm.
 
@@ -21,7 +21,7 @@ Biofactory: Lunar is a desktop-first 2D management game prototype built with Ang
 | App/UI | Angular 21 + TypeScript | App shell, UI, future game state and services |
 | Visual layer | Phaser 3 | Visual scene placeholder, future interactive 2D layer |
 | Desktop shell | Electron | Desktop window, secure preload boundary, future native APIs |
-| Tests | Vitest | Unit tests and scaffold verification |
+| Tests | Vitest + Angular TestBed | Unit, coverage, and Angular component verification |
 | Package manager | pnpm | Dependency install and all scripts |
 
 ## Requirements
@@ -57,7 +57,9 @@ http://127.0.0.1:4200
 |---|---|
 | `pnpm install` | Install dependencies from `pnpm-lock.yaml`. |
 | `pnpm dev` | Start the Angular dev server on `127.0.0.1:4200`. |
-| `pnpm test` | Run the Vitest test suite once. |
+| `pnpm test` | Run the Node/Vitest unit suite once. |
+| `pnpm test:angular` | Run Angular component tests with Angular TestBed. |
+| `pnpm test:coverage` | Run unit and Angular component coverage gates at 90%+ for every covered source file. |
 | `pnpm test:watch` | Run Vitest in watch mode. |
 | `pnpm typecheck` | Run TypeScript type checks without emitting files. |
 | `pnpm build` | Build the Angular app with relative base href for Electron compatibility. |
@@ -72,6 +74,8 @@ Before considering a code change complete, run:
 
 ```powershell
 pnpm test
+pnpm test:angular
+pnpm test:coverage
 pnpm typecheck
 pnpm build
 pnpm electron:build
@@ -95,7 +99,7 @@ pnpm electron:smoke
 5. Build Angular and Electron.
 6. For desktop changes, run an Electron smoke check.
 
-This project follows a strict TDD discipline. Passing tests alone is not enough once coverage tooling is configured: code changes must also meet the project's coverage threshold.
+This project follows a strict TDD discipline. Passing tests alone is not enough: code changes must also pass `pnpm test:coverage` with at least 90% statements, branches, functions, and lines for every covered source file, not only the global aggregate. Angular UI/component changes must also pass `pnpm test:angular`.
 
 ## Project structure
 
@@ -112,7 +116,8 @@ biofactory-lunar/
   package.json              pnpm scripts and dependencies
   pnpm-lock.yaml            Dependency lockfile
   tsconfig*.json            TypeScript configs
-  vitest.config.ts          Test config
+  tsconfig.spec.json        Angular component test TypeScript config
+  vitest.config.ts          Node/Vitest unit test config
 ```
 
 ## Architecture rules

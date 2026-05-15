@@ -26,4 +26,15 @@ describe('Electron runtime policy', () => {
     expect(policy.disableHttpCache).toBe(false);
     expect(policy.sessionDataPath).toBeUndefined();
   });
+
+  it('falls back to a safe session slug when the app name has no alphanumeric characters', () => {
+    const policy = createElectronRuntimePolicy({
+      appName: ' : ',
+      devServerUrl: 'http://127.0.0.1:4200',
+      pid: 7,
+      tempDir: 'C:/Temp'
+    });
+
+    expect(policy.sessionDataPath).toBe(path.join('C:/Temp', 'electron-app', 'electron-dev-session-7'));
+  });
 });
