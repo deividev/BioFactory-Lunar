@@ -13,6 +13,8 @@ export default defineConfig({
       exclude: [
         '**/*.spec.ts',
         '**/*.d.ts',
+        'src/**/index.ts',
+        'src/app/core/models/**/*.ts',
         'src/main.ts',
         'src/app/layout/game-shell/game-shell.ts',
         'src/app/game/phaser/phaser-game.ts',
@@ -37,4 +39,3 @@ export default defineConfig({
     }
   }
 });
-
