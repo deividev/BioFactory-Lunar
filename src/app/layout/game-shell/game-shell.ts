@@ -1,14 +1,12 @@
 ﻿import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { PhaserGame } from '../../game/phaser/phaser-game';
-import { createGameShellViewModel } from './game-shell.view';
+import { HudTop } from '../hud-top/hud-top';
 
 @Component({
   selector: 'app-game-shell',
-  imports: [PhaserGame],
+  imports: [HudTop, PhaserGame],
   templateUrl: './game-shell.html',
   styleUrl: './game-shell.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class GameShell {
-  protected readonly viewModel = createGameShellViewModel();
-}
+export class GameShell {}

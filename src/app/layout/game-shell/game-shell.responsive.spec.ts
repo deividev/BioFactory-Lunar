@@ -12,13 +12,15 @@ function readSiblingFile(relativePath: string): string {
 describe('game shell responsive styling contract', () => {
   it('allows the shell to adapt the HUD and stage layout for narrow or short viewports', () => {
     const shellStyles = readSiblingFile('./game-shell.scss');
+    const hudStyles = readSiblingFile('../hud-top/hud-top.scss');
     const globalStyles = readSiblingFile('../../../styles.scss');
 
-    expect(shellStyles).toContain('flex-wrap: wrap;');
-    expect(shellStyles).toMatch(/@media\s*\(max-width:\s*720px\)/);
-    expect(shellStyles).toMatch(/@media\s*\(max-height:\s*720px\)/);
+    expect(hudStyles).toContain('flex-wrap: wrap;');
+    expect(hudStyles).toMatch(/@media\s*\(max-width:\s*720px\)/);
+    expect(hudStyles).toMatch(/@media\s*\(max-height:\s*720px\)/);
     expect(shellStyles).toContain('height: 100dvh;');
     expect(shellStyles).toContain('padding: 0;');
+    expect(shellStyles).toContain('.game-shell > app-hud-top');
     expect(shellStyles).toContain('.stage > app-phaser-game');
     expect(shellStyles).toContain('overflow: hidden;');
 

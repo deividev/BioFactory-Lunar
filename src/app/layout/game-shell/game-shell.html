@@ -1,11 +1,5 @@
 ﻿<section class="game-shell" aria-label="Biofactory Lunar game shell">
-  <header class="hud" aria-label="Placeholder HUD">
-    <div>
-      <p class="eyebrow">{{ viewModel.hudStatus }}</p>
-      <h1>{{ viewModel.title }}</h1>
-    </div>
-    <p class="hud__status">{{ viewModel.subtitle }}</p>
-  </header>
+  <app-hud-top />
 
   <main class="stage" aria-label="Visual layer placeholder">
     <app-phaser-game />

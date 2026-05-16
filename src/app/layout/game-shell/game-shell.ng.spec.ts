@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { PhaserGame, PHASER_GAME_FACTORY } from '../../game/phaser/phaser-game';
+import { ResourceService } from '../../core/services';
 import { GameShell } from './game-shell';
 
 @Component({
@@ -10,7 +11,7 @@ import { GameShell } from './game-shell';
 class StubPhaserGame {}
 
 describe('GameShell Angular component', () => {
-  it('renders user-visible shell and visual layer status text', async () => {
+  it('composes the state-backed HUD and preserves the Phaser visual host', async () => {
     await TestBed.configureTestingModule({
       imports: [GameShell]
     })
@@ -26,8 +27,40 @@ describe('GameShell Angular component', () => {
 
     expect(text).toContain('Biofactory: Lunar');
     expect(text).toContain('HUD placeholder online');
-    expect(text).toContain('Angular shell ready');
+    expect(text).toContain('Credits');
+    expect(text).toContain('200');
     expect(text).toContain('Stub Phaser layer');
+  });
+
+  it('lets HUD actions update resource state through ResourceService inside the shell', async () => {
+    await TestBed.configureTestingModule({
+      imports: [GameShell]
+    })
+      .overrideComponent(GameShell, {
+        remove: { imports: [PhaserGame] },
+        add: { imports: [StubPhaserGame] }
+      })
+      .compileComponents();
+
+    const fixture = TestBed.createComponent(GameShell);
+    const resourceService = TestBed.inject(ResourceService);
+    const addSpy = vi.spyOn(resourceService, 'add');
+
+    fixture.detectChanges();
+
+    const collectCredits = Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>).find((button) =>
+      button.textContent?.includes('Collect 25 credits'),
+    );
+
+    expect(collectCredits).toBeTruthy();
+
+    collectCredits?.click();
+    fixture.detectChanges();
+
+    expect(addSpy).toHaveBeenCalledWith('credits', 25);
+    expect(resourceService.getAmount('credits')).toBe(225);
+    expect(fixture.nativeElement.textContent).toContain('225');
+    expect(fixture.nativeElement.textContent).toContain('Stub Phaser layer');
   });
 
   it('renders the real Phaser host when a safe Phaser factory is provided', async () => {

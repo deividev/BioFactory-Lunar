@@ -17,6 +17,7 @@ export default defineConfig({
         'src/app/core/models/**/*.ts',
         'src/main.ts',
         'src/app/layout/game-shell/game-shell.ts',
+        'src/app/layout/hud-top/hud-top.ts',
         'src/app/game/phaser/phaser-game.ts',
         'electron/main.ts',
         'electron/preload.ts',

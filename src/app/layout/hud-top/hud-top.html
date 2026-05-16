@@ -1,0 +1,27 @@
+<header class="hud-top" aria-label="Resource HUD">
+  <div class="hud-top__identity">
+    <p class="hud-top__eyebrow">HUD placeholder online</p>
+    <h1>Biofactory: Lunar</h1>
+    <p class="hud-top__subtitle">Angular shell ready</p>
+  </div>
+
+  <section class="hud-top__resources" aria-label="Current resources">
+    <h2>Resources</h2>
+    <ul>
+      @for (resource of resources(); track resource.id) {
+        <li>
+          <span>{{ resource.name }}</span>
+          <strong>{{ resource.displayValue }}</strong>
+        </li>
+      }
+    </ul>
+  </section>
+
+  <section class="hud-top__actions" aria-label="Resource actions">
+    <h2>Resource actions</h2>
+    <button type="button" (click)="collectCredits()">Collect 25 credits</button>
+    <button type="button" (click)="spendCredits()">Spend 50 credits</button>
+    <button type="button" (click)="overfillWater()">Overfill water</button>
+    <p [attr.role]="feedbackRole()">{{ feedbackMessage() }}</p>
+  </section>
+</header>
