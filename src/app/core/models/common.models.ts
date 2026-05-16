@@ -14,6 +14,10 @@ export interface ItemAmount {
   quantity: number;
 }
 
+export type ActionResult<Code extends string = string> =
+  | { readonly success: true }
+  | { readonly success: false; readonly code: Code; readonly message: string };
+
 export interface UnlockRequirement {
   id: string;
   description: string;
