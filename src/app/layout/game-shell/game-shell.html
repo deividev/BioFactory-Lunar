@@ -1,7 +1,11 @@
 ﻿<section class="game-shell" aria-label="Biofactory Lunar game shell">
   <app-hud-top />
 
-  <main class="stage" aria-label="Visual layer placeholder">
-    <app-phaser-game />
+  <main class="game-shell__body" aria-label="State-backed operations">
+    <app-storage />
+
+    <section class="stage" aria-label="Visual layer placeholder">
+      <app-phaser-game />
+    </section>
   </main>
 </section>

@@ -29,6 +29,8 @@ describe('GameShell Angular component', () => {
     expect(text).toContain('HUD placeholder online');
     expect(text).toContain('Credits');
     expect(text).toContain('200');
+    expect(text).toContain('Storage placeholder online');
+    expect(text).toContain('Protein Leaf Seed');
     expect(text).toContain('Stub Phaser layer');
   });
 

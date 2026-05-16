@@ -1,0 +1,29 @@
+﻿<aside class="storage" aria-label="Storage inventory">
+  <div class="storage__header">
+    <p class="storage__eyebrow">Storage placeholder online</p>
+    <h2>Inventory</h2>
+    <p class="storage__capacity">
+      Used capacity
+      <strong>{{ usedCapacity() }} / {{ totalCapacity() }}</strong>
+    </p>
+  </div>
+
+  <section class="storage__items" aria-label="Stored items">
+    <ul>
+      @for (item of items(); track item.id) {
+        <li>
+          <span>{{ item.name }}</span>
+          <strong>{{ item.quantity }}</strong>
+        </li>
+      }
+    </ul>
+  </section>
+
+  <section class="storage__actions" aria-label="Storage actions">
+    <h3>Storage actions</h3>
+    <button type="button" (click)="addProteinSeeds()">Add 3 protein seeds</button>
+    <button type="button" (click)="consumeProteinSeed()">Consume 1 protein seed</button>
+    <button type="button" (click)="overfillStorage()">Overfill storage</button>
+    <p [attr.role]="feedbackRole()">{{ feedbackMessage() }}</p>
+  </section>
+</aside>

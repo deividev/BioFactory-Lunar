@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+﻿import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
@@ -21,6 +21,8 @@ describe('game shell responsive styling contract', () => {
     expect(shellStyles).toContain('height: 100dvh;');
     expect(shellStyles).toContain('padding: 0;');
     expect(shellStyles).toContain('.game-shell > app-hud-top');
+    expect(shellStyles).toContain('.game-shell__body > app-storage');
+    expect(shellStyles).toMatch(/@media\s*\(max-width:\s*960px\)/);
     expect(shellStyles).toContain('.stage > app-phaser-game');
     expect(shellStyles).toContain('overflow: hidden;');
 
@@ -37,3 +39,4 @@ describe('game shell responsive styling contract', () => {
     expect(phaserStyles).toContain('height: 100% !important;');
   });
 });
+
