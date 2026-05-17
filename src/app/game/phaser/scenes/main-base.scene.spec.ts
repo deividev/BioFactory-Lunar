@@ -1,3 +1,4 @@
+import { Subject } from 'rxjs';
 import { vi } from 'vitest';
 
 vi.mock('phaser', () => ({
@@ -12,7 +13,74 @@ vi.mock('phaser', () => ({
 }));
 
 import { describe, expect, it } from 'vitest';
-import { MainBaseScene } from './main-base.scene';
+import type { AngularToPhaserEvent, PhaserToAngularEvent } from '../../bridge';
+import { MainBaseScene, type PhaserSceneBridge } from './main-base.scene';
+
+interface ModuleRectangleHarness {
+  data: Record<string, unknown>;
+  handlers: Record<string, () => void>;
+  interactive: number;
+  strokes: string[];
+}
+
+function createModuleScene(): {
+  commands: Subject<AngularToPhaserEvent>;
+  emitted: PhaserToAngularEvent[];
+  rectangles: ModuleRectangleHarness[];
+  scene: { create(): void };
+} {
+  const commands = new Subject<AngularToPhaserEvent>();
+  const emitted: PhaserToAngularEvent[] = [];
+  const rectangles: ModuleRectangleHarness[] = [];
+  const bridge: PhaserSceneBridge = {
+    angularEvents$: commands.asObservable(),
+    emitFromPhaser: (event) => emitted.push(event),
+  };
+  const scene = new MainBaseScene(bridge) as any;
+  const chain = { setDisplaySize: () => chain, setPosition: () => chain, setDepth: () => chain, setOrigin: () => chain };
+
+  scene.textures = { exists: () => true };
+  scene.load = { image: () => undefined };
+  scene.scale = { width: 1920, height: 1080, on: () => undefined };
+  scene.events = { once: () => undefined };
+  scene.add = {
+    image: () => chain,
+    text: () => chain,
+    rectangle: () => {
+      const rectangle = {
+        data: {} as Record<string, unknown>,
+        handlers: {} as Record<string, () => void>,
+        interactive: 0,
+        strokes: [] as string[],
+        on: (event: string, handler: () => void) => {
+          rectangle.handlers[event] = handler;
+          return rectangle;
+        },
+        setData: (key: string, value: unknown) => {
+          rectangle.data[key] = value;
+          return rectangle;
+        },
+        setDepth: () => rectangle,
+        setDisplaySize: () => rectangle,
+        setFillStyle: () => rectangle,
+        setInteractive: () => {
+          rectangle.interactive += 1;
+          return rectangle;
+        },
+        setOrigin: () => rectangle,
+        setPosition: () => rectangle,
+        setStrokeStyle: (width: number, color: number, alpha: number) => {
+          rectangle.strokes.push(`${width}|${color}|${alpha}`);
+          return rectangle;
+        },
+      };
+      rectangles.push(rectangle);
+      return rectangle;
+    },
+  };
+
+  return { commands, emitted, rectangles, scene };
+}
 
 describe('MainBaseScene visual placeholder', () => {
   it('loads the temporary runtime background once and resizes it with the scene', () => {
@@ -28,10 +96,29 @@ describe('MainBaseScene visual placeholder', () => {
         height: number;
         on(event: string, handler: (gameSize: { width: number; height: number }) => void, context: unknown): void;
       };
+      events: {
+        once(event: string, handler: () => void, context?: unknown): void;
+      };
       add: {
         image(...args: unknown[]): {
           setPosition(x: number, y: number): unknown;
           setDisplaySize(width: number, height: number): unknown;
+        };
+        rectangle(): {
+          on(): unknown;
+          setData(): unknown;
+          setDepth(): unknown;
+          setDisplaySize(): unknown;
+          setFillStyle(): unknown;
+          setInteractive(): unknown;
+          setOrigin(): unknown;
+          setPosition(): unknown;
+          setStrokeStyle(): unknown;
+        };
+        text(): {
+          setDepth(): { setOrigin(): { setPosition(): unknown } };
+          setOrigin(): { setDepth(): unknown };
+          setPosition(): unknown;
         };
       };
       preload(): void;
@@ -49,6 +136,22 @@ describe('MainBaseScene visual placeholder', () => {
         calls.push(`background-display-size:${width}|${height}`);
         return background;
       }
+    };
+    const rectangle = {
+      on: () => rectangle,
+      setData: () => rectangle,
+      setDepth: () => rectangle,
+      setDisplaySize: () => rectangle,
+      setFillStyle: () => rectangle,
+      setInteractive: () => rectangle,
+      setOrigin: () => rectangle,
+      setPosition: () => rectangle,
+      setStrokeStyle: () => rectangle
+    };
+    const text = {
+      setDepth: () => text,
+      setOrigin: () => text,
+      setPosition: () => text
     };
 
     scene.textures = {
@@ -73,11 +176,16 @@ describe('MainBaseScene visual placeholder', () => {
         });
       }
     };
+    scene.events = {
+      once: () => undefined
+    };
     scene.add = {
       image: (...args: unknown[]) => {
         calls.push(`image-add:${args.join('|')}`);
         return background;
-      }
+      },
+      rectangle: () => rectangle,
+      text: () => text
     };
 
     scene.preload();
@@ -124,5 +232,51 @@ describe('MainBaseScene visual placeholder', () => {
     scene.preload();
 
     expect(calls).toEqual(['texture-exists:main-base-background']);
+  });
+
+  it('creates clickable placeholders for the five MVP module instance IDs', () => {
+    const { rectangles, scene } = createModuleScene();
+
+    scene.create();
+
+    expect(rectangles.map((rectangle) => rectangle.data['moduleId'])).toEqual([
+      'module_command_center_basic_01',
+      'module_greenhouse_basic_01',
+      'module_processing_basic_01',
+      'module_shipping_hangar_basic_01',
+      'module_storage_basic_01'
+    ]);
+    expect(rectangles.every((rectangle) => rectangle.interactive === 1)).toBe(true);
+  });
+
+  it('emits typed bridge events from module hotspot pointer interactions', () => {
+    const { emitted, rectangles, scene } = createModuleScene();
+
+    scene.create();
+    rectangles[1]!.handlers['pointerover']!();
+    rectangles[1]!.handlers['pointerout']!();
+    rectangles[1]!.handlers['pointerdown']!();
+
+    expect(emitted).toEqual([
+      { type: 'sceneReady' },
+      { type: 'moduleHovered', moduleId: 'module_greenhouse_basic_01' },
+      { type: 'moduleUnhovered', moduleId: 'module_greenhouse_basic_01' },
+      { type: 'moduleSelected', moduleId: 'module_greenhouse_basic_01' }
+    ]);
+  });
+
+  it('applies selected highlight commands to one module and clears them from all modules', () => {
+    const { commands, rectangles, scene } = createModuleScene();
+
+    scene.create();
+    commands.next({ type: 'highlightModule', moduleId: 'module_greenhouse_basic_01' });
+
+    expect(rectangles[1]!.strokes.at(-1)).toBe('4|8255999|1');
+    expect(rectangles[4]!.strokes.at(-1)).toBe('2|3918280|0.9');
+
+    commands.next({ type: 'clearHighlight' });
+
+    expect(rectangles[1]!.strokes.at(-1)).toBe('2|3918280|0.9');
+    expect(rectangles[4]!.strokes.at(-1)).toBe('2|3918280|0.9');
   });
 });
