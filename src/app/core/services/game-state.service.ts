@@ -1,6 +1,6 @@
 import { computed, Injectable, signal, type Signal } from '@angular/core';
 
-import type { ClockState, GameState, InventoryState, ResourceState } from '../models';
+import type { ClockState, GameState, InventoryState, ResourceState, UIState } from '../models';
 import { createInitialGameState } from '../state';
 
 type DeepReadonly<T> = T extends (...args: never[]) => unknown
@@ -36,6 +36,7 @@ export class GameStateService {
   readonly resources: Signal<DeepReadonly<ResourceState>> = computed(() => deepFreeze(cloneState(this.#state().resources)));
   readonly inventory: Signal<DeepReadonly<InventoryState>> = computed(() => deepFreeze(cloneState(this.#state().inventory)));
   readonly clock: Signal<DeepReadonly<ClockState>> = computed(() => deepFreeze(cloneState(this.#state().clock)));
+  readonly ui: Signal<DeepReadonly<UIState>> = computed(() => deepFreeze(cloneState(this.#state().ui)));
 
   getSnapshot(): GameState {
     return cloneState(this.#state());
@@ -63,6 +64,13 @@ export class GameStateService {
     this.#state.update((state) => ({
       ...state,
       inventory: cloneState(updater(cloneState(state.inventory))),
+    }));
+  }
+
+  updateUi(updater: (ui: UIState) => UIState): void {
+    this.#state.update((state) => ({
+      ...state,
+      ui: cloneState(updater(cloneState(state.ui))),
     }));
   }
 }

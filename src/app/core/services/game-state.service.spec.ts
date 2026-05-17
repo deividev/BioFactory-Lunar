@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { GameSpeed } from '../enums';
+import { GameSpeed, PanelType } from '../enums';
 import { createInitialGameState } from '../state';
 import { GameStateService } from './game-state.service';
 
@@ -60,14 +60,17 @@ describe('GameStateService', () => {
     snapshot.resources.values['credits'] = 999;
     snapshot.inventory.items['seed_protein_leaf'] = 99;
     snapshot.greenhouse.slots[0]!.id = 'mutated_slot';
+    snapshot.ui.activePanel = PanelType.Storage;
 
     expect(service.getSnapshot().resources.values['credits']).toBe(200);
     expect(service.getSnapshot().inventory.items['seed_protein_leaf']).toBe(2);
     expect(service.getSnapshot().greenhouse.slots[0]!.id).toBe('crop_slot_01');
+    expect(service.getSnapshot().ui.activePanel).toBe(PanelType.CommandCenter);
 
     const resourcesView = service.resources();
     const inventoryView = service.inventory();
     const clockView = service.clock();
+    const uiView = service.ui();
 
     expect(Object.isFrozen(resourcesView)).toBe(true);
     expect(Object.isFrozen(resourcesView.values)).toBe(true);
@@ -75,6 +78,7 @@ describe('GameStateService', () => {
     expect(Object.isFrozen(inventoryView)).toBe(true);
     expect(Object.isFrozen(inventoryView.items)).toBe(true);
     expect(Object.isFrozen(clockView)).toBe(true);
+    expect(Object.isFrozen(uiView)).toBe(true);
     expect(() => {
       (resourcesView.values as Record<string, number>)['credits'] = 1;
     }).toThrow(TypeError);
@@ -84,17 +88,22 @@ describe('GameStateService', () => {
     expect(() => {
       (clockView as { elapsedSeconds: number }).elapsedSeconds = 99;
     }).toThrow(TypeError);
+    expect(() => {
+      (uiView as { activePanel: PanelType }).activePanel = PanelType.Storage;
+    }).toThrow(TypeError);
     expect(service.getSnapshot().resources.values['credits']).toBe(200);
     expect(service.getSnapshot().inventory.items['seed_protein_leaf']).toBe(2);
     expect(service.getSnapshot().clock.elapsedSeconds).toBe(0);
+    expect(service.getSnapshot().ui.activePanel).toBe(PanelType.CommandCenter);
   });
 
-  it('updates clock, resource, and inventory branches without mutating unrelated state or leaking updater drafts', () => {
+  it('updates clock, resource, inventory, and UI branches without mutating unrelated state or leaking updater drafts', () => {
     const service = new GameStateService();
     const initial = service.getSnapshot();
     let leakedClockDraft = initial.clock;
     let leakedResourcesDraft = initial.resources;
     let leakedInventoryDraft = initial.inventory;
+    let leakedUiDraft = initial.ui;
 
     service.updateClock((clock) => {
       leakedClockDraft = clock;
@@ -113,15 +122,24 @@ describe('GameStateService', () => {
       inventory.items['biofood_pack'] = 2;
       return inventory;
     });
+    service.updateUi((ui) => {
+      leakedUiDraft = ui;
+      ui.activePanel = PanelType.Greenhouse;
+      ui.selectedModuleId = 'module_greenhouse_basic_01';
+      return ui;
+    });
 
     leakedClockDraft.elapsedSeconds = 1;
     leakedResourcesDraft.values['credits'] = 1;
     leakedInventoryDraft.items['biofood_pack'] = 99;
+    leakedUiDraft.activePanel = PanelType.Storage;
+    leakedUiDraft.selectedModuleId = 'module_storage_basic_01';
 
     const updated = service.getSnapshot();
     expect(updated.clock).toEqual({ elapsedSeconds: 120, day: 1, speed: GameSpeed.X2 });
     expect(updated.resources.values['credits']).toBe(275);
     expect(updated.inventory.items['biofood_pack']).toBe(2);
+    expect(updated.ui).toEqual({ activePanel: PanelType.Greenhouse, selectedModuleId: 'module_greenhouse_basic_01' });
     expect(updated.greenhouse).toEqual(initial.greenhouse);
     expect(updated.meta).toEqual(initial.meta);
   });
