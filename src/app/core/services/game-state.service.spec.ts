@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { GameSpeed } from '../enums';
 import { createInitialGameState } from '../state';
 import { GameStateService } from './game-state.service';
 
@@ -66,28 +67,42 @@ describe('GameStateService', () => {
 
     const resourcesView = service.resources();
     const inventoryView = service.inventory();
+    const clockView = service.clock();
 
     expect(Object.isFrozen(resourcesView)).toBe(true);
     expect(Object.isFrozen(resourcesView.values)).toBe(true);
     expect(Object.isFrozen(resourcesView.maxValues)).toBe(true);
     expect(Object.isFrozen(inventoryView)).toBe(true);
     expect(Object.isFrozen(inventoryView.items)).toBe(true);
+    expect(Object.isFrozen(clockView)).toBe(true);
     expect(() => {
       (resourcesView.values as Record<string, number>)['credits'] = 1;
     }).toThrow(TypeError);
     expect(() => {
       (inventoryView.items as Record<string, number>)['seed_protein_leaf'] = 1;
     }).toThrow(TypeError);
+    expect(() => {
+      (clockView as { elapsedSeconds: number }).elapsedSeconds = 99;
+    }).toThrow(TypeError);
     expect(service.getSnapshot().resources.values['credits']).toBe(200);
     expect(service.getSnapshot().inventory.items['seed_protein_leaf']).toBe(2);
+    expect(service.getSnapshot().clock.elapsedSeconds).toBe(0);
   });
 
-  it('updates resource and inventory branches without mutating unrelated state or leaking updater drafts', () => {
+  it('updates clock, resource, and inventory branches without mutating unrelated state or leaking updater drafts', () => {
     const service = new GameStateService();
     const initial = service.getSnapshot();
+    let leakedClockDraft = initial.clock;
     let leakedResourcesDraft = initial.resources;
     let leakedInventoryDraft = initial.inventory;
 
+    service.updateClock((clock) => {
+      leakedClockDraft = clock;
+      clock.elapsedSeconds = 120;
+      clock.day = 1;
+      clock.speed = GameSpeed.X2;
+      return clock;
+    });
     service.updateResources((resources) => {
       leakedResourcesDraft = resources;
       resources.values['credits'] = 275;
@@ -99,13 +114,14 @@ describe('GameStateService', () => {
       return inventory;
     });
 
+    leakedClockDraft.elapsedSeconds = 1;
     leakedResourcesDraft.values['credits'] = 1;
     leakedInventoryDraft.items['biofood_pack'] = 99;
 
     const updated = service.getSnapshot();
+    expect(updated.clock).toEqual({ elapsedSeconds: 120, day: 1, speed: GameSpeed.X2 });
     expect(updated.resources.values['credits']).toBe(275);
     expect(updated.inventory.items['biofood_pack']).toBe(2);
-    expect(updated.clock).toEqual(initial.clock);
     expect(updated.greenhouse).toEqual(initial.greenhouse);
     expect(updated.meta).toEqual(initial.meta);
   });

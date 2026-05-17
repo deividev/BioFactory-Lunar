@@ -27,7 +27,7 @@ export function createInitialClockState(): ClockState {
   return {
     elapsedSeconds: 0,
     day: 1,
-    speed: GameSpeed.Normal,
+    speed: GameSpeed.X1,
   };
 }
 

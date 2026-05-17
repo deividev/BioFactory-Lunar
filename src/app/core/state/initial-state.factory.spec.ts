@@ -107,7 +107,7 @@ describe('initial state factories', () => {
   it('creates a full initial game state with placeholder-safe optional systems', () => {
     const state = createInitialGameState();
 
-    expect(state.clock).toEqual({ elapsedSeconds: 0, day: 1, speed: GameSpeed.Normal });
+    expect(state.clock).toEqual({ elapsedSeconds: 0, day: 1, speed: GameSpeed.X1 });
     expect(state.ui).toEqual({ activePanel: PanelType.CommandCenter });
     expect(state.shipments).toEqual([]);
     expect(state.robots).toEqual([]);
@@ -145,6 +145,6 @@ describe('initial state factories', () => {
 
     firstClock.elapsedSeconds = 120;
 
-    expect(secondClock).toEqual({ elapsedSeconds: 0, day: 1, speed: GameSpeed.Normal });
+    expect(secondClock).toEqual({ elapsedSeconds: 0, day: 1, speed: GameSpeed.X1 });
   });
 });

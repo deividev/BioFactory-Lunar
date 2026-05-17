@@ -20,7 +20,10 @@ import {
 
 describe('game domain enums', () => {
   it('exports stable lowercase values for economy and simulation state', () => {
-    expect(GameSpeed.Normal).toBe('normal');
+    expect(GameSpeed.Paused).toBe('paused');
+    expect(GameSpeed.X1).toBe('x1');
+    expect(GameSpeed.X2).toBe('x2');
+    expect(GameSpeed.X4).toBe('x4');
     expect(ResourceCategory.Currency).toBe('currency');
     expect(QualityTier.Standard).toBe('standard');
     expect(CropSlotState.Empty).toBe('empty');

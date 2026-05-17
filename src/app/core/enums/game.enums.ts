@@ -1,7 +1,8 @@
 export enum GameSpeed {
   Paused = 'paused',
-  Normal = 'normal',
-  Fast = 'fast',
+  X1 = 'x1',
+  X2 = 'x2',
+  X4 = 'x4',
 }
 
 export enum ResourceCategory {
