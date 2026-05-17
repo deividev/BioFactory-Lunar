@@ -2,7 +2,18 @@
   <app-hud-top />
 
   <main class="game-shell__body" aria-label="State-backed operations">
-    <app-storage />
+    <aside class="game-shell__sidebar" aria-label="Angular state panels">
+      <app-storage />
+
+      <section class="active-panel" aria-label="Active module panel">
+        <p class="active-panel__eyebrow">Active module panel</p>
+        <h2>{{ activePanelLabel() }}</h2>
+        <p>
+          Selected module
+          <strong>{{ selectedModuleId() }}</strong>
+        </p>
+      </section>
+    </aside>
 
     <section class="stage" aria-label="Visual layer placeholder">
       <app-phaser-game />

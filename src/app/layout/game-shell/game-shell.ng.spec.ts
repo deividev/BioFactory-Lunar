@@ -1,7 +1,9 @@
 import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { PhaserGame, PHASER_GAME_FACTORY } from '../../game/phaser/phaser-game';
-import { ResourceService } from '../../core/services';
+import { PanelType } from '../../core/enums';
+import { GameStateService, ResourceService } from '../../core/services';
+import { PhaserBridgeService } from '../../game/bridge';
+import { PHASER_GAME_FACTORY, PhaserGame } from '../../game/phaser/phaser-game';
 import { GameShell } from './game-shell';
 
 @Component({
@@ -10,24 +12,39 @@ import { GameShell } from './game-shell';
 })
 class StubPhaserGame {}
 
+async function createShellWithStubbedPhaser(): Promise<{
+  readonly bridge: PhaserBridgeService;
+  readonly fixture: ReturnType<typeof TestBed.createComponent<GameShell>>;
+  readonly gameState: GameStateService;
+}> {
+  await TestBed.configureTestingModule({
+    imports: [GameShell]
+  })
+    .overrideComponent(GameShell, {
+      remove: { imports: [PhaserGame] },
+      add: { imports: [StubPhaserGame] }
+    })
+    .compileComponents();
+
+  const fixture = TestBed.createComponent(GameShell);
+  fixture.detectChanges();
+
+  return {
+    bridge: TestBed.inject(PhaserBridgeService),
+    fixture,
+    gameState: TestBed.inject(GameStateService)
+  };
+}
+
 describe('GameShell Angular component', () => {
   it('composes the state-backed HUD and preserves the Phaser visual host', async () => {
-    await TestBed.configureTestingModule({
-      imports: [GameShell]
-    })
-      .overrideComponent(GameShell, {
-        remove: { imports: [PhaserGame] },
-        add: { imports: [StubPhaserGame] }
-      })
-      .compileComponents();
-
-    const fixture = TestBed.createComponent(GameShell);
-    fixture.detectChanges();
+    const { fixture } = await createShellWithStubbedPhaser();
     const text = fixture.nativeElement.textContent;
     const shell = fixture.nativeElement.querySelector('[aria-label="Biofactory Lunar game shell"]') as HTMLElement | null;
     const operations = fixture.nativeElement.querySelector('[aria-label="State-backed operations"]') as HTMLElement | null;
     const resourceHud = fixture.nativeElement.querySelector('header[aria-label="Resource HUD"]') as HTMLElement | null;
     const storage = fixture.nativeElement.querySelector('aside[aria-label="Storage inventory"]') as HTMLElement | null;
+    const activePanel = fixture.nativeElement.querySelector('[aria-label="Active module panel"]') as HTMLElement | null;
     const visualLayer = fixture.nativeElement.querySelector('[aria-label="Visual layer placeholder"]') as HTMLElement | null;
 
     expect(shell).toBeInstanceOf(HTMLElement);
@@ -36,6 +53,7 @@ describe('GameShell Angular component', () => {
     expect(resourceHud?.textContent).toContain('Day 1');
     expect(resourceHud?.textContent).toContain('Speed x1');
     expect(storage?.textContent).toContain('Protein Leaf Seed');
+    expect(activePanel?.textContent).toContain('Command Center');
     expect(visualLayer?.textContent).toContain('Stub Phaser layer');
     expect(text).toContain('Biofactory: Lunar');
     expect(text).toContain('HUD placeholder online');
@@ -49,20 +67,9 @@ describe('GameShell Angular component', () => {
   });
 
   it('lets HUD actions update resource state through ResourceService inside the shell', async () => {
-    await TestBed.configureTestingModule({
-      imports: [GameShell]
-    })
-      .overrideComponent(GameShell, {
-        remove: { imports: [PhaserGame] },
-        add: { imports: [StubPhaserGame] }
-      })
-      .compileComponents();
-
-    const fixture = TestBed.createComponent(GameShell);
+    const { fixture } = await createShellWithStubbedPhaser();
     const resourceService = TestBed.inject(ResourceService);
     const addSpy = vi.spyOn(resourceService, 'add');
-
-    fixture.detectChanges();
 
     const collectCredits = Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>).find((button) =>
       button.textContent?.includes('Collect 25 credits'),
@@ -77,6 +84,55 @@ describe('GameShell Angular component', () => {
     expect(resourceService.getAmount('credits')).toBe(225);
     expect(fixture.nativeElement.textContent).toContain('225');
     expect(fixture.nativeElement.textContent).toContain('Stub Phaser layer');
+  });
+
+  it('routes Phaser module selections to the mapped Angular panel proof', async () => {
+    const { bridge, fixture, gameState } = await createShellWithStubbedPhaser();
+    const selections: ReadonlyArray<{
+      readonly moduleId: string;
+      readonly panel: PanelType;
+      readonly label: string;
+    }> = [
+      { moduleId: 'module_greenhouse_basic_01', panel: PanelType.Greenhouse, label: 'Greenhouse' },
+      { moduleId: 'module_processing_basic_01', panel: PanelType.Processing, label: 'Processing' },
+      { moduleId: 'module_shipping_hangar_basic_01', panel: PanelType.Shipping, label: 'Shipping' },
+      { moduleId: 'module_storage_basic_01', panel: PanelType.Storage, label: 'Storage' }
+    ];
+
+    for (const selection of selections) {
+      bridge.emitFromPhaser({ type: 'moduleSelected', moduleId: selection.moduleId });
+      fixture.detectChanges();
+
+      const activePanel = fixture.nativeElement.querySelector('[aria-label="Active module panel"]') as HTMLElement | null;
+
+      expect(activePanel?.textContent).toContain(selection.label);
+      expect(activePanel?.textContent).toContain(selection.moduleId);
+      expect(gameState.getSnapshot().ui).toEqual({
+        activePanel: selection.panel,
+        selectedModuleId: selection.moduleId
+      });
+    }
+  });
+
+  it('keeps storage selection state-backed without mutating inventory', async () => {
+    const { bridge, fixture, gameState } = await createShellWithStubbedPhaser();
+    const initialInventory = gameState.getSnapshot().inventory;
+
+    bridge.emitFromPhaser({ type: 'moduleSelected', moduleId: 'module_storage_basic_01' });
+    fixture.detectChanges();
+
+    const activePanel = fixture.nativeElement.querySelector('[aria-label="Active module panel"]') as HTMLElement | null;
+    const storage = fixture.nativeElement.querySelector('aside[aria-label="Storage inventory"]') as HTMLElement | null;
+
+    expect(activePanel?.textContent).toContain('Storage');
+    expect(activePanel?.textContent).toContain('module_storage_basic_01');
+    expect(storage?.textContent).toContain('Protein Leaf Seed');
+    expect(storage?.textContent).toContain('2');
+    expect(gameState.getSnapshot().inventory).toEqual(initialInventory);
+    expect(gameState.getSnapshot().ui).toEqual({
+      activePanel: PanelType.Storage,
+      selectedModuleId: 'module_storage_basic_01'
+    });
   });
 
   it('renders the real Phaser host when a safe Phaser factory is provided', async () => {
