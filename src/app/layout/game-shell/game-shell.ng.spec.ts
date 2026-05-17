@@ -33,12 +33,16 @@ describe('GameShell Angular component', () => {
     expect(shell).toBeInstanceOf(HTMLElement);
     expect(operations).toBeInstanceOf(HTMLElement);
     expect(resourceHud?.textContent).toContain('Credits');
+    expect(resourceHud?.textContent).toContain('Day 1');
+    expect(resourceHud?.textContent).toContain('Speed x1');
     expect(storage?.textContent).toContain('Protein Leaf Seed');
     expect(visualLayer?.textContent).toContain('Stub Phaser layer');
     expect(text).toContain('Biofactory: Lunar');
     expect(text).toContain('HUD placeholder online');
     expect(text).toContain('Credits');
     expect(text).toContain('200');
+    expect(text).toContain('Game clock');
+    expect(text).toContain('00:00');
     expect(text).toContain('Storage placeholder online');
     expect(text).toContain('Protein Leaf Seed');
     expect(text).toContain('Stub Phaser layer');

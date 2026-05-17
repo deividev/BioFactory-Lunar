@@ -63,10 +63,29 @@ button {
 }
 
 .hud-top__resources,
+.hud-top__clock,
 .hud-top__actions {
   display: grid;
   gap: 0.5rem;
   min-width: min(100%, 14rem);
+}
+
+.hud-top__clock-readout {
+  display: grid;
+  gap: 0.25rem;
+  color: var(--bf-accent-info);
+}
+
+.hud-top__clock-readout strong {
+  color: var(--bf-text-primary);
+  font-size: 1.25rem;
+  letter-spacing: 0.08em;
+}
+
+.hud-top__clock-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
 }
 
 .hud-top__actions {
@@ -79,6 +98,7 @@ button {
 
 @media (max-width: 720px) {
   .hud-top__resources,
+  .hud-top__clock,
   .hud-top__actions {
     width: 100%;
   }

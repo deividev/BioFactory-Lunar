@@ -17,6 +17,22 @@
     </ul>
   </section>
 
+  <section class="hud-top__clock" aria-label="Game clock">
+    <h2>Game clock</h2>
+    <div class="hud-top__clock-readout" aria-label="Current game time">
+      <span>{{ clock().dayLabel }}</span>
+      <strong>{{ clock().timeLabel }}</strong>
+      <span>{{ clock().speedLabel }}</span>
+    </div>
+    <div class="hud-top__clock-controls" aria-label="Clock controls">
+      <button type="button" (click)="pauseClock()">Pause</button>
+      <button type="button" (click)="resumeClock()">Resume</button>
+      <button type="button" (click)="setClockSpeed(gameSpeed.X1)">x1</button>
+      <button type="button" (click)="setClockSpeed(gameSpeed.X2)">x2</button>
+      <button type="button" (click)="setClockSpeed(gameSpeed.X4)">x4</button>
+    </div>
+  </section>
+
   <section class="hud-top__actions" aria-label="Resource actions">
     <h2>Resource actions</h2>
     <button type="button" (click)="collectCredits()">Collect 25 credits</button>
