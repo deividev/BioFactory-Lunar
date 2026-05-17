@@ -24,7 +24,17 @@ describe('GameShell Angular component', () => {
     const fixture = TestBed.createComponent(GameShell);
     fixture.detectChanges();
     const text = fixture.nativeElement.textContent;
+    const shell = fixture.nativeElement.querySelector('[aria-label="Biofactory Lunar game shell"]') as HTMLElement | null;
+    const operations = fixture.nativeElement.querySelector('[aria-label="State-backed operations"]') as HTMLElement | null;
+    const resourceHud = fixture.nativeElement.querySelector('header[aria-label="Resource HUD"]') as HTMLElement | null;
+    const storage = fixture.nativeElement.querySelector('aside[aria-label="Storage inventory"]') as HTMLElement | null;
+    const visualLayer = fixture.nativeElement.querySelector('[aria-label="Visual layer placeholder"]') as HTMLElement | null;
 
+    expect(shell).toBeInstanceOf(HTMLElement);
+    expect(operations).toBeInstanceOf(HTMLElement);
+    expect(resourceHud?.textContent).toContain('Credits');
+    expect(storage?.textContent).toContain('Protein Leaf Seed');
+    expect(visualLayer?.textContent).toContain('Stub Phaser layer');
     expect(text).toContain('Biofactory: Lunar');
     expect(text).toContain('HUD placeholder online');
     expect(text).toContain('Credits');
