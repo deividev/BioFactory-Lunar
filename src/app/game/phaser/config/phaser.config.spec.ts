@@ -1,4 +1,5 @@
 import { vi } from 'vitest';
+import { EMPTY } from 'rxjs';
 
 vi.mock('phaser', () => ({
   default: {
@@ -13,6 +14,7 @@ vi.mock('phaser', () => ({
 
 import { describe, expect, it } from 'vitest';
 import { MainBaseScene } from '../scenes/main-base.scene';
+import type { PhaserSceneBridge } from '../scenes/main-base.scene';
 import { createPhaserGameConfig } from './phaser.config';
 import { createPhaserGameOptions, PHASER_GAME_SIZE } from './phaser.options';
 
@@ -37,14 +39,18 @@ describe('Phaser game options', () => {
     expect(config).not.toHaveProperty('saveData');
   });
 
-  it('adapts pure Phaser options into the visual scene runtime config', () => {
-    const config = createPhaserGameConfig('phaser-container');
+  it('adapts pure Phaser options into a bridge-aware visual scene runtime config', () => {
+    const sceneBridge: PhaserSceneBridge = {
+      angularEvents$: EMPTY,
+      emitFromPhaser: () => undefined
+    };
+    const config = createPhaserGameConfig('phaser-container', sceneBridge);
 
     expect(config.parent).toBe('phaser-container');
     expect(config.width).toBe(1920);
     expect(config.height).toBe(1080);
     expect(config.backgroundColor).toBe('#02070c');
     expect(config.scale).toEqual({ mode: 'RESIZE', autoCenter: 'CENTER_BOTH' });
-    expect(config.scene).toEqual([MainBaseScene]);
+    expect(config.scene).toEqual([expect.any(MainBaseScene)]);
   });
 });

@@ -1,20 +1,25 @@
-﻿export interface DestroyableGame {
+import type { PhaserSceneBridge } from './scenes/main-base.scene';
+
+export interface DestroyableGame {
   destroy(removeCanvas?: boolean): void;
 }
 
-export type PhaserGameFactory = (parent: string) => DestroyableGame;
+export type PhaserGameFactory = (parent: string, sceneBridge: PhaserSceneBridge) => DestroyableGame;
 
 export class PhaserGameLifecycle {
   private game: DestroyableGame | null = null;
 
-  constructor(private readonly createGame: PhaserGameFactory) {}
+  constructor(
+    private readonly createGame: PhaserGameFactory,
+    private readonly sceneBridge: PhaserSceneBridge
+  ) {}
 
   start(parent: string): void {
     if (this.game !== null) {
       return;
     }
 
-    this.game = this.createGame(parent);
+    this.game = this.createGame(parent, this.sceneBridge);
   }
 
   stop(): void {

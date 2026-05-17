@@ -1,8 +1,9 @@
 import { TestBed } from '@angular/core/testing';
+import type { PhaserSceneBridge } from './scenes/main-base.scene';
 import { PhaserGame, PHASER_GAME_FACTORY } from './phaser-game';
 
 describe('PhaserGame Angular component', () => {
-  it('starts Phaser after Angular creates the host element and destroys it on teardown', async () => {
+  it('starts Phaser with the Angular bridge after Angular creates the host element and destroys it on teardown', async () => {
     const events: string[] = [];
 
     await TestBed.configureTestingModule({
@@ -10,8 +11,9 @@ describe('PhaserGame Angular component', () => {
       providers: [
         {
           provide: PHASER_GAME_FACTORY,
-          useValue: (parent: string) => {
+          useValue: (parent: string, sceneBridge: PhaserSceneBridge) => {
             events.push(`start:${parent}`);
+            events.push(`bridge:${typeof sceneBridge.emitFromPhaser}`);
             return {
               destroy: (removeCanvas?: boolean) => events.push(`destroy:${String(removeCanvas)}`)
             };
@@ -24,6 +26,6 @@ describe('PhaserGame Angular component', () => {
     fixture.detectChanges();
     fixture.destroy();
 
-    expect(events).toEqual(['start:phaser-container', 'destroy:true']);
+    expect(events).toEqual(['start:phaser-container', 'bridge:function', 'destroy:true']);
   });
 });

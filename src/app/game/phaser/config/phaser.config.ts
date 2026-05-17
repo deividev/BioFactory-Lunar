@@ -1,8 +1,8 @@
-﻿import Phaser from 'phaser';
-import { MainBaseScene } from '../scenes/main-base.scene';
+import Phaser from 'phaser';
+import { MainBaseScene, type PhaserSceneBridge } from '../scenes/main-base.scene';
 import { createPhaserGameOptions } from './phaser.options';
 
-export function createPhaserGameConfig(parent: string): Phaser.Types.Core.GameConfig {
+export function createPhaserGameConfig(parent: string, sceneBridge: PhaserSceneBridge): Phaser.Types.Core.GameConfig {
   const options = createPhaserGameOptions(parent);
 
   return {
@@ -15,6 +15,6 @@ export function createPhaserGameConfig(parent: string): Phaser.Types.Core.GameCo
       mode: Phaser.Scale[options.scale.mode],
       autoCenter: Phaser.Scale[options.scale.autoCenter]
     },
-    scene: [MainBaseScene]
+    scene: [new MainBaseScene(sceneBridge)]
   };
 }
