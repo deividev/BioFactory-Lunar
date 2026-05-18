@@ -54,8 +54,8 @@ describe('App Angular component', () => {
     fixture.detectChanges();
     const text = fixture.nativeElement.textContent;
 
-    expect(text).toContain('Biofactory: Lunar');
-    expect(text).toContain('HUD placeholder online');
-    expect(text).toContain('Angular shell ready');
+    expect(text).toMatch(/Biofactory\s+Lunar/);
+    expect(text).not.toContain('HUD placeholder online');
+    expect(text).not.toContain('Angular shell ready');
   });
 });

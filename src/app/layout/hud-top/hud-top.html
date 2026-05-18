@@ -1,24 +1,50 @@
 <header class="hud-top" aria-label="Resource HUD">
-  <div class="hud-top__identity">
-    <p class="hud-top__eyebrow">HUD placeholder online</p>
-    <h1>Biofactory: Lunar</h1>
-    <p class="hud-top__subtitle">Angular shell ready</p>
-  </div>
-
-  <section class="hud-top__resources" aria-label="Current resources">
-    <h2>Resources</h2>
-    <ul>
-      @for (resource of resources(); track resource.id) {
-        <li>
-          <span>{{ resource.name }}</span>
-          <strong>{{ resource.displayValue }}</strong>
-        </li>
-      }
-    </ul>
+  <section class="hud-top__brand-card" aria-label="Biofactory Lunar command brand">
+    <span class="hud-top__menu-mark" aria-hidden="true">☰</span>
+    <div class="hud-top__brand-copy">
+      <h1>
+        Biofactory
+        <span>Lunar</span>
+      </h1>
+    </div>
   </section>
 
-  <section class="hud-top__clock" aria-label="Game clock">
-    <h2>Game clock</h2>
+  <div class="hud-top__telemetry-strip" aria-label="Command telemetry">
+    <section class="hud-top__resources" aria-label="Current resources">
+      <h2 class="hud-top__section-title">Resources</h2>
+      <ul class="hud-top__card-list">
+        @for (resource of resources(); track resource.id) {
+          <li class="hud-top__status-card hud-top__resource-card" [attr.data-tone]="resource.tone">
+            <img class="hud-top__card-icon" [src]="resource.iconSrc" alt="" aria-hidden="true" />
+            <span class="hud-top__card-copy">
+              <span class="hud-top__card-label">{{ resource.name }}</span>
+              <strong class="hud-top__card-value">{{ resource.valueLabel }}</strong>
+              <span class="hud-top__card-meta">{{ resource.metaLabel }}</span>
+            </span>
+          </li>
+        }
+      </ul>
+    </section>
+
+    <section class="hud-top__systems" aria-label="System status">
+      <h2 class="hud-top__section-title">System status</h2>
+      <ul class="hud-top__card-list">
+        @for (card of systemCards(); track card.id) {
+          <li class="hud-top__status-card hud-top__system-card" [attr.data-tone]="card.tone">
+            <img class="hud-top__card-icon" [src]="card.iconSrc" alt="" aria-hidden="true" />
+            <span class="hud-top__card-copy">
+              <span class="hud-top__card-label">{{ card.label }}</span>
+              <strong class="hud-top__card-value">{{ card.valueLabel }}</strong>
+              <span class="hud-top__card-meta">{{ card.metaLabel }}</span>
+            </span>
+          </li>
+        }
+      </ul>
+    </section>
+  </div>
+
+  <section class="hud-top__clock-card" aria-label="Game clock">
+    <h2 class="hud-top__section-title">Game clock</h2>
     <div class="hud-top__clock-readout" aria-label="Current game time">
       <span>{{ clock().dayLabel }}</span>
       <strong>{{ clock().timeLabel }}</strong>
@@ -34,7 +60,7 @@
   </section>
 
   <section class="hud-top__actions" aria-label="Resource actions">
-    <h2>Resource actions</h2>
+    <h2 class="hud-top__section-title">Resource actions</h2>
     <button type="button" (click)="collectCredits()">Collect 25 credits</button>
     <button type="button" (click)="spendCredits()">Spend 50 credits</button>
     <button type="button" (click)="overfillWater()">Overfill water</button>

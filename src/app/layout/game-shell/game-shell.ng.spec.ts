@@ -55,8 +55,9 @@ describe('GameShell Angular component', () => {
     expect(storage?.textContent).toContain('Protein Leaf Seed');
     expect(activePanel?.textContent).toContain('Command Center');
     expect(visualLayer?.textContent).toContain('Stub Phaser layer');
-    expect(text).toContain('Biofactory: Lunar');
-    expect(text).toContain('HUD placeholder online');
+    expect(text).toMatch(/Biofactory\s+Lunar/);
+    expect(text).not.toContain('HUD placeholder online');
+    expect(text).not.toContain('Angular shell ready');
     expect(text).toContain('Credits');
     expect(text).toContain('200');
     expect(text).toContain('Game clock');

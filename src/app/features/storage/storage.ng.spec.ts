@@ -31,6 +31,12 @@ describe('Storage Angular component', () => {
     fixture.detectChanges();
   }
 
+  function iconSources(fixture: ReturnType<typeof TestBed.createComponent<Storage>>, selector: string): string[] {
+    return Array.from(fixture.nativeElement.querySelectorAll(selector) as NodeListOf<HTMLImageElement>).map(
+      (element) => element.getAttribute('src') ?? '',
+    );
+  }
+
   it('renders current inventory quantities and capacity from InventoryService', async () => {
     const { fixture } = await renderStorage();
     const text = textContent(fixture);
@@ -43,6 +49,29 @@ describe('Storage Angular component', () => {
     expect(text).toContain('2');
     expect(text).toContain('Biofood Pack');
     expect(text).toContain('0');
+    expect(iconSources(fixture, '.storage__item-icon')).toEqual([
+      'assets/ui/icons/seeds/ui_icon_seed_protein_leaf.png',
+      'assets/ui/icons/seeds/ui_icon_seed_aqua_sprout.png',
+      'assets/ui/icons/seeds/ui_icon_spore_luma_moss.png',
+      'assets/ui/icons/inventory/ui_icon_protein_leaf.png',
+      'assets/ui/icons/inventory/ui_icon_aqua_sprout.png',
+      'assets/ui/icons/inventory/ui_icon_luma_moss.png',
+      'assets/ui/icons/inventory/ui_icon_biofood_pack.png',
+      'assets/ui/icons/inventory/ui_icon_nutrient_mix.png',
+      'assets/ui/icons/inventory/ui_icon_glow_pigment.png',
+    ]);
+    expect(iconSources(fixture, '.storage__action-icon')).toEqual([
+      'assets/ui/icons/actions/ui_icon_action_buy.png',
+      'assets/ui/icons/actions/ui_icon_action_plant.png',
+      'assets/ui/icons/ui_icon_state_blocked.png',
+    ]);
+    expect(iconSources(fixture, '.storage__workflow-icon')).toEqual([
+      'assets/ui/icons/actions/ui_icon_shipments.png',
+      'assets/ui/icons/actions/ui_icon_action_plant.png',
+      'assets/ui/icons/actions/ui_icon_action_harvest.png',
+      'assets/ui/icons/actions/ui_icon_action_process.png',
+    ]);
+    expect(iconSources(fixture, '.storage__feedback-icon')).toEqual(['assets/ui/icons/ui_icon_state_success.png']);
   });
 
   it('updates item quantities and capacity through InventoryService actions', async () => {
@@ -76,5 +105,6 @@ describe('Storage Angular component', () => {
     expect(fixture.nativeElement.querySelector('[role="alert"]')?.textContent).toContain(
       'Adding 99 biofood_pack would exceed inventory capacity of 100.',
     );
+    expect(iconSources(fixture, '.storage__feedback-icon')).toEqual(['assets/ui/icons/ui_icon_state_warning.png']);
   });
 });

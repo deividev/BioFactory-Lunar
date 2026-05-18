@@ -26,8 +26,20 @@ function expectButton(fixture: { nativeElement: HTMLElement }, label: string): v
   expect(button).toBeTruthy();
 }
 
+function resourceIconSources(fixture: { nativeElement: HTMLElement }): string[] {
+  return Array.from(fixture.nativeElement.querySelectorAll('.hud-top__resource-card .hud-top__card-icon')).map((element) =>
+    element.getAttribute('src') ?? '',
+  );
+}
+
+function systemIconSources(fixture: { nativeElement: HTMLElement }): string[] {
+  return Array.from(fixture.nativeElement.querySelectorAll('.hud-top__system-card .hud-top__card-icon')).map((element) =>
+    element.getAttribute('src') ?? '',
+  );
+}
+
 describe('HudTop Angular component', () => {
-  it('renders the current resource balances from ResourceService', async () => {
+  it('renders a screenshot-inspired command bar with resource and system cards', async () => {
     await TestBed.configureTestingModule({
       imports: [HudTop],
     }).compileComponents();
@@ -36,8 +48,13 @@ describe('HudTop Angular component', () => {
     fixture.detectChanges();
     const text = visibleText(fixture);
 
-    expect(text).toContain('Biofactory: Lunar');
-    expect(text).toContain('HUD placeholder online');
+    expect(text).toMatch(/Biofactory\s+Lunar/);
+    expect(text).not.toContain('HUD placeholder online');
+    expect(text).not.toContain('Angular shell ready');
+    expect(fixture.nativeElement.querySelector('.hud-top__brand-card')).toBeInstanceOf(HTMLElement);
+    expect(fixture.nativeElement.querySelector('.hud-top__telemetry-strip')).toBeInstanceOf(HTMLElement);
+    expect(fixture.nativeElement.querySelectorAll('.hud-top__resource-card')).toHaveLength(4);
+    expect(fixture.nativeElement.querySelectorAll('.hud-top__system-card')).toHaveLength(6);
     expect(text).toContain('Credits');
     expect(text).toContain('200');
     expect(text).toContain('Energy');
@@ -45,10 +62,34 @@ describe('HudTop Angular component', () => {
     expect(text).toContain('Water');
     expect(text).toContain('Nutrients');
     expect(text).toContain('20 / 100');
+    expect(text).toContain('Oxygen');
+    expect(text).toContain('92%');
+    expect(text).toContain('Robots');
+    expect(text).toContain('Storage');
+    expect(text).toContain('Research');
+    expect(text).toContain('Contracts');
+    expect(text).toContain('Available');
+    expect(text).toContain('Shipments');
+    expect(text).toContain('Catalog');
     expect(text).toContain('Game clock');
     expect(text).toContain('Day 1');
     expect(text).toContain('00:00');
     expect(text).toContain('Speed x1');
+    expect(resourceIconSources(fixture)).toEqual([
+      'assets/ui/icons/resources/ui_icon_credits.png',
+      'assets/ui/icons/resources/ui_icon_energy.png',
+      'assets/ui/icons/resources/ui_icon_water.png',
+      'assets/ui/icons/resources/ui_icon_nutrients.png',
+    ]);
+    expect(systemIconSources(fixture)).toEqual([
+      'assets/ui/icons/resources/ui_icon_oxygen.png',
+      'assets/ui/icons/actions/ui_icon_robots.png',
+      'assets/ui/icons/actions/ui_icon_storage.png',
+      'assets/ui/icons/actions/ui_icon_investigation.png',
+      'assets/ui/icons/actions/ui_icon_contracts.png',
+      'assets/ui/icons/actions/ui_icon_shipments.png',
+    ]);
+    expect(fixture.nativeElement.querySelector('.hud-top__clock-card')).toBeInstanceOf(HTMLElement);
   });
 
   it('renders speed controls for pause, resume, x1, x2, and x4', async () => {

@@ -12,18 +12,39 @@
     <ul>
       @for (item of items(); track item.id) {
         <li>
-          <span>{{ item.name }}</span>
+          <span class="storage__item-label">
+            <img class="storage__item-icon" [src]="item.iconSrc" alt="" aria-hidden="true" />
+            <span>{{ item.name }}</span>
+          </span>
           <strong>{{ item.quantity }}</strong>
         </li>
       }
     </ul>
   </section>
 
+  <section class="storage__workflow" aria-label="Inventory workflow">
+    <h3>Inventory workflow</h3>
+    <ol>
+      @for (step of workflowSteps; track step.label) {
+        <li>
+          <img class="storage__workflow-icon" [src]="step.iconSrc" alt="" aria-hidden="true" />
+          <span>{{ step.label }}</span>
+        </li>
+      }
+    </ol>
+  </section>
+
   <section class="storage__actions" aria-label="Storage actions">
     <h3>Storage actions</h3>
-    <button type="button" (click)="addProteinSeeds()">Add 3 protein seeds</button>
-    <button type="button" (click)="consumeProteinSeed()">Consume 1 protein seed</button>
-    <button type="button" (click)="overfillStorage()">Overfill storage</button>
-    <p [attr.role]="feedbackRole()">{{ feedbackMessage() }}</p>
+    @for (action of actionButtons; track action.id) {
+      <button type="button" (click)="runStorageAction(action.id)">
+        <img class="storage__action-icon" [src]="action.iconSrc" alt="" aria-hidden="true" />
+        <span>{{ action.label }}</span>
+      </button>
+    }
+    <p [attr.role]="feedbackRole()">
+      <img class="storage__feedback-icon" [src]="feedbackIconSrc()" alt="" aria-hidden="true" />
+      <span>{{ feedbackMessage() }}</span>
+    </p>
   </section>
 </aside>

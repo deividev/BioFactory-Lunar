@@ -13,6 +13,7 @@
 h2,
 h3,
 p,
+ol,
 ul {
   margin: 0;
 }
@@ -35,23 +36,31 @@ ul {
   list-style: none;
 }
 
-li {
+.storage__items li {
   display: flex;
+  align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding-block: 0.2rem;
+  border: 1px solid color-mix(in srgb, var(--bf-border-subtle) 54%, transparent);
+  border-radius: 0.45rem;
+  padding: 0.28rem 0.45rem;
+  background: color-mix(in srgb, var(--bf-surface-raised) 24%, transparent);
 }
 
 button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   border: 1px solid var(--bf-border-subtle);
   border-radius: 999px;
-  padding: 0.35rem 0.7rem;
+  padding: 0.32rem 0.68rem 0.32rem 0.45rem;
   color: var(--bf-text-primary);
   background: color-mix(in srgb, var(--bf-accent-interactive) 18%, transparent);
 }
 
 .storage__header,
 .storage__items,
+.storage__workflow,
 .storage__actions {
   display: grid;
   gap: 0.55rem;
@@ -68,6 +77,66 @@ button {
 
 .storage__capacity strong {
   color: var(--bf-text-primary);
+}
+
+.storage__item-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.48rem;
+  min-width: 0;
+}
+
+.storage__item-icon,
+.storage__action-icon,
+.storage__workflow-icon,
+.storage__feedback-icon {
+  width: 1.35rem;
+  height: 1.35rem;
+  object-fit: contain;
+  filter: drop-shadow(0 0 0.4rem color-mix(in srgb, var(--bf-accent-interactive) 18%, transparent));
+}
+
+.storage__item-icon {
+  border-radius: 0.3rem;
+  background: color-mix(in srgb, var(--bf-surface-canvas) 42%, transparent);
+}
+
+.storage__action-icon {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
+.storage__workflow ol {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.35rem;
+  padding: 0;
+  list-style: none;
+}
+
+.storage__workflow li,
+.storage__actions p {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.storage__workflow li {
+  min-width: 0;
+  border: 1px solid color-mix(in srgb, var(--bf-border-subtle) 50%, transparent);
+  border-radius: 999px;
+  padding: 0.25rem 0.45rem;
+  color: var(--bf-text-muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: color-mix(in srgb, var(--bf-surface-raised) 18%, transparent);
+}
+
+.storage__workflow-icon,
+.storage__feedback-icon {
+  width: 1rem;
+  height: 1rem;
 }
 
 .storage__actions {
