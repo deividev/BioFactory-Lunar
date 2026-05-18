@@ -8,6 +8,7 @@
         "test": "vitest run",
         "test:coverage": "pnpm test:unit:coverage && pnpm test:angular:coverage && node scripts/enforce-coverage-thresholds.mjs",
         "test:watch": "vitest",
+        "assets:strip-checkerboard": "node scripts/strip-checkerboard-background.mjs",
         "typecheck": "tsc --noEmit",
         "build": "ng build --base-href ./",
         "dev": "ng serve --host 127.0.0.1 --port 4200",
