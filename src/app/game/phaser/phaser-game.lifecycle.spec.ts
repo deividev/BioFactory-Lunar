@@ -1,5 +1,5 @@
 import { EMPTY } from 'rxjs';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PhaserGameLifecycle } from './phaser-game.lifecycle';
 import type { PhaserSceneBridge } from './scenes/main-base.scene';
 
@@ -9,6 +9,10 @@ const sceneBridge: PhaserSceneBridge = {
 };
 
 describe('PhaserGameLifecycle', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it('starts one Phaser instance for a host element with the scene bridge and prevents duplicate startup', () => {
     const created: string[] = [];
     const lifecycle = new PhaserGameLifecycle((parent, bridge) => {
@@ -21,6 +25,28 @@ describe('PhaserGameLifecycle', () => {
 
     expect(created).toEqual(['phaser-container:true']);
     expect(lifecycle.isRunning()).toBe(true);
+  });
+
+  it('clears stale host children before creating a Phaser instance', () => {
+    const calls: string[] = [];
+
+    vi.stubGlobal('document', {
+      getElementById: (id: string) => ({
+        replaceChildren: () => {
+          calls.push(`clear:${id}`);
+        }
+      })
+    });
+
+    const lifecycle = new PhaserGameLifecycle((parent) => {
+      calls.push(`create:${parent}`);
+      return { destroy: () => undefined };
+    }, sceneBridge);
+
+    lifecycle.start('phaser-container');
+    lifecycle.start('phaser-container');
+
+    expect(calls).toEqual(['clear:phaser-container', 'create:phaser-container']);
   });
 
   it('destroys the active Phaser instance when stopped', () => {

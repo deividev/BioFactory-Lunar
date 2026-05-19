@@ -18,6 +18,7 @@ import { MainBaseScene, type PhaserSceneBridge } from './main-base.scene';
 
 interface ModuleRectangleHarness {
   data: Record<string, unknown>;
+  fills: string[];
   handlers: Record<string, () => void>;
   interactive: number;
   strokes: string[];
@@ -30,23 +31,31 @@ interface SceneImageHarness {
   readonly tints: string[];
 }
 
+interface SceneTextHarness {
+  readonly text: string;
+  readonly alphas: number[];
+  readonly positions: string[];
+  readonly visibility: boolean[];
+}
+
 function createModuleScene(): {
   commands: Subject<AngularToPhaserEvent>;
   emitted: PhaserToAngularEvent[];
   images: SceneImageHarness[];
+  labels: SceneTextHarness[];
   rectangles: ModuleRectangleHarness[];
   scene: { create(): void };
 } {
   const commands = new Subject<AngularToPhaserEvent>();
   const emitted: PhaserToAngularEvent[] = [];
   const images: SceneImageHarness[] = [];
+  const labels: SceneTextHarness[] = [];
   const rectangles: ModuleRectangleHarness[] = [];
   const bridge: PhaserSceneBridge = {
     angularEvents$: commands.asObservable(),
     emitFromPhaser: (event) => emitted.push(event),
   };
   const scene = new MainBaseScene(bridge) as any;
-  const textChain = { setDepth: () => textChain, setOrigin: () => textChain, setPosition: () => textChain };
 
   scene.textures = { exists: () => true };
   scene.load = { image: () => undefined };
@@ -82,10 +91,34 @@ function createModuleScene(): {
       images.push(image);
       return image;
     },
-    text: () => textChain,
+    text: (_x: number, _y: number, text: string) => {
+      const label = {
+        text,
+        alphas: [] as number[],
+        positions: [] as string[],
+        visibility: [] as boolean[],
+        setAlpha: (alpha: number) => {
+          label.alphas.push(alpha);
+          return label;
+        },
+        setDepth: () => label,
+        setOrigin: () => label,
+        setPosition: (x: number, y: number) => {
+          label.positions.push(`${x}|${y}`);
+          return label;
+        },
+        setVisible: (visible: boolean) => {
+          label.visibility.push(visible);
+          return label;
+        },
+      };
+      labels.push(label);
+      return label;
+    },
     rectangle: () => {
       const rectangle = {
         data: {} as Record<string, unknown>,
+        fills: [] as string[],
         handlers: {} as Record<string, () => void>,
         interactive: 0,
         strokes: [] as string[],
@@ -99,7 +132,10 @@ function createModuleScene(): {
         },
         setDepth: () => rectangle,
         setDisplaySize: () => rectangle,
-        setFillStyle: () => rectangle,
+        setFillStyle: (color: number, alpha: number) => {
+          rectangle.fills.push(`${color}|${alpha}`);
+          return rectangle;
+        },
         setInteractive: () => {
           rectangle.interactive += 1;
           return rectangle;
@@ -116,11 +152,11 @@ function createModuleScene(): {
     },
   };
 
-  return { commands, emitted, images, rectangles, scene };
+  return { commands, emitted, images, labels, rectangles, scene };
 }
 
 describe('MainBaseScene visual placeholder', () => {
-  it('preloads the style spike background layers and module assets from stable runtime paths', () => {
+  it('preloads the style spike background layers from stable runtime paths', () => {
     const scene = new MainBaseScene() as unknown as {
       textures: {
         exists(key: string): boolean;
@@ -156,17 +192,7 @@ describe('MainBaseScene visual placeholder', () => {
       'texture-exists:bg_lunar_ground',
       'load-image:bg_lunar_ground|assets/phaser/backgrounds/lunar/bg_lunar_ground.png',
       'texture-exists:bg_platform_front',
-      'load-image:bg_platform_front|assets/phaser/backgrounds/lunar/bg_platform_front.png',
-      'texture-exists:module_command_center',
-      'load-image:module_command_center|assets/phaser/modules/module_command_center.png',
-      'texture-exists:module_greenhouse_basic',
-      'load-image:module_greenhouse_basic|assets/phaser/modules/module_greenhouse_basic.png',
-      'texture-exists:module_processing',
-      'load-image:module_processing|assets/phaser/modules/module_processing.png',
-      'texture-exists:module_shipping_hangar',
-      'load-image:module_shipping_hangar|assets/phaser/modules/module_shipping_hangar.png',
-      'texture-exists:module_storage',
-      'load-image:module_storage|assets/phaser/modules/module_storage.png'
+      'load-image:bg_platform_front|assets/phaser/backgrounds/lunar/bg_platform_front.png'
     ]);
   });
 
@@ -243,9 +269,11 @@ describe('MainBaseScene visual placeholder', () => {
       setStrokeStyle: () => rectangle
     };
     const text = {
+      setAlpha: () => text,
       setDepth: () => text,
       setOrigin: () => text,
-      setPosition: () => text
+      setPosition: () => text,
+      setVisible: () => text
     };
 
     scene.textures = {
@@ -331,17 +359,12 @@ describe('MainBaseScene visual placeholder', () => {
       'texture-exists:bg_stars_far',
       'texture-exists:bg_earth',
       'texture-exists:bg_lunar_ground',
-      'texture-exists:bg_platform_front',
-      'texture-exists:module_command_center',
-      'texture-exists:module_greenhouse_basic',
-      'texture-exists:module_processing',
-      'texture-exists:module_shipping_hangar',
-      'texture-exists:module_storage'
+      'texture-exists:bg_platform_front'
     ]);
   });
 
-  it('creates style spike module sprites and clickable hotspots for the five MVP module instance IDs', () => {
-    const { images, rectangles, scene } = createModuleScene();
+  it('creates subtle clickable hotspots and labels for the five MVP module instance IDs', () => {
+    const { images, labels, rectangles, scene } = createModuleScene();
 
     scene.create();
 
@@ -350,12 +373,7 @@ describe('MainBaseScene visual placeholder', () => {
       'bg_stars_far',
       'bg_earth',
       'bg_lunar_ground',
-      'bg_platform_front',
-      'module_command_center',
-      'module_greenhouse_basic',
-      'module_processing',
-      'module_shipping_hangar',
-      'module_storage'
+      'bg_platform_front'
     ]);
     expect(rectangles.map((rectangle) => rectangle.data['moduleId'])).toEqual([
       'module_command_center_basic_01',
@@ -364,7 +382,23 @@ describe('MainBaseScene visual placeholder', () => {
       'module_shipping_hangar_basic_01',
       'module_storage_basic_01'
     ]);
+    expect(labels.map((label) => label.text)).toEqual([
+      'Command Center',
+      'Greenhouse',
+      'Processing',
+      'Shipping',
+      'Storage'
+    ]);
     expect(rectangles.every((rectangle) => rectangle.interactive === 1)).toBe(true);
+    expect(rectangles.map((rectangle) => rectangle.fills.at(-1))).toEqual([
+      '988970|0',
+      '988970|0',
+      '988970|0',
+      '988970|0',
+      '988970|0'
+    ]);
+    expect(rectangles.every((rectangle) => rectangle.strokes.at(-1) === '1|3918280|0.14')).toBe(true);
+    expect(labels.every((label) => label.visibility.at(-1) === false)).toBe(true);
   });
 
   it('emits typed bridge events from module hotspot pointer interactions', () => {
@@ -384,17 +418,20 @@ describe('MainBaseScene visual placeholder', () => {
   });
 
   it('applies selected highlight commands to one module and clears them from all modules', () => {
-    const { commands, rectangles, scene } = createModuleScene();
+    const { commands, labels, rectangles, scene } = createModuleScene();
 
     scene.create();
     commands.next({ type: 'highlightModule', moduleId: 'module_greenhouse_basic_01' });
 
-    expect(rectangles[1]!.strokes.at(-1)).toBe('4|8255999|1');
-    expect(rectangles[4]!.strokes.at(-1)).toBe('2|3918280|0.9');
+    expect(rectangles[1]!.strokes.at(-1)).toBe('2|59135|1');
+    expect(rectangles[4]!.strokes.at(-1)).toBe('1|3918280|0.14');
+    expect(labels[1]!.visibility.at(-1)).toBe(true);
+    expect(labels[4]!.visibility.at(-1)).toBe(false);
 
     commands.next({ type: 'clearHighlight' });
 
-    expect(rectangles[1]!.strokes.at(-1)).toBe('2|3918280|0.9');
-    expect(rectangles[4]!.strokes.at(-1)).toBe('2|3918280|0.9');
+    expect(rectangles[1]!.strokes.at(-1)).toBe('1|3918280|0.14');
+    expect(rectangles[4]!.strokes.at(-1)).toBe('1|3918280|0.14');
+    expect(labels[1]!.visibility.at(-1)).toBe(false);
   });
 });

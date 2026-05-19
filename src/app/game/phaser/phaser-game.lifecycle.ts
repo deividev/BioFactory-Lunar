@@ -19,6 +19,7 @@ export class PhaserGameLifecycle {
       return;
     }
 
+    this.clearHost(parent);
     this.game = this.createGame(parent, this.sceneBridge);
   }
 
@@ -33,5 +34,13 @@ export class PhaserGameLifecycle {
 
   isRunning(): boolean {
     return this.game !== null;
+  }
+
+  private clearHost(parent: string): void {
+    if (typeof document === 'undefined') {
+      return;
+    }
+
+    document.getElementById(parent)?.replaceChildren();
   }
 }

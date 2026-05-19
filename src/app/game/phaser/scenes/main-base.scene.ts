@@ -21,20 +21,19 @@ interface BackgroundLayerConfig extends PhaserAssetConfig {
   readonly depth: number;
 }
 
-interface ModulePlaceholderConfig {
+interface ModuleHotspotConfig {
   readonly id: string;
-  readonly assetKey: string;
-  readonly assetPath: string;
+  readonly label: string;
   readonly xRatio: number;
   readonly yRatio: number;
   readonly widthRatio: number;
   readonly heightRatio: number;
 }
 
-interface ModulePlaceholderView {
-  readonly config: ModulePlaceholderConfig;
+interface ModuleHotspotView {
+  readonly config: ModuleHotspotConfig;
   readonly hotspot: Phaser.GameObjects.Rectangle;
-  readonly visual: Phaser.GameObjects.Image;
+  readonly label: Phaser.GameObjects.Text;
 }
 
 interface BackgroundLayerView {
@@ -47,15 +46,16 @@ const NOOP_SCENE_BRIDGE: PhaserSceneBridge = {
   emitFromPhaser: () => undefined,
 };
 
-const DEFAULT_MODULE_FILL_COLOR = 0x102535;
-const HOVER_MODULE_FILL_COLOR = 0x18384a;
-const SELECTED_MODULE_FILL_COLOR = 0x1d5266;
+const MODULE_HOTSPOT_FILL_COLOR = 0x0f172a;
 const DEFAULT_MODULE_STROKE_COLOR = 0x3bc9c8;
 const HOVER_MODULE_STROKE_COLOR = 0x9be8ff;
-const SELECTED_MODULE_STROKE_COLOR = 0x7df9ff;
-const DEFAULT_MODULE_TINT = 0xffffff;
-const HOVER_MODULE_TINT = 0xb9f7ff;
-const SELECTED_MODULE_TINT = 0x7df9ff;
+const SELECTED_MODULE_STROKE_COLOR = 0x00e6ff;
+const DEFAULT_MODULE_FILL_ALPHA = 0;
+const HOVER_MODULE_FILL_ALPHA = 0.045;
+const SELECTED_MODULE_FILL_ALPHA = 0.09;
+const DEFAULT_MODULE_STROKE_ALPHA = 0.14;
+const HOVER_MODULE_STROKE_ALPHA = 0.82;
+const SELECTED_MODULE_STROKE_ALPHA = 1;
 
 const LUNAR_BACKGROUND_LAYERS: readonly BackgroundLayerConfig[] = [
   {
@@ -105,51 +105,46 @@ const LUNAR_BACKGROUND_LAYERS: readonly BackgroundLayerConfig[] = [
   },
 ];
 
-const MVP_MODULE_PLACEHOLDERS: readonly ModulePlaceholderConfig[] = [
+const MVP_MODULE_HOTSPOTS: readonly ModuleHotspotConfig[] = [
   {
     id: 'module_command_center_basic_01',
-    assetKey: 'module_command_center',
-    assetPath: 'assets/phaser/modules/module_command_center.png',
+    label: 'Command Center',
     xRatio: 0.5,
-    yRatio: 0.42,
-    widthRatio: 0.16,
-    heightRatio: 0.15,
+    yRatio: 0.52,
+    widthRatio: 0.14,
+    heightRatio: 0.08,
   },
   {
     id: 'module_greenhouse_basic_01',
-    assetKey: 'module_greenhouse_basic',
-    assetPath: 'assets/phaser/modules/module_greenhouse_basic.png',
-    xRatio: 0.3,
-    yRatio: 0.62,
-    widthRatio: 0.18,
-    heightRatio: 0.14,
+    label: 'Greenhouse',
+    xRatio: 0.32,
+    yRatio: 0.66,
+    widthRatio: 0.16,
+    heightRatio: 0.09,
   },
   {
     id: 'module_processing_basic_01',
-    assetKey: 'module_processing',
-    assetPath: 'assets/phaser/modules/module_processing.png',
+    label: 'Processing',
     xRatio: 0.5,
-    yRatio: 0.66,
-    widthRatio: 0.16,
-    heightRatio: 0.14,
+    yRatio: 0.68,
+    widthRatio: 0.14,
+    heightRatio: 0.09,
   },
   {
     id: 'module_shipping_hangar_basic_01',
-    assetKey: 'module_shipping_hangar',
-    assetPath: 'assets/phaser/modules/module_shipping_hangar.png',
-    xRatio: 0.7,
-    yRatio: 0.62,
-    widthRatio: 0.18,
-    heightRatio: 0.14,
+    label: 'Shipping',
+    xRatio: 0.68,
+    yRatio: 0.66,
+    widthRatio: 0.16,
+    heightRatio: 0.09,
   },
   {
     id: 'module_storage_basic_01',
-    assetKey: 'module_storage',
-    assetPath: 'assets/phaser/modules/module_storage.png',
+    label: 'Storage',
     xRatio: 0.5,
     yRatio: 0.82,
-    widthRatio: 0.2,
-    heightRatio: 0.12,
+    widthRatio: 0.22,
+    heightRatio: 0.07,
   },
 ];
 
@@ -158,7 +153,7 @@ export class MainBaseScene extends Phaser.Scene {
   private bridgeSubscription = new Subscription();
   private hoveredModuleId?: string;
   private selectedModuleId?: string;
-  private readonly moduleViews = new Map<string, ModulePlaceholderView>();
+  private readonly moduleViews = new Map<string, ModuleHotspotView>();
 
   constructor(private readonly sceneBridge: PhaserSceneBridge = NOOP_SCENE_BRIDGE) {
     super('MainBaseScene');
@@ -166,23 +161,22 @@ export class MainBaseScene extends Phaser.Scene {
 
   preload(): void {
     this.preloadAssets(LUNAR_BACKGROUND_LAYERS);
-    this.preloadAssets(MVP_MODULE_PLACEHOLDERS.map((module) => ({ key: module.assetKey, path: module.assetPath })));
   }
 
   create(): void {
     this.createBackgroundLayers();
-    this.createModulePlaceholders();
+    this.createModuleHotspots();
     this.subscribeToBridgeCommands();
     this.sceneBridge.emitFromPhaser({ type: 'sceneReady' });
 
     this.layoutBackgroundLayers(this.scale.width, this.scale.height);
-    this.layoutModulePlaceholders(this.scale.width, this.scale.height);
+    this.layoutModuleHotspots(this.scale.width, this.scale.height);
     this.scale.on('resize', this.handleResize, this);
   }
 
   private handleResize(gameSize: { width: number; height: number }): void {
     this.layoutBackgroundLayers(gameSize.width, gameSize.height);
-    this.layoutModulePlaceholders(gameSize.width, gameSize.height);
+    this.layoutModuleHotspots(gameSize.width, gameSize.height);
   }
 
   private preloadAssets(assets: readonly PhaserAssetConfig[]): void {
@@ -211,15 +205,15 @@ export class MainBaseScene extends Phaser.Scene {
     }
   }
 
-  private createModulePlaceholders(): void {
-    for (const config of MVP_MODULE_PLACEHOLDERS) {
-      const visual = this.add.image(0, 0, config.assetKey).setOrigin(0.5).setDepth(10).setAlpha(0.94);
+  private createModuleHotspots(): void {
+    for (const config of MVP_MODULE_HOTSPOTS) {
       const hotspot = this.add
-        .rectangle(0, 0, 1, 1, DEFAULT_MODULE_FILL_COLOR, 0.08)
+        .rectangle(0, 0, 1, 1, MODULE_HOTSPOT_FILL_COLOR, DEFAULT_MODULE_FILL_ALPHA)
         .setData('moduleId', config.id)
         .setOrigin(0.5)
-        .setDepth(11)
+        .setDepth(10)
         .setInteractive({ useHandCursor: true });
+      const label = this.createModuleLabel(config.label);
 
       hotspot
         .on('pointerover', () => {
@@ -236,20 +230,37 @@ export class MainBaseScene extends Phaser.Scene {
           this.sceneBridge.emitFromPhaser({ type: 'moduleSelected', moduleId: config.id });
         });
 
-      this.moduleViews.set(config.id, { config, hotspot, visual });
+      this.moduleViews.set(config.id, { config, hotspot, label });
       this.applyModuleVisualState(config.id);
     }
   }
 
-  private layoutModulePlaceholders(width: number, height: number): void {
-    for (const { config, hotspot, visual } of this.moduleViews.values()) {
+  private createModuleLabel(label: string): Phaser.GameObjects.Text {
+    return this.add
+      .text(0, 0, label, {
+        align: 'center',
+        backgroundColor: '#0f172acc',
+        color: '#e2e6f0',
+        fontFamily: 'Inter, Arial, sans-serif',
+        fontSize: '12px',
+        fontStyle: '700',
+        padding: { x: 8, y: 4 },
+      })
+      .setOrigin(0.5, 1)
+      .setDepth(11)
+      .setAlpha(0)
+      .setVisible(false);
+  }
+
+  private layoutModuleHotspots(width: number, height: number): void {
+    for (const { config, hotspot, label } of this.moduleViews.values()) {
       const moduleWidth = width * config.widthRatio;
       const moduleHeight = height * config.heightRatio;
       const x = width * config.xRatio;
       const y = height * config.yRatio;
 
       hotspot.setPosition(x, y).setDisplaySize(moduleWidth, moduleHeight);
-      visual.setPosition(x, y).setDisplaySize(moduleWidth, moduleHeight);
+      label.setPosition(x, y - moduleHeight / 2 - 8);
     }
   }
 
@@ -283,21 +294,25 @@ export class MainBaseScene extends Phaser.Scene {
     const view = this.moduleViews.get(moduleId)!;
 
     if (this.selectedModuleId === moduleId) {
-      view.visual.setTint(SELECTED_MODULE_TINT).setAlpha(1);
       view.hotspot
-        .setFillStyle(SELECTED_MODULE_FILL_COLOR, 0.7)
-        .setStrokeStyle(4, SELECTED_MODULE_STROKE_COLOR, 1);
+        .setFillStyle(MODULE_HOTSPOT_FILL_COLOR, SELECTED_MODULE_FILL_ALPHA)
+        .setStrokeStyle(2, SELECTED_MODULE_STROKE_COLOR, SELECTED_MODULE_STROKE_ALPHA);
+      view.label.setVisible(true).setAlpha(1);
       return;
     }
 
     if (this.hoveredModuleId === moduleId) {
-      view.visual.setTint(HOVER_MODULE_TINT).setAlpha(0.98);
-      view.hotspot.setFillStyle(HOVER_MODULE_FILL_COLOR, 0.55).setStrokeStyle(3, HOVER_MODULE_STROKE_COLOR, 1);
+      view.hotspot
+        .setFillStyle(MODULE_HOTSPOT_FILL_COLOR, HOVER_MODULE_FILL_ALPHA)
+        .setStrokeStyle(2, HOVER_MODULE_STROKE_COLOR, HOVER_MODULE_STROKE_ALPHA);
+      view.label.setVisible(true).setAlpha(0.95);
       return;
     }
 
-    view.visual.setTint(DEFAULT_MODULE_TINT).clearTint().setAlpha(0.94);
-    view.hotspot.setFillStyle(DEFAULT_MODULE_FILL_COLOR, 0.4).setStrokeStyle(2, DEFAULT_MODULE_STROKE_COLOR, 0.9);
+    view.hotspot
+      .setFillStyle(MODULE_HOTSPOT_FILL_COLOR, DEFAULT_MODULE_FILL_ALPHA)
+      .setStrokeStyle(1, DEFAULT_MODULE_STROKE_COLOR, DEFAULT_MODULE_STROKE_ALPHA);
+    view.label.setVisible(false).setAlpha(0);
   }
 
   private unsubscribeFromBridgeCommands(): void {
