@@ -1,0 +1,134 @@
+﻿import { beforeEach, describe, expect, it } from 'vitest';
+
+import { AlertType, GameSpeed } from '../enums';
+import { CURRENT_SAVE_VERSION } from '../models';
+import { AlertService } from './alert.service';
+import { GameStateService } from './game-state.service';
+import { DEFAULT_SAVE_STORAGE_KEY, SaveService, type SaveStorage, isValidSaveData } from './save.service';
+
+class MemorySaveStorage implements SaveStorage {
+  readonly items = new Map<string, string>();
+  getItem(key: string): string | null { return this.items.get(key) ?? null; }
+  setItem(key: string, value: string): void { this.items.set(key, value); }
+}
+
+class ThrowingSaveStorage implements SaveStorage {
+  constructor(private readonly mode: 'read' | 'write') {}
+  getItem(): string | null { if (this.mode === 'read') throw new Error('read unavailable'); return null; }
+  setItem(): void { if (this.mode === 'write') throw new Error('write unavailable'); }
+}
+
+describe('SaveService', () => {
+  let gameState: GameStateService;
+  let alerts: AlertService;
+  let storage: MemorySaveStorage;
+  let service: SaveService;
+
+  function setup(saveStorage: SaveStorage = new MemorySaveStorage()): void {
+    gameState = new GameStateService();
+    alerts = new AlertService(gameState);
+    service = SaveService.createWithStorage(gameState, alerts, saveStorage);
+    storage = saveStorage instanceof MemorySaveStorage ? saveStorage : new MemorySaveStorage();
+  }
+
+  function lastAlert(): { type: AlertType; message: string; dismissed: boolean } {
+    return gameState.getSnapshot().alerts.at(-1)!;
+  }
+
+  beforeEach(() => setup());
+
+  it('saves the current state to the single MVP LocalStorage key and adds a success alert', () => {
+    gameState.updateResources((resources) => ({ ...resources, values: { ...resources.values, credits: 350 } }));
+
+    expect(service.saveGame('2026-05-19T12:30:00.000Z')).toEqual({ success: true });
+
+    const parsed = JSON.parse(storage.getItem(DEFAULT_SAVE_STORAGE_KEY)!);
+    expect(parsed).toMatchObject({
+      saveVersion: CURRENT_SAVE_VERSION,
+      savedAt: '2026-05-19T12:30:00.000Z',
+      resources: { values: { credits: 350 } },
+    });
+    expect(parsed.ui).toBeUndefined();
+    expect(parsed.state).toBeUndefined();
+    expect(lastAlert()).toMatchObject({ type: AlertType.Success, message: 'Game saved.', dismissed: false });
+  });
+
+  it('loads a valid save from LocalStorage and restores game state with a success alert', () => {
+    gameState.updateResources((resources) => ({ ...resources, values: { ...resources.values, credits: 480, water: 75 } }));
+    gameState.updateInventory((inventory) => ({ ...inventory, items: { ...inventory.items, biofood_pack: 4 } }));
+    gameState.updateClock((clock) => ({ ...clock, elapsedSeconds: 300, day: 3, speed: GameSpeed.X2 }));
+    service.saveGame('2026-05-19T12:30:00.000Z');
+    gameState.reset();
+
+    const result = service.loadGame();
+
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.resources.values['credits']).toBe(480);
+    expect(gameState.getSnapshot().resources.values).toEqual({ credits: 480, energy: 100, water: 75, nutrients: 20 });
+    expect(gameState.getSnapshot().inventory.items).toEqual({ seed_protein_leaf: 2, biofood_pack: 4 });
+    expect(gameState.getSnapshot().clock).toEqual({ elapsedSeconds: 300, day: 3, speed: GameSpeed.X2 });
+    expect(lastAlert()).toMatchObject({ type: AlertType.Success, message: 'Game loaded.' });
+  });
+
+  it('reports whether the single MVP save exists without mutating alerts', () => {
+    expect(service.hasSave()).toBe(false);
+    service.saveGame('2026-05-19T12:30:00.000Z');
+    expect(service.hasSave()).toBe(true);
+    expect(gameState.getSnapshot().alerts).toHaveLength(1);
+  });
+
+  it('returns controlled warning failures for missing, corrupt, and invalid save payloads', () => {
+    const cases = [
+      [undefined, 'save_not_found', 'No saved game found.'],
+      ['{not valid json', 'json_parse_failed', 'Saved game data could not be parsed.'],
+      [JSON.stringify({ saveVersion: CURRENT_SAVE_VERSION, savedAt: 'x' }), 'invalid_save_data', 'Saved game data is invalid.'],
+    ] as const;
+
+    for (const [payload, code, message] of cases) {
+      setup();
+      if (payload !== undefined) storage.setItem(DEFAULT_SAVE_STORAGE_KEY, payload);
+      expect(service.loadGame()).toEqual({ success: false, code, message });
+      expect(lastAlert()).toMatchObject({ type: AlertType.Warning, message });
+    }
+  });
+
+  it('returns controlled critical failures for storage and restore errors', () => {
+    setup(new ThrowingSaveStorage('write'));
+    expect(service.saveGame('2026-05-19T12:30:00.000Z')).toEqual({ success: false, code: 'save_failed', message: 'Unable to save game.' });
+    expect(lastAlert()).toMatchObject({ type: AlertType.Critical, message: 'Unable to save game.' });
+
+    setup(new ThrowingSaveStorage('read'));
+    expect(service.hasSave()).toBe(false);
+    expect(service.loadGame()).toEqual({ success: false, code: 'load_failed', message: 'Unable to load game.' });
+    expect(lastAlert()).toMatchObject({ type: AlertType.Critical, message: 'Unable to load game.' });
+
+    setup();
+    const validSave = gameState.toSaveData('2026-05-19T12:30:00.000Z');
+    storage.setItem(DEFAULT_SAVE_STORAGE_KEY, JSON.stringify(validSave));
+    service = SaveService.createWithStorage({ loadFromSave: () => { throw new Error('restore failed'); } } as unknown as GameStateService, alerts, storage);
+    expect(service.loadGame()).toEqual({ success: false, code: 'load_failed', message: 'Unable to load game.' });
+  });
+
+  it('uses the default unavailable storage wrapper as a controlled failure in non-browser contexts', () => {
+    service = new SaveService(gameState, alerts);
+    expect(service.saveGame('2026-05-19T12:30:00.000Z')).toMatchObject({ success: false, code: 'save_failed' });
+    expect(service.loadGame()).toMatchObject({ success: false, code: 'load_failed' });
+  });
+
+  it('rejects invalid save data during save before writing to storage', () => {
+    const invalidGameState = { toSaveData: () => ({ saveVersion: 999, savedAt: '2026-05-19T12:30:00.000Z' }) } as unknown as GameStateService;
+    service = SaveService.createWithStorage(invalidGameState, alerts, storage);
+
+    expect(service.saveGame('2026-05-19T12:30:00.000Z')).toEqual({ success: false, code: 'invalid_save_data', message: 'Saved game data is invalid.' });
+    expect(storage.getItem(DEFAULT_SAVE_STORAGE_KEY)).toBeNull();
+    expect(lastAlert()).toMatchObject({ type: AlertType.Warning, message: 'Saved game data is invalid.' });
+  });
+
+  it('validates SaveData shape before loading it into game state', () => {
+    const validSave = gameState.toSaveData('2026-05-19T12:30:00.000Z');
+    const invalidValues = [null, [], { ...validSave, saveVersion: 999 }, { ...validSave, savedAt: 123 }, { saveVersion: CURRENT_SAVE_VERSION, savedAt: validSave.savedAt }];
+
+    expect(isValidSaveData(validSave)).toBe(true);
+    for (const value of invalidValues) expect(isValidSaveData(value)).toBe(false);
+  });
+});
