@@ -1,0 +1,20 @@
+<section class="shipments panel-placeholder" aria-label="Shipments panel">
+  <p class="panel-placeholder__eyebrow">Shipments placeholder online</p>
+  <h2>Shipments</h2>
+  <p class="panel-placeholder__summary">
+    Active shipments
+    <strong>{{ activeShipmentCount() }}</strong>
+  </p>
+
+  <section class="panel-placeholder__section" aria-label="Shipment catalog">
+    <h3>Catalog</h3>
+    <ul>
+      @for (shipment of shipmentCatalog; track shipment.id) {
+        <li>
+          <span>{{ shipment.name }}</span>
+          <strong>{{ shipment.durationSeconds }}s</strong>
+        </li>
+      }
+    </ul>
+  </section>
+</section>

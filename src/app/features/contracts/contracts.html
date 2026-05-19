@@ -1,0 +1,17 @@
+<section class="contracts panel-placeholder" aria-label="Contracts panel">
+  <p class="panel-placeholder__eyebrow">Contracts placeholder online</p>
+  <h2>Contracts</h2>
+  <p class="panel-placeholder__summary">
+    Available contracts
+    <strong>{{ contracts().length }}</strong>
+  </p>
+
+  <ul aria-label="Contract list">
+    @for (contract of contracts(); track contract.id) {
+      <li>
+        <span>{{ contract.name }}</span>
+        <strong>{{ contract.state }}</strong>
+      </li>
+    }
+  </ul>
+</section>

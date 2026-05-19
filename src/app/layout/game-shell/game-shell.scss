@@ -1,6 +1,6 @@
-﻿.game-shell {
+.game-shell {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
   min-height: 100dvh;
   height: 100dvh;
   overflow: hidden;
@@ -9,7 +9,8 @@
     linear-gradient(180deg, var(--bf-surface-panel) 0%, var(--bf-surface-canvas) 100%);
 }
 
-.game-shell > app-hud-top {
+.game-shell > app-hud-top,
+.game-shell > app-bottom-nav {
   display: block;
   min-width: 0;
 }
@@ -23,21 +24,58 @@
 
 .game-shell__sidebar {
   display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   min-width: 0;
   min-height: 0;
   overflow: hidden;
 }
 
-.game-shell__sidebar > app-storage {
+.game-shell__panel-host,
+.game-shell__panel-host > app-greenhouse,
+.game-shell__panel-host > app-processing,
+.game-shell__panel-host > app-contracts,
+.game-shell__panel-host > app-shipments,
+.game-shell__panel-host > app-storage {
   display: block;
   min-width: 0;
   min-height: 0;
 }
 
+.game-shell__panel-host > app-greenhouse,
+.game-shell__panel-host > app-processing,
+.game-shell__panel-host > app-contracts,
+.game-shell__panel-host > app-shipments,
+.game-shell__panel-host > app-storage {
+  min-height: 100%;
+}
+
+.game-shell__panel-host {
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: color-mix(in srgb, var(--bf-accent-info) 46%, transparent) transparent;
+  scrollbar-width: thin;
+  border-right: 1px solid var(--bf-border-subtle);
+}
+
+.game-shell__panel-host::-webkit-scrollbar {
+  width: 0.45rem;
+}
+
+.game-shell__panel-host::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bf-accent-info) 42%, transparent);
+}
+
+.game-shell__panel-host::-webkit-scrollbar-track {
+  background: transparent;
+}
+
 .active-panel {
   padding: 0.85rem 1rem;
-  border-top: 1px solid var(--bf-border-subtle);
+  border-right: 1px solid var(--bf-border-subtle);
+  border-bottom: 1px solid var(--bf-border-subtle);
   background: color-mix(in srgb, var(--bf-surface-raised) 88%, transparent);
   color: var(--bf-text-primary);
 }
@@ -59,6 +97,36 @@
   display: block;
   margin-top: 0.25rem;
   color: var(--bf-accent-info);
+}
+
+.command-panel {
+  display: grid;
+  align-content: start;
+  gap: 0.65rem;
+  height: 100%;
+  padding: clamp(0.875rem, 2vw, 1.25rem);
+  overflow: auto;
+  color: var(--bf-text-primary);
+  background: color-mix(in srgb, var(--bf-surface-panel) 86%, transparent);
+}
+
+.command-panel__eyebrow {
+  margin: 0;
+  color: var(--bf-accent-info);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.command-panel h2,
+.command-panel p {
+  margin: 0;
+}
+
+.command-panel p {
+  color: var(--bf-text-muted);
+  line-height: 1.45;
 }
 
 .stage {
@@ -90,4 +158,3 @@
     grid-template-rows: auto minmax(0, 1fr);
   }
 }
-

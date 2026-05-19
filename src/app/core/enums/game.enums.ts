@@ -79,6 +79,7 @@ export enum PanelType {
   CommandCenter = 'command_center',
   Greenhouse = 'greenhouse',
   Processing = 'processing',
+  Contracts = 'contracts',
   Shipping = 'shipping',
   Storage = 'storage',
   Research = 'research',

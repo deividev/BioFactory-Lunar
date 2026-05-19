@@ -1,0 +1,19 @@
+<section class="alerts-panel" aria-label="Alerts panel">
+  <header>
+    <p>Alerts</p>
+    <strong>{{ alerts().length }}</strong>
+  </header>
+
+  @if (alerts().length === 0) {
+    <p class="alerts-panel__empty" role="status">No active alerts.</p>
+  } @else {
+    <ul>
+      @for (alert of alerts(); track alert.id) {
+        <li [attr.data-tone]="alert.tone">
+          <img [src]="alert.iconSrc" alt="" aria-hidden="true" />
+          <span>{{ alert.message }}</span>
+        </li>
+      }
+    </ul>
+  }
+</section>

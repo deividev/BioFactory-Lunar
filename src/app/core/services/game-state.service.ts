@@ -1,6 +1,17 @@
 import { computed, Injectable, signal, type Signal } from '@angular/core';
 
-import type { ClockState, GameState, InventoryState, ResourceState, UIState } from '../models';
+import type {
+  Alert,
+  ClockState,
+  ContractInstance,
+  GameState,
+  GreenhouseState,
+  InventoryState,
+  MachineInstance,
+  ResourceState,
+  ShipmentInstance,
+  UIState,
+} from '../models';
 import { createInitialGameState } from '../state';
 
 type DeepReadonly<T> = T extends (...args: never[]) => unknown
@@ -37,6 +48,11 @@ export class GameStateService {
   readonly inventory: Signal<DeepReadonly<InventoryState>> = computed(() => deepFreeze(cloneState(this.#state().inventory)));
   readonly clock: Signal<DeepReadonly<ClockState>> = computed(() => deepFreeze(cloneState(this.#state().clock)));
   readonly ui: Signal<DeepReadonly<UIState>> = computed(() => deepFreeze(cloneState(this.#state().ui)));
+  readonly greenhouse: Signal<DeepReadonly<GreenhouseState>> = computed(() => deepFreeze(cloneState(this.#state().greenhouse)));
+  readonly machines: Signal<DeepReadonly<MachineInstance[]>> = computed(() => deepFreeze(cloneState(this.#state().machines)));
+  readonly contracts: Signal<DeepReadonly<ContractInstance[]>> = computed(() => deepFreeze(cloneState(this.#state().contracts)));
+  readonly shipments: Signal<DeepReadonly<ShipmentInstance[]>> = computed(() => deepFreeze(cloneState(this.#state().shipments)));
+  readonly alerts: Signal<DeepReadonly<Alert[]>> = computed(() => deepFreeze(cloneState(this.#state().alerts)));
 
   getSnapshot(): GameState {
     return cloneState(this.#state());

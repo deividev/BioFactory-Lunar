@@ -1,0 +1,29 @@
+<section class="greenhouse panel-placeholder" aria-label="Greenhouse panel">
+  <p class="panel-placeholder__eyebrow">Greenhouse placeholder online</p>
+  <h2>Greenhouse</h2>
+  <p class="panel-placeholder__summary">
+    Crop slots
+    <strong>{{ slots().length }}</strong>
+  </p>
+
+  <ul class="panel-placeholder__grid" aria-label="Greenhouse crop slots">
+    @for (slot of slots(); track slot.id) {
+      <li>
+        <span>{{ slot.id }}</span>
+        <strong>{{ slot.state }}</strong>
+      </li>
+    }
+  </ul>
+
+  <section class="panel-placeholder__section" aria-label="Available crops">
+    <h3>Available crops</h3>
+    <ul>
+      @for (crop of cropCatalog; track crop.id) {
+        <li>
+          <span>{{ crop.name }}</span>
+          <strong>{{ crop.growthSeconds }}s</strong>
+        </li>
+      }
+    </ul>
+  </section>
+</section>

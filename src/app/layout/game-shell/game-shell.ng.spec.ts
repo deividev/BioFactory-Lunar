@@ -43,8 +43,10 @@ describe('GameShell Angular component', () => {
     const shell = fixture.nativeElement.querySelector('[aria-label="Biofactory Lunar game shell"]') as HTMLElement | null;
     const operations = fixture.nativeElement.querySelector('[aria-label="State-backed operations"]') as HTMLElement | null;
     const resourceHud = fixture.nativeElement.querySelector('header[aria-label="Resource HUD"]') as HTMLElement | null;
-    const storage = fixture.nativeElement.querySelector('aside[aria-label="Storage inventory"]') as HTMLElement | null;
     const activePanel = fixture.nativeElement.querySelector('[aria-label="Active module panel"]') as HTMLElement | null;
+    const activeStatePanel = fixture.nativeElement.querySelector('[aria-label="Active state panel"]') as HTMLElement | null;
+    const alertsPanel = fixture.nativeElement.querySelector('[aria-label="Alerts panel"]') as HTMLElement | null;
+    const bottomNav = fixture.nativeElement.querySelector('[aria-label="Main panel navigation"]') as HTMLElement | null;
     const visualLayer = fixture.nativeElement.querySelector('[aria-label="Visual layer placeholder"]') as HTMLElement | null;
 
     expect(shell).toBeInstanceOf(HTMLElement);
@@ -52,8 +54,10 @@ describe('GameShell Angular component', () => {
     expect(resourceHud?.textContent).toContain('Credits');
     expect(resourceHud?.textContent).toContain('Day 1');
     expect(resourceHud?.textContent).toContain('Speed x1');
-    expect(storage?.textContent).toContain('Protein Leaf Seed');
     expect(activePanel?.textContent).toContain('Command Center');
+    expect(activeStatePanel?.textContent).toContain('Command center placeholder online');
+    expect(alertsPanel?.textContent).toContain('No active alerts.');
+    expect(bottomNav?.textContent).toContain('Contracts');
     expect(visualLayer?.textContent).toContain('Stub Phaser layer');
     expect(text).toMatch(/Biofactory\s+Lunar/);
     expect(text).not.toContain('HUD placeholder online');
@@ -62,8 +66,8 @@ describe('GameShell Angular component', () => {
     expect(text).toContain('200');
     expect(text).toContain('Game clock');
     expect(text).toContain('00:00');
-    expect(text).toContain('Storage placeholder online');
-    expect(text).toContain('Protein Leaf Seed');
+    expect(text).toContain('Command center placeholder online');
+    expect(text).toContain('Command');
     expect(text).toContain('Stub Phaser layer');
   });
 
@@ -96,7 +100,7 @@ describe('GameShell Angular component', () => {
     }> = [
       { moduleId: 'module_greenhouse_basic_01', panel: PanelType.Greenhouse, label: 'Greenhouse' },
       { moduleId: 'module_processing_basic_01', panel: PanelType.Processing, label: 'Processing' },
-      { moduleId: 'module_shipping_hangar_basic_01', panel: PanelType.Shipping, label: 'Shipping' },
+      { moduleId: 'module_shipping_hangar_basic_01', panel: PanelType.Shipping, label: 'Shipments' },
       { moduleId: 'module_storage_basic_01', panel: PanelType.Storage, label: 'Storage' }
     ];
 
@@ -105,14 +109,34 @@ describe('GameShell Angular component', () => {
       fixture.detectChanges();
 
       const activePanel = fixture.nativeElement.querySelector('[aria-label="Active module panel"]') as HTMLElement | null;
+      const activeStatePanel = fixture.nativeElement.querySelector('[aria-label="Active state panel"]') as HTMLElement | null;
 
       expect(activePanel?.textContent).toContain(selection.label);
       expect(activePanel?.textContent).toContain(selection.moduleId);
+      expect(activeStatePanel?.textContent).toContain(selection.label);
       expect(gameState.getSnapshot().ui).toEqual({
         activePanel: selection.panel,
         selectedModuleId: selection.moduleId
       });
     }
+  });
+
+  it('opens placeholder panels from bottom navigation with one active panel in UI state', async () => {
+    const { fixture, gameState } = await createShellWithStubbedPhaser();
+    const contractsButton = Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>).find((button) =>
+      button.textContent?.includes('Contracts'),
+    );
+
+    contractsButton?.click();
+    fixture.detectChanges();
+
+    const activePanel = fixture.nativeElement.querySelector('[aria-label="Active module panel"]') as HTMLElement | null;
+    const activeStatePanel = fixture.nativeElement.querySelector('[aria-label="Active state panel"]') as HTMLElement | null;
+
+    expect(gameState.getSnapshot().ui).toEqual({ activePanel: PanelType.Contracts });
+    expect(activePanel?.textContent).toContain('Contracts');
+    expect(activeStatePanel?.textContent).toContain('Contracts placeholder online');
+    expect(activeStatePanel?.textContent).not.toContain('Storage placeholder online');
   });
 
   it('keeps storage selection state-backed without mutating inventory', async () => {

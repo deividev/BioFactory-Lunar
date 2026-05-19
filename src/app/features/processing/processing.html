@@ -1,0 +1,20 @@
+<section class="processing panel-placeholder" aria-label="Processing panel">
+  <p class="panel-placeholder__eyebrow">Processing placeholder online</p>
+  <h2>Processing</h2>
+  <p class="panel-placeholder__summary">
+    Recipes available
+    <strong>{{ recipeCount }}</strong>
+  </p>
+
+  <section class="panel-placeholder__section" aria-label="Machines">
+    <h3>Machines</h3>
+    <ul>
+      @for (machine of machines(); track machine.id) {
+        <li>
+          <span>{{ machine.name }}</span>
+          <strong>{{ machine.state }}</strong>
+        </li>
+      }
+    </ul>
+  </section>
+</section>

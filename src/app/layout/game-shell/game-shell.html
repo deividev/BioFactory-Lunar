@@ -3,8 +3,6 @@
 
   <main class="game-shell__body" aria-label="State-backed operations">
     <aside class="game-shell__sidebar" aria-label="Angular state panels">
-      <app-storage />
-
       <section class="active-panel" aria-label="Active module panel">
         <p class="active-panel__eyebrow">Active module panel</p>
         <h2>{{ activePanelLabel() }}</h2>
@@ -13,10 +11,41 @@
           <strong>{{ selectedModuleId() }}</strong>
         </p>
       </section>
+
+      <section class="game-shell__panel-host" aria-label="Active state panel">
+        @switch (activePanel()) {
+          @case (panelType.Greenhouse) {
+            <app-greenhouse />
+          }
+          @case (panelType.Processing) {
+            <app-processing />
+          }
+          @case (panelType.Contracts) {
+            <app-contracts />
+          }
+          @case (panelType.Shipping) {
+            <app-shipments />
+          }
+          @case (panelType.Storage) {
+            <app-storage />
+          }
+          @default {
+            <section class="command-panel" aria-label="Command center panel">
+              <p class="command-panel__eyebrow">Command center placeholder online</p>
+              <h2>Base overview</h2>
+              <p>Use the bottom navigation or select a module in Phaser to open a state-backed panel.</p>
+            </section>
+          }
+        }
+      </section>
+
+      <app-alerts-panel />
     </aside>
 
     <section class="stage" aria-label="Visual layer placeholder">
       <app-phaser-game />
     </section>
   </main>
+
+  <app-bottom-nav />
 </section>

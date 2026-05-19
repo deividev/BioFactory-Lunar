@@ -60,6 +60,7 @@ describe('GameStateService', () => {
     snapshot.resources.values['credits'] = 999;
     snapshot.inventory.items['seed_protein_leaf'] = 99;
     snapshot.greenhouse.slots[0]!.id = 'mutated_slot';
+    snapshot.contracts[0]!.id = 'mutated_contract';
     snapshot.ui.activePanel = PanelType.Storage;
 
     expect(service.getSnapshot().resources.values['credits']).toBe(200);
@@ -71,6 +72,9 @@ describe('GameStateService', () => {
     const inventoryView = service.inventory();
     const clockView = service.clock();
     const uiView = service.ui();
+    const greenhouseView = service.greenhouse();
+    const contractsView = service.contracts();
+    const alertsView = service.alerts();
 
     expect(Object.isFrozen(resourcesView)).toBe(true);
     expect(Object.isFrozen(resourcesView.values)).toBe(true);
@@ -79,6 +83,11 @@ describe('GameStateService', () => {
     expect(Object.isFrozen(inventoryView.items)).toBe(true);
     expect(Object.isFrozen(clockView)).toBe(true);
     expect(Object.isFrozen(uiView)).toBe(true);
+    expect(Object.isFrozen(greenhouseView)).toBe(true);
+    expect(Object.isFrozen(greenhouseView.slots)).toBe(true);
+    expect(Object.isFrozen(contractsView)).toBe(true);
+    expect(Object.isFrozen(contractsView[0])).toBe(true);
+    expect(Object.isFrozen(alertsView)).toBe(true);
     expect(() => {
       (resourcesView.values as Record<string, number>)['credits'] = 1;
     }).toThrow(TypeError);
@@ -91,9 +100,14 @@ describe('GameStateService', () => {
     expect(() => {
       (uiView as { activePanel: PanelType }).activePanel = PanelType.Storage;
     }).toThrow(TypeError);
+    expect(() => {
+      (greenhouseView.slots[0] as { id: string }).id = 'leaked_slot';
+    }).toThrow(TypeError);
     expect(service.getSnapshot().resources.values['credits']).toBe(200);
     expect(service.getSnapshot().inventory.items['seed_protein_leaf']).toBe(2);
     expect(service.getSnapshot().clock.elapsedSeconds).toBe(0);
+    expect(service.getSnapshot().greenhouse.slots[0]!.id).toBe('crop_slot_01');
+    expect(service.getSnapshot().contracts[0]!.id).toBe('contract_contract_starter_biofood_01');
     expect(service.getSnapshot().ui.activePanel).toBe(PanelType.CommandCenter);
   });
 

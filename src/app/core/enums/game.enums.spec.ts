@@ -38,6 +38,7 @@ describe('game domain enums', () => {
     expect(ResearchState.Locked).toBe('locked');
     expect(AlertType.Info).toBe('info');
     expect(PanelType.Greenhouse).toBe('greenhouse');
+    expect(PanelType.Contracts).toBe('contracts');
     expect(RobotTaskType.None).toBe('none');
     expect(ModuleType.Greenhouse).toBe('greenhouse');
     expect(GameEventType.ContractCompleted).toBe('contract_completed');

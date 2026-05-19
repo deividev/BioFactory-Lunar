@@ -1,0 +1,54 @@
+.bottom-nav {
+  display: flex;
+  justify-content: center;
+  gap: clamp(0.35rem, 1vw, 0.75rem);
+  min-width: 0;
+  padding: 0.55rem clamp(0.75rem, 2vw, 1.25rem);
+  border-top: 1px solid var(--bf-border-subtle);
+  background: color-mix(in srgb, var(--bf-surface-panel) 92%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--bf-accent-info) 12%, transparent);
+}
+
+button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.42rem;
+  min-width: 0;
+  border: 1px solid color-mix(in srgb, var(--bf-border-subtle) 62%, transparent);
+  border-radius: 0.65rem;
+  padding: 0.45rem 0.7rem;
+  color: var(--bf-text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: color-mix(in srgb, var(--bf-surface-raised) 28%, transparent);
+}
+
+button:hover,
+button:focus-visible,
+.bottom-nav__item--active {
+  color: var(--bf-text-primary);
+  border-color: var(--bf-border-strong);
+  background: color-mix(in srgb, var(--bf-accent-interactive) 14%, var(--bf-surface-panel));
+  box-shadow: 0 0 1rem color-mix(in srgb, var(--bf-accent-interactive) 14%, transparent);
+}
+
+.bottom-nav__icon {
+  width: 1.2rem;
+  height: 1.2rem;
+  object-fit: contain;
+  filter: drop-shadow(0 0 0.35rem color-mix(in srgb, var(--bf-accent-interactive) 18%, transparent));
+}
+
+@media (max-width: 760px) {
+  .bottom-nav {
+    justify-content: flex-start;
+    overflow-x: auto;
+  }
+
+  button {
+    flex: 0 0 auto;
+  }
+}
