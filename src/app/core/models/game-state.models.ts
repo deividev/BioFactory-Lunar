@@ -55,10 +55,24 @@ export interface GameState {
   meta: GameMetaState;
 }
 
+export const CURRENT_SAVE_VERSION = 1;
+
 export interface SaveData {
-  schemaVersion: number;
+  saveVersion: number;
   savedAt: string;
-  appVersion: string;
-  gameVersion: string;
-  state: GameState;
+  meta: GameMetaState;
+  clock: ClockState;
+  resources: ResourceState;
+  inventory: InventoryState;
+  greenhouse: GreenhouseState;
+  machines: MachineInstance[];
+  contracts: ContractInstance[];
+  shipments: ShipmentInstance[];
+  modules: BaseModuleInstance[];
+  robots: RobotInstance[];
+  research: ResearchNodeInstance[];
+  events: GameEventInstance[];
+  alerts: Alert[];
+  tutorial: TutorialState;
+  settings: SettingsState;
 }

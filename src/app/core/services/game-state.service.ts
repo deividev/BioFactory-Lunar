@@ -9,9 +9,11 @@ import type {
   InventoryState,
   MachineInstance,
   ResourceState,
+  SaveData,
   ShipmentInstance,
   UIState,
 } from '../models';
+import { CURRENT_SAVE_VERSION } from '../models';
 import { createInitialGameState } from '../state';
 
 type DeepReadonly<T> = T extends (...args: never[]) => unknown
@@ -62,6 +64,53 @@ export class GameStateService {
     this.#state.set(createInitialGameState());
   }
 
+  toSaveData(savedAt = new Date().toISOString()): SaveData {
+    const state = this.getSnapshot();
+
+    return {
+      saveVersion: CURRENT_SAVE_VERSION,
+      savedAt,
+      meta: state.meta,
+      clock: state.clock,
+      resources: state.resources,
+      inventory: state.inventory,
+      greenhouse: state.greenhouse,
+      machines: state.machines,
+      contracts: state.contracts,
+      shipments: state.shipments,
+      modules: state.modules,
+      robots: state.robots,
+      research: state.research,
+      events: state.events,
+      alerts: state.alerts,
+      tutorial: state.tutorial,
+      settings: state.settings,
+    };
+  }
+
+  loadFromSave(saveData: SaveData): void {
+    this.#state.set(
+      cloneState({
+        meta: saveData.meta,
+        clock: saveData.clock,
+        resources: saveData.resources,
+        inventory: saveData.inventory,
+        greenhouse: saveData.greenhouse,
+        machines: saveData.machines,
+        contracts: saveData.contracts,
+        shipments: saveData.shipments,
+        modules: saveData.modules,
+        robots: saveData.robots,
+        research: saveData.research,
+        events: saveData.events,
+        alerts: saveData.alerts,
+        tutorial: saveData.tutorial,
+        settings: saveData.settings,
+        ui: createInitialGameState().ui,
+      }),
+    );
+  }
+
   updateResources(updater: (resources: ResourceState) => ResourceState): void {
     this.#state.update((state) => ({
       ...state,
@@ -87,6 +136,13 @@ export class GameStateService {
     this.#state.update((state) => ({
       ...state,
       ui: cloneState(updater(cloneState(state.ui))),
+    }));
+  }
+
+  updateAlerts(updater: (alerts: Alert[]) => Alert[]): void {
+    this.#state.update((state) => ({
+      ...state,
+      alerts: cloneState(updater(cloneState(state.alerts))),
     }));
   }
 }
