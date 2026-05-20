@@ -229,10 +229,15 @@ button:focus-visible {
   color: var(--bf-accent-info);
 }
 
-.hud-top__clock-controls {
+.hud-top__clock-controls,
+.hud-top__save-controls {
   display: flex;
   flex-wrap: nowrap;
   gap: 0.22rem;
+}
+
+.hud-top__save-controls button {
+  border-color: color-mix(in srgb, var(--bf-accent-interactive) 38%, transparent);
 }
 
 .hud-top__actions {

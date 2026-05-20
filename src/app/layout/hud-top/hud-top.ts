@@ -8,7 +8,14 @@ import {
   SHIPMENT_CATALOG,
 } from '../../core/data';
 import { GameSpeed } from '../../core/enums';
-import { GameClockService, InventoryService, ResourceService, type ResourceActionResult } from '../../core/services';
+import {
+  GameClockService,
+  InventoryService,
+  ResourceService,
+  SaveService,
+  type ResourceActionResult,
+  type SaveActionResult,
+} from '../../core/services';
 
 interface HudResourceRow {
   readonly id: string;
@@ -78,6 +85,7 @@ export class HudTop implements OnInit, OnDestroy {
   private readonly resourceService = inject(ResourceService);
   private readonly inventoryService = inject(InventoryService);
   private readonly gameClock = inject(GameClockService);
+  private readonly saveService = inject(SaveService);
 
   protected readonly resources = computed<readonly HudResourceRow[]>(() => {
     const balances = this.resourceService.balances();
@@ -199,6 +207,25 @@ export class HudTop implements OnInit, OnDestroy {
 
   protected overfillWater(): void {
     this.applyResourceAction('Overfill water', this.resourceService.add('water', 1));
+  }
+
+  protected saveGame(): void {
+    this.applySaveAction('Save game', this.saveService.saveGame());
+  }
+
+  protected loadGame(): void {
+    this.applySaveAction('Load game', this.saveService.loadGame());
+  }
+
+  private applySaveAction(label: string, result: SaveActionResult | SaveActionResult<unknown>): void {
+    if (result.success) {
+      this.hasFeedbackError.set(false);
+      this.feedbackMessage.set(`${label} completed.`);
+      return;
+    }
+
+    this.hasFeedbackError.set(true);
+    this.feedbackMessage.set(result.message);
   }
 
   private applyResourceAction(label: string, result: ResourceActionResult): void {

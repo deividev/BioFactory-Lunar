@@ -94,11 +94,21 @@ describe('game state model contracts', () => {
 
     expectTypeOf<UIState>().toHaveProperty('activePanel').toEqualTypeOf<PanelType>();
     expectTypeOf<SaveData>().toMatchTypeOf<{
-      schemaVersion: number;
+      saveVersion: number;
       savedAt: string;
-      appVersion: string;
-      gameVersion: string;
-      state: GameState;
+      meta: GameMetaState;
+      clock: ClockState;
+      resources: ResourceState;
+      inventory: InventoryState;
+      greenhouse: GreenhouseState;
+      machines: MachineInstance[];
+      contracts: ContractInstance[];
+      shipments: ShipmentInstance[];
+      modules: BaseModuleInstance[];
+      robots: { id: string; state: RobotState }[];
+      alerts: Alert[];
+      settings: SettingsState;
+      tutorial: TutorialState;
     }>();
   });
 });

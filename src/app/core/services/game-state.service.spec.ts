@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { GameSpeed, PanelType } from '../enums';
+import { AlertType, GameSpeed, PanelType } from '../enums';
 import { createInitialGameState } from '../state';
 import { GameStateService } from './game-state.service';
 
@@ -156,5 +156,110 @@ describe('GameStateService', () => {
     expect(updated.ui).toEqual({ activePanel: PanelType.Greenhouse, selectedModuleId: 'module_greenhouse_basic_01' });
     expect(updated.greenhouse).toEqual(initial.greenhouse);
     expect(updated.meta).toEqual(initial.meta);
+  });
+
+  it('exports explicit save data with persistent gameplay branches and without transient UI state', () => {
+    const service = new GameStateService();
+
+    service.updateResources((resources) => ({
+      ...resources,
+      values: { ...resources.values, credits: 325 },
+    }));
+    service.updateInventory((inventory) => ({
+      ...inventory,
+      items: { ...inventory.items, biofood_pack: 2 },
+    }));
+    service.updateUi((ui) => ({
+      ...ui,
+      activePanel: PanelType.Storage,
+      selectedModuleId: 'module_storage_basic_01',
+    }));
+
+    const saveData = service.toSaveData('2026-05-19T12:00:00.000Z');
+    const rawSaveData = saveData as unknown as Record<string, unknown>;
+
+    expect(saveData.saveVersion).toBe(1);
+    expect(saveData.savedAt).toBe('2026-05-19T12:00:00.000Z');
+    expect(saveData.resources.values['credits']).toBe(325);
+    expect(saveData.inventory.items['biofood_pack']).toBe(2);
+    expect(saveData.clock).toEqual(service.getSnapshot().clock);
+    expect(saveData.modules).toEqual(service.getSnapshot().modules);
+    expect(rawSaveData['ui']).toBeUndefined();
+    expect(rawSaveData['state']).toBeUndefined();
+
+    saveData.resources.values['credits'] = 1;
+    expect(service.getSnapshot().resources.values['credits']).toBe(325);
+  });
+
+  it('loads save data into gameplay state while resetting transient UI selection', () => {
+    const source = new GameStateService();
+    source.updateResources((resources) => ({
+      ...resources,
+      values: { ...resources.values, credits: 450, water: 80 },
+    }));
+    source.updateInventory((inventory) => ({
+      ...inventory,
+      items: { ...inventory.items, seed_protein_leaf: 5, biofood_pack: 1 },
+    }));
+    source.updateClock((clock) => ({ ...clock, elapsedSeconds: 240, day: 2, speed: GameSpeed.X4 }));
+    source.updateUi((ui) => ({
+      ...ui,
+      activePanel: PanelType.Storage,
+      selectedModuleId: 'module_storage_basic_01',
+    }));
+
+    const saveData = source.toSaveData('2026-05-19T12:00:00.000Z');
+    const target = new GameStateService();
+
+    target.loadFromSave(saveData);
+
+    const restored = target.getSnapshot();
+    expect(restored.resources.values).toEqual({ credits: 450, energy: 100, water: 80, nutrients: 20 });
+    expect(restored.inventory.items).toEqual({ seed_protein_leaf: 5, biofood_pack: 1 });
+    expect(restored.clock).toEqual({ elapsedSeconds: 240, day: 2, speed: GameSpeed.X4 });
+    expect(restored.ui).toEqual({ activePanel: PanelType.CommandCenter });
+    expect(restored.modules).toEqual(saveData.modules);
+
+    saveData.inventory.items['biofood_pack'] = 99;
+    expect(target.getSnapshot().inventory.items['biofood_pack']).toBe(1);
+  });
+
+  it('updates alerts without mutating unrelated game state or leaking updater drafts', () => {
+    const service = new GameStateService();
+    const initial = service.getSnapshot();
+    let leakedAlertsDraft = initial.alerts;
+
+    service.updateAlerts((alerts) => {
+      leakedAlertsDraft = alerts;
+      alerts.push({
+        id: 'alert_save_success',
+        type: AlertType.Success,
+        message: 'Game saved.',
+        createdAt: '2026-05-19T12:00:00.000Z',
+        dismissed: false,
+      });
+      return alerts;
+    });
+
+    leakedAlertsDraft.push({
+      id: 'alert_leaked',
+      type: AlertType.Warning,
+      message: 'Leaked mutation.',
+      createdAt: '2026-05-19T12:01:00.000Z',
+      dismissed: false,
+    });
+
+    const updated = service.getSnapshot();
+    expect(updated.alerts).toEqual([
+      {
+        id: 'alert_save_success',
+        type: AlertType.Success,
+        message: 'Game saved.',
+        createdAt: '2026-05-19T12:00:00.000Z',
+        dismissed: false,
+      },
+    ]);
+    expect(updated.resources).toEqual(initial.resources);
+    expect(updated.inventory).toEqual(initial.inventory);
   });
 });
