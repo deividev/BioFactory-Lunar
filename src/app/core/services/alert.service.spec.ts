@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AlertType } from '../enums';
 import { GameStateService } from './game-state.service';
-import { AlertService } from './alert.service';
+import { ALERT_AUTO_DISMISS_DELAY_MS, AlertService, MAX_VISIBLE_ALERTS } from './alert.service';
 
 describe('AlertService', () => {
   let gameState: GameStateService;
@@ -52,5 +52,39 @@ describe('AlertService', () => {
         dismissed: false,
       },
     ]);
+  });
+
+  it('keeps alerts visible until the auto-dismiss delay expires', () => {
+    const alert = service.addSuccess('Game saved.');
+
+    vi.advanceTimersByTime(ALERT_AUTO_DISMISS_DELAY_MS - 1);
+
+    expect(gameState.getSnapshot().alerts).toEqual([{ ...alert, dismissed: false }]);
+
+    vi.advanceTimersByTime(1);
+
+    expect(gameState.getSnapshot().alerts).toEqual([{ ...alert, dismissed: true }]);
+  });
+
+  it('auto-dismisses warning and critical alerts too', () => {
+    const warning = service.addWarning('No saved game found.');
+    const critical = service.addCritical('Save storage is unavailable.');
+
+    vi.advanceTimersByTime(ALERT_AUTO_DISMISS_DELAY_MS);
+
+    expect(gameState.getSnapshot().alerts).toEqual([
+      { ...warning, dismissed: true },
+      { ...critical, dismissed: true },
+    ]);
+  });
+
+  it('keeps only the newest visible alerts when the visible limit is exceeded', () => {
+    service.addSuccess('Alert 1');
+    const second = service.addWarning('Alert 2');
+    const third = service.addCritical('Alert 3');
+    const fourth = service.addSuccess('Alert 4');
+
+    expect(gameState.getSnapshot().alerts).toEqual([second, third, fourth]);
+    expect(gameState.getSnapshot().alerts).toHaveLength(MAX_VISIBLE_ALERTS);
   });
 });

@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { PanelType } from '../../core/enums';
-import { GameStateService, ResourceService } from '../../core/services';
+import { DEFAULT_SAVE_STORAGE_KEY, GameStateService, ResourceService } from '../../core/services';
 import { PhaserBridgeService } from '../../game/bridge';
 import { PHASER_GAME_FACTORY, PhaserGame } from '../../game/phaser/phaser-game';
 import { GameShell } from './game-shell';
@@ -89,6 +89,26 @@ describe('GameShell Angular component', () => {
     expect(resourceService.getAmount('credits')).toBe(225);
     expect(fixture.nativeElement.textContent).toContain('225');
     expect(fixture.nativeElement.textContent).toContain('Stub Phaser layer');
+  });
+
+  it('shows manual save and load feedback through the alerts panel', async () => {
+    localStorage.removeItem(DEFAULT_SAVE_STORAGE_KEY);
+    const { fixture } = await createShellWithStubbedPhaser();
+
+    const buttons = Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>);
+    const saveButton = buttons.find((button) => button.textContent?.trim() === 'Save');
+    const loadButton = buttons.find((button) => button.textContent?.trim() === 'Load');
+
+    expect(saveButton).toBeTruthy();
+    expect(loadButton).toBeTruthy();
+
+    saveButton?.click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[aria-label="Alerts panel"]')?.textContent).toContain('Game saved.');
+
+    loadButton?.click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[aria-label="Alerts panel"]')?.textContent).toContain('Game loaded.');
   });
 
   it('routes Phaser module selections to the mapped Angular panel proof', async () => {

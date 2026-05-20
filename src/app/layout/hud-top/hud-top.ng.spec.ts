@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { GameSpeed } from '../../core/enums';
-import { GameClockService, ResourceService } from '../../core/services';
+import { GameClockService, GameStateService, ResourceService, SaveService } from '../../core/services';
 import { HudTop } from './hud-top';
 
 function visibleText(fixture: { nativeElement: HTMLElement }): string {
@@ -90,6 +90,41 @@ describe('HudTop Angular component', () => {
       'assets/ui/icons/actions/ui_icon_shipments.png',
     ]);
     expect(fixture.nativeElement.querySelector('.hud-top__clock-card')).toBeInstanceOf(HTMLElement);
+  });
+
+  it('renders manual save and load controls in the command bar', async () => {
+    await TestBed.configureTestingModule({
+      imports: [HudTop],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(HudTop);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[aria-label="Save controls"]')).toBeInstanceOf(HTMLElement);
+    expectButton(fixture, 'Save');
+    expectButton(fixture, 'Load');
+  });
+
+  it('routes manual save and load controls through SaveService and alert state', async () => {
+    await TestBed.configureTestingModule({
+      imports: [HudTop],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(HudTop);
+    const saveService = TestBed.inject(SaveService);
+    const gameState = TestBed.inject(GameStateService);
+    const saveSpy = vi.spyOn(saveService, 'saveGame');
+    const loadSpy = vi.spyOn(saveService, 'loadGame');
+
+    fixture.detectChanges();
+
+    clickButton(fixture, 'Save');
+    expect(saveSpy).toHaveBeenCalledOnce();
+    expect(gameState.getSnapshot().alerts.at(-1)?.message).toBe('Game saved.');
+
+    clickButton(fixture, 'Load');
+    expect(loadSpy).toHaveBeenCalledOnce();
+    expect(gameState.getSnapshot().alerts.at(-1)?.message).toBe('Game loaded.');
   });
 
   it('renders speed controls for pause, resume, x1, x2, and x4', async () => {
