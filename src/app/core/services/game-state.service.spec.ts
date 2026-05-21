@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { AlertType, GameSpeed, PanelType } from '../enums';
+import { AlertType, GameSpeed, PanelType, ShipmentState } from '../enums';
+import type { ShipmentInstance } from '../models';
 import { createInitialGameState } from '../state';
 import { GameStateService } from './game-state.service';
 
@@ -259,6 +260,30 @@ describe('GameStateService', () => {
         dismissed: false,
       },
     ]);
+    expect(updated.resources).toEqual(initial.resources);
+    expect(updated.inventory).toEqual(initial.inventory);
+  });
+
+  it('updates shipments without mutating unrelated game state or leaking updater drafts', () => {
+    const service = new GameStateService();
+    const initial = service.getSnapshot();
+    const testShipment: ShipmentInstance = {
+      id: 'ship_test_01',
+      catalogItemId: 'shipment_seed_protein_leaf_pack',
+      state: ShipmentState.InTransit,
+      remainingSeconds: 45,
+    };
+    let leakedShipmentsDraft: ShipmentInstance[] = [];
+
+    service.updateShipments((shipments) => {
+      leakedShipmentsDraft = shipments;
+      return [...shipments, testShipment];
+    });
+
+    leakedShipmentsDraft.push({ ...testShipment, id: 'leaked_shipment' });
+
+    const updated = service.getSnapshot();
+    expect(updated.shipments).toEqual([testShipment]);
     expect(updated.resources).toEqual(initial.resources);
     expect(updated.inventory).toEqual(initial.inventory);
   });
