@@ -1,29 +1,85 @@
-<section class="greenhouse panel-placeholder" aria-label="Greenhouse panel">
-  <p class="panel-placeholder__eyebrow">Greenhouse placeholder online</p>
-  <h2>Greenhouse</h2>
-  <p class="panel-placeholder__summary">
-    Crop slots
-    <strong>{{ slots().length }}</strong>
-  </p>
+<section class="greenhouse" aria-label="Greenhouse panel">
+  <header class="greenhouse__header">
+    <p class="greenhouse__eyebrow">Greenhouse</p>
+    <h2>Crop Management</h2>
+  </header>
 
-  <ul class="panel-placeholder__grid" aria-label="Greenhouse crop slots">
-    @for (slot of slots(); track slot.id) {
-      <li>
-        <span>{{ slot.id }}</span>
-        <strong>{{ slot.state }}</strong>
+  <ul class="greenhouse__slots" aria-label="Crop slots">
+    @for (slot of slotViewModels(); track slot.id) {
+      <li
+        class="greenhouse__slot"
+        [class.greenhouse__slot--planted]="slot.state === CropSlotState.Planted"
+        [class.greenhouse__slot--ready]="slot.state === CropSlotState.Ready"
+      >
+        <span class="greenhouse__slot-id">{{ slot.id }}</span>
+
+        @if (slot.state === CropSlotState.Empty) {
+          <div class="greenhouse__empty-controls">
+            <select
+              class="greenhouse__crop-select"
+              [attr.aria-label]="'Select crop for ' + slot.id"
+              (change)="selectCrop(slot.id, $any($event.target).value)"
+            >
+              <option value="">— choose crop —</option>
+              @for (crop of cropCatalog; track crop.id) {
+                <option [value]="crop.id">{{ crop.name }}</option>
+              }
+            </select>
+            <button
+              type="button"
+              class="greenhouse__btn greenhouse__btn--plant"
+              [attr.aria-label]="'Plant in ' + slot.id"
+              (click)="plantCrop(slot.id)"
+            >
+              <img class="greenhouse__btn-icon" [src]="plantIconSrc" alt="" aria-hidden="true" />
+              Plant
+            </button>
+          </div>
+        }
+
+        @if (slot.state === CropSlotState.Planted) {
+          <div class="greenhouse__growing">
+            <span class="greenhouse__crop-name">{{ slot.cropName }}</span>
+            <div
+              class="greenhouse__progress"
+              role="progressbar"
+              [attr.aria-valuenow]="slot.progressPercent"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              [attr.aria-label]="slot.cropName + ' growth progress'"
+            >
+              <div class="greenhouse__progress-fill" [style.width.%]="slot.progressPercent"></div>
+            </div>
+            <span class="greenhouse__remaining">{{ slot.remainingSeconds }}s remaining</span>
+          </div>
+        }
+
+        @if (slot.state === CropSlotState.Ready) {
+          <div class="greenhouse__ready">
+            <span class="greenhouse__crop-name">{{ slot.cropName }} — Ready</span>
+            <button
+              type="button"
+              class="greenhouse__btn greenhouse__btn--harvest"
+              [attr.aria-label]="'Harvest ' + slot.cropName + ' from ' + slot.id"
+              (click)="harvestCrop(slot.id)"
+            >
+              <img class="greenhouse__btn-icon" [src]="harvestIconSrc" alt="" aria-hidden="true" />
+              Harvest
+            </button>
+          </div>
+        }
       </li>
     }
   </ul>
 
-  <section class="panel-placeholder__section" aria-label="Available crops">
-    <h3>Available crops</h3>
-    <ul>
-      @for (crop of cropCatalog; track crop.id) {
-        <li>
-          <span>{{ crop.name }}</span>
-          <strong>{{ crop.growthSeconds }}s</strong>
-        </li>
-      }
-    </ul>
-  </section>
+  @if (feedbackMessage()) {
+    <p
+      class="greenhouse__feedback"
+      [attr.role]="feedbackRole()"
+      [class.greenhouse__feedback--error]="hasFeedbackError()"
+    >
+      <img class="greenhouse__feedback-icon" [src]="feedbackIconSrc()" alt="" aria-hidden="true" />
+      {{ feedbackMessage() }}
+    </p>
+  }
 </section>

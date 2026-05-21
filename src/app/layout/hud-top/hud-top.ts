@@ -178,11 +178,14 @@ export class HudTop implements OnInit, OnDestroy {
   protected readonly feedbackRole = computed(() => (this.hasFeedbackError() ? 'alert' : 'status'));
 
   ngOnInit(): void {
+    this.saveService.restoreLatestGame();
     this.gameClock.start();
+    this.saveService.startAutosave();
   }
 
   ngOnDestroy(): void {
     this.gameClock.stop();
+    this.saveService.stopAutosave();
   }
 
   protected pauseClock(): void {

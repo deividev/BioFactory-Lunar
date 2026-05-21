@@ -111,6 +111,28 @@ describe('GameShell Angular component', () => {
     expect(fixture.nativeElement.querySelector('[aria-label="Alerts panel"]')?.textContent).toContain('Game loaded.');
   });
 
+  it('restores the latest saved state automatically when the shell boots', async () => {
+    const bootstrapState = new GameStateService();
+    bootstrapState.updateResources((resources) => ({
+      ...resources,
+      values: { ...resources.values, credits: 480, water: 75 },
+    }));
+    bootstrapState.updateInventory((inventory) => ({
+      ...inventory,
+      items: { ...inventory.items, biofood_pack: 4 },
+    }));
+    localStorage.setItem(DEFAULT_SAVE_STORAGE_KEY, JSON.stringify(bootstrapState.toSaveData('2026-05-19T12:30:00.000Z')));
+
+    const { fixture, gameState } = await createShellWithStubbedPhaser();
+
+    expect(gameState.getSnapshot().resources.values).toEqual({ credits: 480, energy: 100, water: 75, nutrients: 20 });
+    expect(gameState.getSnapshot().inventory.items).toEqual({ seed_protein_leaf: 2, biofood_pack: 4 });
+    expect(fixture.nativeElement.textContent).toContain('480');
+    expect(fixture.nativeElement.textContent).toContain('75 / 100');
+
+    localStorage.removeItem(DEFAULT_SAVE_STORAGE_KEY);
+  });
+
   it('routes Phaser module selections to the mapped Angular panel proof', async () => {
     const { bridge, fixture, gameState } = await createShellWithStubbedPhaser();
     const selections: ReadonlyArray<{

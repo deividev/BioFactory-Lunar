@@ -9,7 +9,8 @@ export type PhaserToAngularEvent =
 
 export type AngularToPhaserEvent =
   | { readonly type: 'highlightModule'; readonly moduleId: string }
-  | { readonly type: 'clearHighlight' };
+  | { readonly type: 'clearHighlight' }
+  | { readonly type: 'cropReady'; readonly moduleId: string };
 
 @Injectable({ providedIn: 'root' })
 export class PhaserBridgeService {
@@ -33,5 +34,9 @@ export class PhaserBridgeService {
 
   clearHighlight(): void {
     this.sendToPhaser({ type: 'clearHighlight' });
+  }
+
+  notifyCropReady(moduleId: string): void {
+    this.sendToPhaser({ type: 'cropReady', moduleId });
   }
 }

@@ -435,3 +435,68 @@ describe('MainBaseScene visual placeholder', () => {
     expect(labels[1]!.visibility.at(-1)).toBe(false);
   });
 });
+
+describe('MainBaseScene cropReady flash', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('flashes the targeted module with a green stroke on cropReady and reverts to default after the flash duration', () => {
+    const { commands, rectangles, scene } = createModuleScene();
+
+    scene.create();
+
+    // Greenhouse is rectangles[1] (module_greenhouse_basic_01)
+    const greenhouse = rectangles[1]!;
+
+    commands.next({ type: 'cropReady', moduleId: 'module_greenhouse_basic_01' });
+
+    // Flash stroke applied: width 2, green color (0x4ade80 = 4906624), alpha 1
+    expect(greenhouse.strokes.at(-1)).toBe('2|4906624|1');
+
+    vi.advanceTimersByTime(1900);
+
+    // Reverted to default
+    expect(greenhouse.strokes.at(-1)).toBe('1|3918280|0.14');
+  });
+
+  it('does not affect unrelated modules on cropReady', () => {
+    const { commands, rectangles, scene } = createModuleScene();
+
+    scene.create();
+
+    const commandCenter = rectangles[0]!; // module_command_center_basic_01
+    const defaultStroke = commandCenter.strokes.at(-1);
+
+    commands.next({ type: 'cropReady', moduleId: 'module_greenhouse_basic_01' });
+
+    expect(commandCenter.strokes.at(-1)).toBe(defaultStroke);
+  });
+
+  it('resets an in-progress flash timer when a second cropReady fires for the same module', () => {
+    const { commands, rectangles, scene } = createModuleScene();
+
+    scene.create();
+
+    const greenhouse = rectangles[1]!;
+
+    commands.next({ type: 'cropReady', moduleId: 'module_greenhouse_basic_01' });
+    vi.advanceTimersByTime(900);
+
+    // Second event resets the timer
+    commands.next({ type: 'cropReady', moduleId: 'module_greenhouse_basic_01' });
+    vi.advanceTimersByTime(900);
+
+    // Still in flash state (1800ms have not elapsed since the second event)
+    expect(greenhouse.strokes.at(-1)).toBe('2|4906624|1');
+
+    vi.advanceTimersByTime(1000);
+
+    // Now reverted
+    expect(greenhouse.strokes.at(-1)).toBe('1|3918280|0.14');
+  });
+});

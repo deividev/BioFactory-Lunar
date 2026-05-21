@@ -1,4 +1,4 @@
-﻿import { beforeEach, describe, expect, it } from 'vitest';
+﻿import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AlertType, GameSpeed } from '../enums';
 import { CURRENT_SAVE_VERSION } from '../models';
@@ -37,6 +37,10 @@ describe('SaveService', () => {
 
   beforeEach(() => setup());
 
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('saves the current state to the single MVP LocalStorage key and adds a success alert', () => {
     gameState.updateResources((resources) => ({ ...resources, values: { ...resources.values, credits: 350 } }));
 
@@ -70,11 +74,31 @@ describe('SaveService', () => {
     expect(lastAlert()).toMatchObject({ type: AlertType.Success, message: 'Game loaded.' });
   });
 
+  it('restores the latest save silently on startup without adding success alerts', () => {
+    gameState.updateResources((resources) => ({ ...resources, values: { ...resources.values, credits: 480, water: 75 } }));
+    gameState.updateInventory((inventory) => ({ ...inventory, items: { ...inventory.items, biofood_pack: 4 } }));
+    service.saveGame('2026-05-19T12:30:00.000Z');
+    gameState.reset();
+    gameState.updateAlerts(() => []);
+
+    const result = service.restoreLatestGame();
+
+    expect(result).toMatchObject({ success: true });
+    expect(gameState.getSnapshot().resources.values).toEqual({ credits: 480, energy: 100, water: 75, nutrients: 20 });
+    expect(gameState.getSnapshot().inventory.items).toEqual({ seed_protein_leaf: 2, biofood_pack: 4 });
+    expect(gameState.getSnapshot().alerts).toHaveLength(0);
+  });
+
   it('reports whether the single MVP save exists without mutating alerts', () => {
     expect(service.hasSave()).toBe(false);
     service.saveGame('2026-05-19T12:30:00.000Z');
     expect(service.hasSave()).toBe(true);
     expect(gameState.getSnapshot().alerts).toHaveLength(1);
+  });
+
+  it('returns a silent no-op when startup restore finds no save', () => {
+    expect(service.restoreLatestGame()).toEqual({ success: true, restored: false });
+    expect(gameState.getSnapshot().alerts).toHaveLength(0);
   });
 
   it('returns controlled warning failures for missing, corrupt, and invalid save payloads', () => {
@@ -122,6 +146,50 @@ describe('SaveService', () => {
     expect(service.saveGame('2026-05-19T12:30:00.000Z')).toEqual({ success: false, code: 'invalid_save_data', message: 'Saved game data is invalid.' });
     expect(storage.getItem(DEFAULT_SAVE_STORAGE_KEY)).toBeNull();
     expect(lastAlert()).toMatchObject({ type: AlertType.Warning, message: 'Saved game data is invalid.' });
+  });
+
+  it('autosaves silently on an interval and persists updated inventory values', () => {
+    vi.useFakeTimers();
+
+    service.startAutosave(5000);
+    gameState.updateInventory((inventory) => ({
+      ...inventory,
+      items: { ...inventory.items, biofood_pack: 3 },
+    }));
+
+    vi.advanceTimersByTime(5000);
+
+    const parsed = JSON.parse(storage.getItem(DEFAULT_SAVE_STORAGE_KEY)!);
+    expect(parsed.inventory.items['biofood_pack']).toBe(3);
+    expect(gameState.getSnapshot().alerts).toHaveLength(0);
+  });
+
+  it('stops autosaving after stopAutosave is called', () => {
+    vi.useFakeTimers();
+
+    service.startAutosave(5000);
+    service.stopAutosave();
+    gameState.updateResources((resources) => ({
+      ...resources,
+      values: { ...resources.values, credits: 333 },
+    }));
+
+    vi.advanceTimersByTime(5000);
+
+    expect(storage.getItem(DEFAULT_SAVE_STORAGE_KEY)).toBeNull();
+  });
+
+  it('deduplicates repeated autosave failure alerts until a save succeeds again', () => {
+    vi.useFakeTimers();
+
+    setup(new ThrowingSaveStorage('write'));
+    service.startAutosave(5000);
+
+    vi.advanceTimersByTime(10000);
+
+    expect(gameState.getSnapshot().alerts.filter((alert) => alert.message === 'Unable to save game.')).toHaveLength(1);
+
+    service.stopAutosave();
   });
 
   it('validates SaveData shape before loading it into game state', () => {
