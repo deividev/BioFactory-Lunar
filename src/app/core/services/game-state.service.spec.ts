@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { AlertType, GameSpeed, PanelType, ShipmentState } from '../enums';
+import { AlertType, CropSlotState, GameSpeed, PanelType, ShipmentState } from '../enums';
 import type { ShipmentInstance } from '../models';
 import { createInitialGameState } from '../state';
 import { GameStateService } from './game-state.service';
@@ -262,6 +262,36 @@ describe('GameStateService', () => {
     ]);
     expect(updated.resources).toEqual(initial.resources);
     expect(updated.inventory).toEqual(initial.inventory);
+  });
+
+  it('updates greenhouse without mutating unrelated game state or leaking updater drafts', () => {
+    const service = new GameStateService();
+    const initial = service.getSnapshot();
+    let leakedGreenhouseDraft = initial.greenhouse;
+
+    service.updateGreenhouse((greenhouse) => {
+      leakedGreenhouseDraft = greenhouse;
+      return {
+        ...greenhouse,
+        slots: greenhouse.slots.map((slot, i) =>
+          i === 0 ? { ...slot, state: CropSlotState.Planted, cropId: 'protein_leaf', remainingSeconds: 90 } : slot,
+        ),
+      };
+    });
+
+    leakedGreenhouseDraft.slots[0] = { id: 'leaked_slot', state: CropSlotState.Empty };
+
+    const updated = service.getSnapshot();
+    expect(updated.greenhouse.slots[0]).toEqual({
+      id: 'crop_slot_01',
+      state: CropSlotState.Planted,
+      cropId: 'protein_leaf',
+      remainingSeconds: 90,
+    });
+    expect(updated.resources).toEqual(initial.resources);
+    expect(updated.inventory).toEqual(initial.inventory);
+    expect(leakedGreenhouseDraft.slots[0]!.id).toBe('leaked_slot');
+    expect(service.getSnapshot().greenhouse.slots[0]!.id).toBe('crop_slot_01');
   });
 
   it('updates shipments without mutating unrelated game state or leaking updater drafts', () => {

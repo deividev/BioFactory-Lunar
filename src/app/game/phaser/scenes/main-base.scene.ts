@@ -50,12 +50,15 @@ const MODULE_HOTSPOT_FILL_COLOR = 0x0f172a;
 const DEFAULT_MODULE_STROKE_COLOR = 0x3bc9c8;
 const HOVER_MODULE_STROKE_COLOR = 0x9be8ff;
 const SELECTED_MODULE_STROKE_COLOR = 0x00e6ff;
+const CROP_READY_FLASH_COLOR = 0x4ade80;
 const DEFAULT_MODULE_FILL_ALPHA = 0;
 const HOVER_MODULE_FILL_ALPHA = 0.045;
 const SELECTED_MODULE_FILL_ALPHA = 0.09;
 const DEFAULT_MODULE_STROKE_ALPHA = 0.14;
 const HOVER_MODULE_STROKE_ALPHA = 0.82;
 const SELECTED_MODULE_STROKE_ALPHA = 1;
+const CROP_READY_FLASH_STROKE_ALPHA = 1;
+const CROP_READY_FLASH_DURATION_MS = 1800;
 
 const LUNAR_BACKGROUND_LAYERS: readonly BackgroundLayerConfig[] = [
   {
@@ -151,6 +154,8 @@ const MVP_MODULE_HOTSPOTS: readonly ModuleHotspotConfig[] = [
 export class MainBaseScene extends Phaser.Scene {
   private readonly backgroundLayers: BackgroundLayerView[] = [];
   private bridgeSubscription = new Subscription();
+  private readonly cropReadyFlashingModuleIds = new Set<string>();
+  private readonly cropReadyFlashTimers = new Map<string, ReturnType<typeof setTimeout>>();
   private hoveredModuleId?: string;
   private selectedModuleId?: string;
   private readonly moduleViews = new Map<string, ModuleHotspotView>();
@@ -274,6 +279,11 @@ export class MainBaseScene extends Phaser.Scene {
   }
 
   private applyAngularCommand(event: AngularToPhaserEvent): void {
+    if (event.type === 'cropReady') {
+      this.startCropReadyFlash(event.moduleId);
+      return;
+    }
+
     if (event.type === 'highlightModule') {
       this.selectedModuleId = event.moduleId;
       this.applyAllModuleVisualStates();
@@ -284,6 +294,22 @@ export class MainBaseScene extends Phaser.Scene {
     this.applyAllModuleVisualStates();
   }
 
+  private startCropReadyFlash(moduleId: string): void {
+    const existing = this.cropReadyFlashTimers.get(moduleId);
+    if (existing !== undefined) clearTimeout(existing);
+
+    this.cropReadyFlashingModuleIds.add(moduleId);
+    this.applyModuleVisualState(moduleId);
+
+    const timer = setTimeout(() => {
+      this.cropReadyFlashingModuleIds.delete(moduleId);
+      this.cropReadyFlashTimers.delete(moduleId);
+      this.applyModuleVisualState(moduleId);
+    }, CROP_READY_FLASH_DURATION_MS);
+
+    this.cropReadyFlashTimers.set(moduleId, timer);
+  }
+
   private applyAllModuleVisualStates(): void {
     for (const moduleId of this.moduleViews.keys()) {
       this.applyModuleVisualState(moduleId);
@@ -292,6 +318,14 @@ export class MainBaseScene extends Phaser.Scene {
 
   private applyModuleVisualState(moduleId: string): void {
     const view = this.moduleViews.get(moduleId)!;
+
+    if (this.cropReadyFlashingModuleIds.has(moduleId)) {
+      view.hotspot
+        .setFillStyle(MODULE_HOTSPOT_FILL_COLOR, HOVER_MODULE_FILL_ALPHA)
+        .setStrokeStyle(2, CROP_READY_FLASH_COLOR, CROP_READY_FLASH_STROKE_ALPHA);
+      view.label.setVisible(true).setAlpha(0.95);
+      return;
+    }
 
     if (this.selectedModuleId === moduleId) {
       view.hotspot
@@ -317,5 +351,10 @@ export class MainBaseScene extends Phaser.Scene {
 
   private unsubscribeFromBridgeCommands(): void {
     this.bridgeSubscription.unsubscribe();
+    for (const timer of this.cropReadyFlashTimers.values()) {
+      clearTimeout(timer);
+    }
+    this.cropReadyFlashTimers.clear();
+    this.cropReadyFlashingModuleIds.clear();
   }
 }

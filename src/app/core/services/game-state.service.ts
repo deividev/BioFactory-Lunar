@@ -152,4 +152,11 @@ export class GameStateService {
       alerts: cloneState(updater(cloneState(state.alerts))),
     }));
   }
+
+  updateGreenhouse(updater: (greenhouse: GreenhouseState) => GreenhouseState): void {
+    this.#state.update((state) => ({
+      ...state,
+      greenhouse: cloneState(updater(cloneState(state.greenhouse))),
+    }));
+  }
 }

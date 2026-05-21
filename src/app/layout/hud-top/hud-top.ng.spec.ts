@@ -174,17 +174,26 @@ describe('HudTop Angular component', () => {
     }).compileComponents();
 
     const gameClock = TestBed.inject(GameClockService);
+    const saveService = TestBed.inject(SaveService);
     const startSpy = vi.spyOn(gameClock, 'start');
     const stopSpy = vi.spyOn(gameClock, 'stop');
+    const restoreSpy = vi.spyOn(saveService, 'restoreLatestGame');
+    const autosaveStartSpy = vi.spyOn(saveService, 'startAutosave');
+    const autosaveStopSpy = vi.spyOn(saveService, 'stopAutosave');
 
     const fixture = TestBed.createComponent(HudTop);
     fixture.detectChanges();
 
+    expect(restoreSpy).toHaveBeenCalledOnce();
     expect(startSpy).toHaveBeenCalledOnce();
+    expect(autosaveStartSpy).toHaveBeenCalledOnce();
+    expect(restoreSpy.mock.invocationCallOrder[0]).toBeLessThan(startSpy.mock.invocationCallOrder[0]!);
+    expect(startSpy.mock.invocationCallOrder[0]).toBeLessThan(autosaveStartSpy.mock.invocationCallOrder[0]!);
 
     fixture.destroy();
 
     expect(stopSpy).toHaveBeenCalledOnce();
+    expect(autosaveStopSpy).toHaveBeenCalledOnce();
   });
 
   it('routes valid placeholder actions through ResourceService and rerenders balances', async () => {

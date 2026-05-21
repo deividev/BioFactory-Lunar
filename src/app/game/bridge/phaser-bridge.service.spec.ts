@@ -44,4 +44,16 @@ describe('PhaserBridgeService', () => {
 
     subscription.unsubscribe();
   });
+
+  it('notifyCropReady sends a cropReady event with the given moduleId', () => {
+    const service = new PhaserBridgeService();
+    const commands: AngularToPhaserEvent[] = [];
+    const subscription = service.angularEvents$.subscribe((event) => commands.push(event));
+
+    service.notifyCropReady('module_greenhouse_basic_01');
+
+    expect(commands).toEqual([{ type: 'cropReady', moduleId: 'module_greenhouse_basic_01' }]);
+
+    subscription.unsubscribe();
+  });
 });

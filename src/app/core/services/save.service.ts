@@ -15,7 +15,9 @@ type SaveActionSuccess<T = undefined> = T extends undefined
   ? { readonly success: true }
   : { readonly success: true; readonly data: T };
 export type SaveActionResult<T = undefined> = SaveActionSuccess<T> | SaveActionFailure;
+export type RestoreLatestSaveResult = SaveActionResult<SaveData> | { readonly success: true; readonly restored: false };
 export const DEFAULT_SAVE_STORAGE_KEY = 'biofactory_lunar_save_slot_1';
+export const DEFAULT_AUTOSAVE_INTERVAL_MS = 10000;
 
 const SAVE_REQUIRED_BRANCH_KEYS = [
   'meta', 'clock', 'resources', 'inventory', 'greenhouse', 'machines', 'contracts', 'shipments',
@@ -51,6 +53,8 @@ export function isValidSaveData(value: unknown): value is SaveData {
 @Injectable({ providedIn: 'root' })
 export class SaveService {
   private storage = createBrowserSaveStorage();
+  private autosaveTimerId: ReturnType<typeof setInterval> | undefined;
+  private autosaveFailureAlertShown = false;
 
   constructor(
     private readonly gameState: GameStateService,
@@ -64,22 +68,67 @@ export class SaveService {
   }
 
   saveGame(savedAt = new Date().toISOString()): SaveActionResult {
+    return this.writeSave(savedAt, { notifyOnSuccess: true, dedupeAutosaveFailures: false });
+  }
+
+  restoreLatestGame(): RestoreLatestSaveResult {
+    return this.readSave({ notifyOnSuccess: false, warnOnMissingSave: false });
+  }
+
+  startAutosave(intervalMs = DEFAULT_AUTOSAVE_INTERVAL_MS): void {
+    if (this.autosaveTimerId !== undefined) {
+      return;
+    }
+
+    this.autosaveTimerId = setInterval(() => {
+      this.writeSave(new Date().toISOString(), { notifyOnSuccess: false, dedupeAutosaveFailures: true });
+    }, intervalMs);
+  }
+
+  stopAutosave(): void {
+    if (this.autosaveTimerId === undefined) {
+      return;
+    }
+
+    clearInterval(this.autosaveTimerId);
+    this.autosaveTimerId = undefined;
+  }
+
+  private writeSave(
+    savedAt: string,
+    options: { notifyOnSuccess: boolean; dedupeAutosaveFailures: boolean },
+  ): SaveActionResult {
     const saveData = this.gameState.toSaveData(savedAt);
 
     if (!isValidSaveData(saveData)) {
-      return this.fail('invalid_save_data', 'Saved game data is invalid.', 'warning');
+      return this.fail('invalid_save_data', 'Saved game data is invalid.', 'warning', options.dedupeAutosaveFailures);
     }
 
     try {
       this.storage.setItem(DEFAULT_SAVE_STORAGE_KEY, JSON.stringify(saveData));
-      this.alerts.addSuccess('Game saved.');
+
+      if (options.notifyOnSuccess) {
+        this.alerts.addSuccess('Game saved.');
+      }
+
+      this.autosaveFailureAlertShown = false;
       return { success: true };
     } catch {
-      return this.fail('save_failed', 'Unable to save game.', 'critical');
+      return this.fail('save_failed', 'Unable to save game.', 'critical', options.dedupeAutosaveFailures);
     }
   }
 
   loadGame(): SaveActionResult<SaveData> {
+    const result = this.readSave({ notifyOnSuccess: true, warnOnMissingSave: true });
+
+    if (result.success && 'restored' in result) {
+      return this.fail('save_not_found', 'No saved game found.', 'warning');
+    }
+
+    return result;
+  }
+
+  private readSave(options: { notifyOnSuccess: boolean; warnOnMissingSave: boolean }): RestoreLatestSaveResult {
     let rawSaveData: string | null;
 
     try {
@@ -89,6 +138,10 @@ export class SaveService {
     }
 
     if (rawSaveData === null) {
+      if (!options.warnOnMissingSave) {
+        return { success: true, restored: false };
+      }
+
       return this.fail('save_not_found', 'No saved game found.', 'warning');
     }
 
@@ -106,7 +159,11 @@ export class SaveService {
 
     try {
       this.gameState.loadFromSave(parsedSaveData);
-      this.alerts.addSuccess('Game loaded.');
+
+      if (options.notifyOnSuccess) {
+        this.alerts.addSuccess('Game loaded.');
+      }
+
       return { success: true, data: parsedSaveData };
     } catch {
       return this.fail('load_failed', 'Unable to load game.', 'critical');
@@ -121,11 +178,24 @@ export class SaveService {
     }
   }
 
-  private fail(code: SaveActionFailureCode, message: string, severity: 'warning' | 'critical'): SaveActionFailure {
+  private fail(
+    code: SaveActionFailureCode,
+    message: string,
+    severity: 'warning' | 'critical',
+    dedupeAutosaveFailures = false,
+  ): SaveActionFailure {
+    if (dedupeAutosaveFailures && this.autosaveFailureAlertShown) {
+      return { success: false, code, message };
+    }
+
     if (severity === 'warning') {
       this.alerts.addWarning(message);
     } else {
       this.alerts.addCritical(message);
+    }
+
+    if (dedupeAutosaveFailures) {
+      this.autosaveFailureAlertShown = true;
     }
 
     return { success: false, code, message };
