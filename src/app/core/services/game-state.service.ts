@@ -132,6 +132,13 @@ export class GameStateService {
     }));
   }
 
+  updateShipments(updater: (shipments: ShipmentInstance[]) => ShipmentInstance[]): void {
+    this.#state.update((state) => ({
+      ...state,
+      shipments: cloneState(updater(cloneState(state.shipments))),
+    }));
+  }
+
   updateUi(updater: (ui: UIState) => UIState): void {
     this.#state.update((state) => ({
       ...state,

@@ -1,20 +1,67 @@
-<section class="shipments panel-placeholder" aria-label="Shipments panel">
-  <p class="panel-placeholder__eyebrow">Shipments placeholder online</p>
-  <h2>Shipments</h2>
-  <p class="panel-placeholder__summary">
-    Active shipments
-    <strong>{{ activeShipmentCount() }}</strong>
-  </p>
+<section class="shipments" aria-label="Shipments panel">
+  <header class="shipments__header">
+    <h2 class="shipments__title">Shipments</h2>
+    <span class="shipments__credits">Credits: {{ credits() }}</span>
+  </header>
 
-  <section class="panel-placeholder__section" aria-label="Shipment catalog">
-    <h3>Catalog</h3>
-    <ul>
-      @for (shipment of shipmentCatalog; track shipment.id) {
-        <li>
-          <span>{{ shipment.name }}</span>
-          <strong>{{ shipment.durationSeconds }}s</strong>
+  <!-- Catalog -->
+  <section class="shipments__section" aria-label="Shipment catalog">
+    <h3 class="shipments__section-title">Order from Earth</h3>
+    <ul class="shipments__catalog-list">
+      @for (item of catalog; track item.id) {
+        <li class="shipments__catalog-row">
+          <span class="shipments__item-name">{{ item.name }}</span>
+          <div class="shipments__item-meta">
+            <span class="shipments__item-reward" data-testid="item-reward">{{ getRewardLabel(item) }}</span>
+            <span class="shipments__item-cost">{{ item.cost.quantity }} cr</span>
+            <span class="shipments__item-duration">{{ item.durationSeconds }}s</span>
+            <button
+              class="shipments__btn shipments__btn--buy"
+              data-testid="buy-btn"
+              [attr.data-item-id]="item.id"
+              [disabled]="!canAfford(item)"
+              (click)="buy(item)"
+              type="button"
+            >Order</button>
+          </div>
         </li>
       }
     </ul>
   </section>
+
+  <!-- In transit -->
+  @if (activeShipments().length > 0) {
+    <section class="shipments__section" aria-label="Shipments in transit">
+      <h3 class="shipments__section-title">In Transit</h3>
+      <ul class="shipments__active-list">
+        @for (s of activeShipments(); track s.id) {
+          <li class="shipments__shipment-row">
+            <span class="shipments__item-name">{{ getCatalogName(s.catalogItemId) }}</span>
+            <span class="shipments__countdown" data-testid="countdown">{{ s.remainingSeconds }}s</span>
+          </li>
+        }
+      </ul>
+    </section>
+  }
+
+  <!-- Ready to receive -->
+  @if (deliveredShipments().length > 0) {
+    <section class="shipments__section" aria-label="Ready to receive">
+      <h3 class="shipments__section-title">Ready to Receive</h3>
+      <ul class="shipments__active-list">
+        @for (s of deliveredShipments(); track s.id) {
+          <li class="shipments__shipment-row">
+            <span class="shipments__item-name">{{ getCatalogName(s.catalogItemId) }}</span>
+            <button
+              class="shipments__btn shipments__btn--receive"
+              data-testid="receive-btn"
+              [attr.data-shipment-id]="s.id"
+              (click)="receive(s.id)"
+              type="button"
+            >Receive</button>
+          </li>
+        }
+      </ul>
+    </section>
+  }
 </section>
