@@ -25,6 +25,7 @@ import type {
   GameState,
   GreenhouseState,
   InventoryState,
+  ItemAmount,
   MachineDefinition,
   MachineInstance,
   ProductionResourceCostContext,
@@ -68,6 +69,8 @@ describe('game state model contracts', () => {
     expectTypeOf<CropSlot>().toHaveProperty('state').toEqualTypeOf<CropSlotState>();
     expectTypeOf<GreenhouseState>().toHaveProperty('slots').toEqualTypeOf<CropSlot[]>();
     expectTypeOf<MachineInstance>().toHaveProperty('state').toEqualTypeOf<MachineState>();
+    expectTypeOf<MachineInstance>().toHaveProperty('durationSeconds').toEqualTypeOf<number | undefined>();
+    expectTypeOf<MachineInstance>().toHaveProperty('outputPending').toEqualTypeOf<ItemAmount[] | undefined>();
     expectTypeOf<ContractInstance>().toHaveProperty('state').toEqualTypeOf<ContractState>();
     expectTypeOf<ShipmentInstance>().toHaveProperty('remainingSeconds').toEqualTypeOf<number>();
     expectTypeOf<BaseModuleInstance>().toHaveProperty('state').toEqualTypeOf<ModuleState>();

@@ -29,6 +29,7 @@ export enum CropSlotState {
 export enum MachineState {
   Idle = 'idle',
   Running = 'running',
+  Completed = 'completed',
   Blocked = 'blocked',
   Offline = 'offline',
 }

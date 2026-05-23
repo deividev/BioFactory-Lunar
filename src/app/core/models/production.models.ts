@@ -14,6 +14,8 @@ export interface MachineInstance {
   state: MachineState;
   currentRecipeId?: string;
   remainingSeconds?: number;
+  durationSeconds?: number;
+  outputPending?: ItemAmount[];
 }
 
 export interface RecipeDefinition {
