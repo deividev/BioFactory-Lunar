@@ -3,10 +3,12 @@ import { effect, Injectable } from '@angular/core';
 import { MACHINE_DEFINITIONS, RECIPE_DEFINITIONS } from '../data';
 import { MachineState } from '../enums';
 import type { ActionResult, ItemAmount } from '../models';
+import { AlertService } from './alert.service';
 import { GameClockService } from './game-clock.service';
 import { GameStateService } from './game-state.service';
 import { InventoryService } from './inventory.service';
 import { ResourceService } from './resource.service';
+import { TutorialService } from './tutorial.service';
 
 export type ProductionActionFailureCode =
   | 'machine_not_found'
@@ -33,6 +35,8 @@ export class ProductionService {
     private readonly gameClock: GameClockService,
     private readonly inventory: InventoryService,
     private readonly resources: ResourceService,
+    private readonly alerts: AlertService,
+    private readonly tutorial: TutorialService,
   ) {
     effect(() => {
       const tick = this.gameClock.lastTick();
@@ -106,6 +110,8 @@ export class ProductionService {
       ),
     );
 
+    this.tutorial.completeStep('process_product');
+
     return SUCCESS;
   }
 
@@ -117,6 +123,8 @@ export class ProductionService {
 
     if (!hasRunning) return;
 
+    const completedRecipeIds: string[] = [];
+
     this.gameState.updateMachines((current) =>
       current.map((machine) => {
         if (machine.state !== MachineState.Running || machine.remainingSeconds === undefined) {
@@ -126,6 +134,9 @@ export class ProductionService {
         const next = Math.max(0, machine.remainingSeconds - deltaGameSeconds);
 
         if (next <= 0) {
+          if (machine.currentRecipeId !== undefined) {
+            completedRecipeIds.push(machine.currentRecipeId);
+          }
           const recipe =
             machine.currentRecipeId !== undefined
               ? RECIPE_DEFINITION_BY_ID.get(machine.currentRecipeId)
@@ -144,6 +155,12 @@ export class ProductionService {
         return { ...machine, remainingSeconds: next };
       }),
     );
+
+    for (const recipeId of completedRecipeIds) {
+      const recipe = RECIPE_DEFINITION_BY_ID.get(recipeId);
+      const name = recipe?.name ?? recipeId;
+      this.alerts.addSuccess(`${name} complete!`);
+    }
   }
 
   collectOutput(machineId: string): ProductionActionResult {

@@ -2,11 +2,13 @@ import { signal } from '@angular/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { GameSpeed, MachineState } from '../enums';
+import { AlertService } from './alert.service';
 import { type GameClockTick } from './game-clock.service';
 import { GameStateService } from './game-state.service';
 import { InventoryService } from './inventory.service';
 import { ProductionService } from './production.service';
 import { ResourceService } from './resource.service';
+import { TutorialService } from './tutorial.service';
 
 let lastEffectFn: (() => void) | undefined;
 
@@ -32,6 +34,8 @@ describe('ProductionService', () => {
   let gameState: GameStateService;
   let inventory: InventoryService;
   let resources: ResourceService;
+  let alerts: AlertService;
+  let tutorial: TutorialService;
   let mockLastTick: ReturnType<typeof signal<GameClockTick | undefined>>;
 
   function makeTick(deltaGameSeconds: number): GameClockTick {
@@ -52,9 +56,11 @@ describe('ProductionService', () => {
     gameState = new GameStateService();
     inventory = new InventoryService(gameState);
     resources = new ResourceService(gameState);
+    alerts = new AlertService(gameState);
+    tutorial = new TutorialService(gameState);
     mockLastTick = signal<GameClockTick | undefined>(undefined);
     const mockGameClock = { lastTick: mockLastTick.asReadonly() };
-    service = new ProductionService(gameState, mockGameClock as never, inventory, resources);
+    service = new ProductionService(gameState, mockGameClock as never, inventory, resources, alerts, tutorial);
   });
 
   // ── startRecipe ────────────────────────────────────────────────────────────
@@ -232,6 +238,61 @@ describe('ProductionService', () => {
 
       const afterPackager = gameState.machines().find((m) => m.id === MACHINE_PACKAGER_ID)!;
       expect(afterPackager).toEqual(completedSnapshot);
+    });
+
+    it('emits a success alert when a machine transitions to Completed', () => {
+      seedInputsForPackager();
+      service.startRecipe(MACHINE_PACKAGER_ID, RECIPE_PROTEIN_LEAF);
+      const successSpy = vi.spyOn(alerts, 'addSuccess');
+
+      service.processTick(60);
+
+      expect(successSpy).toHaveBeenCalledWith(expect.stringContaining('complete'));
+    });
+
+    it('does not emit a completion alert on partial ticks that do not complete the recipe', () => {
+      seedInputsForPackager();
+      service.startRecipe(MACHINE_PACKAGER_ID, RECIPE_PROTEIN_LEAF);
+      const successSpy = vi.spyOn(alerts, 'addSuccess');
+
+      service.processTick(30);
+
+      expect(successSpy).not.toHaveBeenCalled();
+    });
+
+    it('emits a completion alert only once — not on subsequent ticks after the machine is already Completed', () => {
+      seedInputsForPackager();
+      service.startRecipe(MACHINE_PACKAGER_ID, RECIPE_PROTEIN_LEAF);
+      service.processTick(60); // packager → Completed
+
+      const successSpy = vi.spyOn(alerts, 'addSuccess');
+      // Run a second tick; needs at least one Running machine to enter the update path
+      seedInputsForExtractor();
+      service.startRecipe(MACHINE_EXTRACTOR_ID, RECIPE_AQUA_SPROUT);
+      service.processTick(10);
+
+      expect(successSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  // ── startRecipe tutorial hook ─────────────────────────────────────────────
+
+  describe('startRecipe tutorial hook', () => {
+    it('advances the tutorial to process_product on startRecipe success', () => {
+      seedInputsForPackager();
+      const stepSpy = vi.spyOn(tutorial, 'completeStep');
+
+      service.startRecipe(MACHINE_PACKAGER_ID, RECIPE_PROTEIN_LEAF);
+
+      expect(stepSpy).toHaveBeenCalledWith('process_product');
+    });
+
+    it('does not advance the tutorial when startRecipe fails', () => {
+      const stepSpy = vi.spyOn(tutorial, 'completeStep');
+
+      service.startRecipe(MACHINE_PACKAGER_ID, RECIPE_PROTEIN_LEAF); // no inputs
+
+      expect(stepSpy).not.toHaveBeenCalled();
     });
   });
 

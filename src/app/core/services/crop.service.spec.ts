@@ -8,6 +8,7 @@ import { type GameClockTick } from './game-clock.service';
 import { GameStateService } from './game-state.service';
 import { InventoryService } from './inventory.service';
 import { ResourceService } from './resource.service';
+import { TutorialService } from './tutorial.service';
 import { PhaserBridgeService, type AngularToPhaserEvent } from '../../game/bridge/phaser-bridge.service';
 
 let lastEffectFn: (() => void) | undefined;
@@ -30,6 +31,7 @@ describe('CropService', () => {
   let inventory: InventoryService;
   let resources: ResourceService;
   let alerts: AlertService;
+  let tutorial: TutorialService;
   let bridge: PhaserBridgeService;
   let mockLastTick: ReturnType<typeof signal<GameClockTick | undefined>>;
 
@@ -44,10 +46,11 @@ describe('CropService', () => {
     inventory = new InventoryService(gameState);
     resources = new ResourceService(gameState);
     alerts = new AlertService(gameState);
+    tutorial = new TutorialService(gameState);
     bridge = new PhaserBridgeService();
     mockLastTick = signal<GameClockTick | undefined>(undefined);
     const mockGameClock = { lastTick: mockLastTick.asReadonly() };
-    service = new CropService(gameState, mockGameClock as never, inventory, resources, alerts, bridge);
+    service = new CropService(gameState, mockGameClock as never, inventory, resources, alerts, bridge, tutorial);
   });
 
   // ── plantCrop ──────────────────────────────────────────────────────────────
@@ -267,6 +270,42 @@ describe('CropService', () => {
     const result = service.harvestCrop('crop_slot_01');
 
     expect(result).toEqual({ success: false, code: 'crop_not_found', message: expect.any(String) });
+  });
+
+  // ── tutorial hooks ────────────────────────────────────────────────────────
+
+  it('advances tutorial to plant_crop on successful plantCrop', () => {
+    const stepSpy = vi.spyOn(tutorial, 'completeStep');
+
+    service.plantCrop('crop_slot_01', 'protein_leaf');
+
+    expect(stepSpy).toHaveBeenCalledWith('plant_crop');
+  });
+
+  it('does not advance tutorial when plantCrop fails', () => {
+    const stepSpy = vi.spyOn(tutorial, 'completeStep');
+
+    service.plantCrop('crop_slot_01', 'unknown_crop');
+
+    expect(stepSpy).not.toHaveBeenCalled();
+  });
+
+  it('advances tutorial to harvest_crop on successful harvestCrop', () => {
+    service.plantCrop('crop_slot_01', 'protein_leaf');
+    service.processTick(90); // → Ready
+    const stepSpy = vi.spyOn(tutorial, 'completeStep');
+
+    service.harvestCrop('crop_slot_01');
+
+    expect(stepSpy).toHaveBeenCalledWith('harvest_crop');
+  });
+
+  it('does not advance tutorial when harvestCrop fails', () => {
+    const stepSpy = vi.spyOn(tutorial, 'completeStep');
+
+    service.harvestCrop('crop_slot_01'); // slot not Ready
+
+    expect(stepSpy).not.toHaveBeenCalled();
   });
 
   // ── effect() wiring ───────────────────────────────────────────────────────

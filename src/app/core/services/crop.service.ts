@@ -8,6 +8,7 @@ import { GameClockService } from './game-clock.service';
 import { GameStateService } from './game-state.service';
 import { InventoryService } from './inventory.service';
 import { ResourceService } from './resource.service';
+import { TutorialService } from './tutorial.service';
 import { PhaserBridgeService } from '../../game/bridge/phaser-bridge.service';
 
 export type CropActionFailureCode =
@@ -36,6 +37,7 @@ export class CropService {
     private readonly resources: ResourceService,
     private readonly alerts: AlertService,
     private readonly bridge: PhaserBridgeService,
+    private readonly tutorial: TutorialService,
   ) {
     effect(() => {
       const tick = this.gameClock.lastTick();
@@ -93,6 +95,8 @@ export class CropService {
           : s,
       ),
     }));
+
+    this.tutorial.completeStep('plant_crop');
 
     return SUCCESS;
   }
@@ -170,6 +174,8 @@ export class CropService {
           : s,
       ),
     }));
+
+    this.tutorial.completeStep('harvest_crop');
 
     return SUCCESS;
   }
