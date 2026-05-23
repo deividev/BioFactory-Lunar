@@ -28,6 +28,7 @@ describe('game domain enums', () => {
     expect(QualityTier.Standard).toBe('standard');
     expect(CropSlotState.Empty).toBe('empty');
     expect(MachineState.Idle).toBe('idle');
+    expect(MachineState.Completed).toBe('completed');
     expect(ContractState.Available).toBe('available');
     expect(ShipmentState.Pending).toBe('pending');
   });

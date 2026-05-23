@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { AlertType, CropSlotState, GameSpeed, PanelType, ShipmentState } from '../enums';
-import type { ShipmentInstance } from '../models';
+import { AlertType, ContractState, CropSlotState, GameSpeed, MachineState, PanelType, ShipmentState } from '../enums';
+import type { ContractInstance, MachineInstance, ShipmentInstance } from '../models';
 import { createInitialGameState } from '../state';
 import { GameStateService } from './game-state.service';
 
@@ -316,5 +316,135 @@ describe('GameStateService', () => {
     expect(updated.shipments).toEqual([testShipment]);
     expect(updated.resources).toEqual(initial.resources);
     expect(updated.inventory).toEqual(initial.inventory);
+  });
+
+  it('updates machines without mutating unrelated game state or leaking updater drafts', () => {
+    const service = new GameStateService();
+    const initial = service.getSnapshot();
+    let leakedMachinesDraft: MachineInstance[] = [];
+
+    service.updateMachines((machines) => {
+      leakedMachinesDraft = machines;
+      return machines.map((m, i) =>
+        i === 0
+          ? { ...m, state: MachineState.Running, currentRecipeId: 'recipe_extract_protein', durationSeconds: 60, remainingSeconds: 60 }
+          : m,
+      );
+    });
+
+    leakedMachinesDraft[0] = { ...leakedMachinesDraft[0]!, state: MachineState.Blocked };
+
+    const updated = service.getSnapshot();
+    expect(updated.machines[0]).toEqual({
+      id: 'machine_botanical_extractor_01',
+      definitionId: 'botanical_extractor',
+      state: MachineState.Running,
+      currentRecipeId: 'recipe_extract_protein',
+      durationSeconds: 60,
+      remainingSeconds: 60,
+    });
+    expect(updated.machines[1]).toEqual(initial.machines[1]);
+    expect(updated.resources).toEqual(initial.resources);
+    expect(updated.inventory).toEqual(initial.inventory);
+    expect(leakedMachinesDraft[0]!.state).toBe(MachineState.Blocked);
+    expect(service.getSnapshot().machines[0]!.state).toBe(MachineState.Running);
+  });
+
+  it('machines signal is frozen and update isolates outputPending from external mutation', () => {
+    const service = new GameStateService();
+
+    service.updateMachines((machines) =>
+      machines.map((m, i) =>
+        i === 0
+          ? { ...m, state: MachineState.Completed, outputPending: [{ itemId: 'protein_extract', quantity: 2 }] }
+          : m,
+      ),
+    );
+
+    const machinesView = service.machines();
+    expect(Object.isFrozen(machinesView)).toBe(true);
+    expect(Object.isFrozen(machinesView[0])).toBe(true);
+    expect(() => {
+      (machinesView[0] as MachineInstance).state = MachineState.Idle;
+    }).toThrow(TypeError);
+
+    expect(service.getSnapshot().machines[0]!.state).toBe(MachineState.Completed);
+    expect(service.getSnapshot().machines[0]!.outputPending).toEqual([{ itemId: 'protein_extract', quantity: 2 }]);
+  });
+
+  it('persists and restores machine durationSeconds and outputPending through a save/load round-trip', () => {
+    const source = new GameStateService();
+
+    source.updateMachines((machines) =>
+      machines.map((m, i) =>
+        i === 0
+          ? {
+              ...m,
+              state: MachineState.Completed,
+              currentRecipeId: 'recipe_extract_protein',
+              durationSeconds: 120,
+              remainingSeconds: 0,
+              outputPending: [{ itemId: 'protein_extract', quantity: 3 }],
+            }
+          : m,
+      ),
+    );
+
+    const saveData = source.toSaveData('2026-05-21T10:00:00.000Z');
+    const target = new GameStateService();
+    target.loadFromSave(saveData);
+
+    const restored = target.getSnapshot();
+    expect(restored.machines[0]!.state).toBe(MachineState.Completed);
+    expect(restored.machines[0]!.durationSeconds).toBe(120);
+    expect(restored.machines[0]!.remainingSeconds).toBe(0);
+    expect(restored.machines[0]!.outputPending).toEqual([{ itemId: 'protein_extract', quantity: 3 }]);
+
+    saveData.machines[0]!.outputPending = [];
+    expect(target.getSnapshot().machines[0]!.outputPending).toEqual([{ itemId: 'protein_extract', quantity: 3 }]);
+  });
+
+  it('updates contracts without mutating unrelated game state or leaking updater drafts', () => {
+    const service = new GameStateService();
+    const initial = service.getSnapshot();
+    let leakedContractsDraft: ContractInstance[] = [];
+
+    service.updateContracts((contracts) => {
+      leakedContractsDraft = contracts;
+      return contracts.map((c, i) =>
+        i === 0 ? { ...c, state: ContractState.Active } : c,
+      );
+    });
+
+    leakedContractsDraft[0] = { ...leakedContractsDraft[0]!, state: ContractState.Completed };
+
+    const updated = service.getSnapshot();
+    expect(updated.contracts[0]!.state).toBe(ContractState.Active);
+    expect(updated.contracts[1]!.state).toBe(ContractState.Available);
+    expect(updated.resources).toEqual(initial.resources);
+    expect(updated.inventory).toEqual(initial.inventory);
+    expect(leakedContractsDraft[0]!.state).toBe(ContractState.Completed);
+    expect(service.getSnapshot().contracts[0]!.state).toBe(ContractState.Active);
+  });
+
+  it('persists and restores contract state through a save/load round-trip', () => {
+    const source = new GameStateService();
+
+    source.updateContracts((contracts) =>
+      contracts.map((c, i) =>
+        i === 0 ? { ...c, state: ContractState.Active } : c,
+      ),
+    );
+
+    const saveData = source.toSaveData('2026-05-23T10:00:00.000Z');
+    const target = new GameStateService();
+    target.loadFromSave(saveData);
+
+    const restored = target.getSnapshot();
+    expect(restored.contracts[0]!.state).toBe(ContractState.Active);
+    expect(restored.contracts[1]!.state).toBe(ContractState.Available);
+
+    saveData.contracts[0]!.state = ContractState.Completed;
+    expect(target.getSnapshot().contracts[0]!.state).toBe(ContractState.Active);
   });
 });

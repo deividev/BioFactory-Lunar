@@ -147,4 +147,13 @@ describe('initial state factories', () => {
 
     expect(secondClock).toEqual({ elapsedSeconds: 0, day: 1, speed: GameSpeed.X1 });
   });
+
+  it('initial machine instances omit durationSeconds and outputPending for backward-compat save reads', () => {
+    const machines = createInitialMachineInstances();
+
+    for (const machine of machines) {
+      expect(machine.durationSeconds).toBeUndefined();
+      expect(machine.outputPending).toBeUndefined();
+    }
+  });
 });

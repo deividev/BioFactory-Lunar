@@ -7,3 +7,5 @@ export * from './alert.service';
 export * from './save.service';
 export * from './shipment.service';
 export * from './crop.service';
+export * from './production.service';
+export * from './contract.service';

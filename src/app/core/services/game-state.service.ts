@@ -159,4 +159,18 @@ export class GameStateService {
       greenhouse: cloneState(updater(cloneState(state.greenhouse))),
     }));
   }
+
+  updateMachines(updater: (machines: MachineInstance[]) => MachineInstance[]): void {
+    this.#state.update((state) => ({
+      ...state,
+      machines: cloneState(updater(cloneState(state.machines))),
+    }));
+  }
+
+  updateContracts(updater: (contracts: ContractInstance[]) => ContractInstance[]): void {
+    this.#state.update((state) => ({
+      ...state,
+      contracts: cloneState(updater(cloneState(state.contracts))),
+    }));
+  }
 }

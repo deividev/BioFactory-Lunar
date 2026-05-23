@@ -1,20 +1,90 @@
-<section class="processing panel-placeholder" aria-label="Processing panel">
-  <p class="panel-placeholder__eyebrow">Processing placeholder online</p>
-  <h2>Processing</h2>
-  <p class="panel-placeholder__summary">
-    Recipes available
-    <strong>{{ recipeCount }}</strong>
-  </p>
+<section class="processing" aria-label="Processing panel">
+  <header class="processing__header">
+    <p class="processing__eyebrow">Processing</p>
+    <h2>Machine Status</h2>
+  </header>
 
-  <section class="panel-placeholder__section" aria-label="Machines">
-    <h3>Machines</h3>
-    <ul>
-      @for (machine of machines(); track machine.id) {
-        <li>
-          <span>{{ machine.name }}</span>
-          <strong>{{ machine.state }}</strong>
-        </li>
-      }
-    </ul>
-  </section>
+  <ul class="processing__machines" aria-label="Machines">
+    @for (vm of machineViewModels(); track vm.id) {
+      <li
+        class="processing__machine"
+        [class.processing__machine--running]="vm.state === MachineState.Running"
+        [class.processing__machine--completed]="vm.state === MachineState.Completed"
+      >
+        <div class="processing__machine-header">
+          <span class="processing__machine-name">{{ vm.name }}</span>
+          <span class="processing__machine-state processing__machine-state--{{ vm.state }}">{{ vm.state }}</span>
+        </div>
+
+        @if (vm.state === MachineState.Idle) {
+          <div class="processing__idle-controls">
+            <select
+              class="processing__recipe-select"
+              [attr.aria-label]="'Select recipe for ' + vm.name"
+              (change)="selectRecipe(vm.id, $any($event.target).value)"
+            >
+              <option value="">— choose recipe —</option>
+              @for (recipe of vm.compatibleRecipes; track recipe.id) {
+                <option [value]="recipe.id">{{ recipe.name }}</option>
+              }
+            </select>
+            <button
+              type="button"
+              class="processing__btn processing__btn--start"
+              [disabled]="!vm.canStart"
+              [attr.aria-label]="'Start recipe on ' + vm.name"
+              (click)="startRecipe(vm.id)"
+            >
+              Start
+            </button>
+          </div>
+        }
+
+        @if (vm.state === MachineState.Running) {
+          <div class="processing__running">
+            <span class="processing__recipe-name">{{ vm.currentRecipeName }}</span>
+            <div
+              class="processing__progress"
+              role="progressbar"
+              [attr.aria-valuenow]="vm.progressPercent"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              [attr.aria-label]="vm.currentRecipeName + ' progress'"
+            >
+              <div class="processing__progress-fill" [style.width.%]="vm.progressPercent"></div>
+            </div>
+            <span class="processing__remaining">{{ vm.remainingSeconds }}s remaining</span>
+          </div>
+        }
+
+        @if (vm.state === MachineState.Completed) {
+          <div class="processing__completed">
+            <ul class="processing__output-list">
+              @for (itemName of vm.outputPending; track itemName) {
+                <li>{{ itemName }}</li>
+              }
+            </ul>
+            <button
+              type="button"
+              class="processing__btn processing__btn--collect"
+              [attr.aria-label]="'Collect output from ' + vm.name"
+              (click)="collectOutput(vm.id)"
+            >
+              Collect
+            </button>
+          </div>
+        }
+      </li>
+    }
+  </ul>
+
+  @if (feedbackMessage()) {
+    <p
+      class="processing__feedback"
+      [attr.role]="hasFeedbackError() ? 'alert' : 'status'"
+      [class.processing__feedback--error]="hasFeedbackError()"
+    >
+      {{ feedbackMessage() }}
+    </p>
+  }
 </section>
