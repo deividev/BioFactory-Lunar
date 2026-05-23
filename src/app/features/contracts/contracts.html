@@ -1,17 +1,77 @@
-<section class="contracts panel-placeholder" aria-label="Contracts panel">
-  <p class="panel-placeholder__eyebrow">Contracts placeholder online</p>
-  <h2>Contracts</h2>
-  <p class="panel-placeholder__summary">
-    Available contracts
-    <strong>{{ contracts().length }}</strong>
-  </p>
+<section class="contracts" aria-label="Contracts panel">
+  <header class="contracts__header">
+    <h2 class="contracts__title">Contracts</h2>
+  </header>
 
-  <ul aria-label="Contract list">
-    @for (contract of contracts(); track contract.id) {
-      <li>
-        <span>{{ contract.name }}</span>
-        <strong>{{ contract.state }}</strong>
-      </li>
+  <!-- Available -->
+  <section class="contracts__section" aria-label="Available contracts">
+    <h3 class="contracts__section-title">Available ({{ availableContracts().length }})</h3>
+    @if (availableContracts().length === 0) {
+      <p class="contracts__empty">No available contracts.</p>
+    } @else {
+      <ul class="contracts__list">
+        @for (contract of availableContracts(); track contract.id) {
+          <li class="contracts__row">
+            <span class="contracts__name">{{ contract.name }}</span>
+            <span class="contracts__reward">+{{ contract.rewardCredits }} cr</span>
+            <button
+              class="contracts__btn contracts__btn--accept"
+              data-testid="accept-btn"
+              [attr.data-contract-id]="contract.id"
+              (click)="accept(contract.id)"
+              type="button"
+            >Accept</button>
+          </li>
+        }
+      </ul>
     }
-  </ul>
+  </section>
+
+  <!-- Active -->
+  @if (activeContracts().length > 0) {
+    <section class="contracts__section" aria-label="Active contracts">
+      <h3 class="contracts__section-title">Active ({{ activeContracts().length }})</h3>
+      <ul class="contracts__list">
+        @for (contract of activeContracts(); track contract.id) {
+          <li class="contracts__row contracts__row--active">
+            <div class="contracts__row-header">
+              <span class="contracts__name">{{ contract.name }}</span>
+              <span class="contracts__reward">+{{ contract.rewardCredits }} cr</span>
+            </div>
+            <ul class="contracts__progress" aria-label="Required items">
+              @for (item of contract.items; track item.itemId) {
+                <li class="contracts__progress-item" data-testid="progress-item">
+                  <span class="contracts__item-name">{{ item.name }}</span>
+                  <span class="contracts__item-qty">{{ item.available }}/{{ item.required }}</span>
+                </li>
+              }
+            </ul>
+            <button
+              class="contracts__btn contracts__btn--deliver"
+              data-testid="deliver-btn"
+              [attr.data-contract-id]="contract.id"
+              [disabled]="!contract.completable"
+              (click)="deliver(contract.id)"
+              type="button"
+            >Deliver</button>
+          </li>
+        }
+      </ul>
+    </section>
+  }
+
+  <!-- Completed -->
+  @if (completedContracts().length > 0) {
+    <section class="contracts__section" aria-label="Completed contracts">
+      <h3 class="contracts__section-title">Completed ({{ completedContracts().length }})</h3>
+      <ul class="contracts__list">
+        @for (contract of completedContracts(); track contract.id) {
+          <li class="contracts__row contracts__row--completed">
+            <span class="contracts__name">{{ contract.name }}</span>
+            <span class="contracts__reward">+{{ contract.rewardCredits }} cr</span>
+          </li>
+        }
+      </ul>
+    </section>
+  }
 </section>

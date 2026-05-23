@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { AlertType, CropSlotState, GameSpeed, MachineState, PanelType, ShipmentState } from '../enums';
-import type { MachineInstance, ShipmentInstance } from '../models';
+import { AlertType, ContractState, CropSlotState, GameSpeed, MachineState, PanelType, ShipmentState } from '../enums';
+import type { ContractInstance, MachineInstance, ShipmentInstance } from '../models';
 import { createInitialGameState } from '../state';
 import { GameStateService } from './game-state.service';
 
@@ -402,5 +402,49 @@ describe('GameStateService', () => {
 
     saveData.machines[0]!.outputPending = [];
     expect(target.getSnapshot().machines[0]!.outputPending).toEqual([{ itemId: 'protein_extract', quantity: 3 }]);
+  });
+
+  it('updates contracts without mutating unrelated game state or leaking updater drafts', () => {
+    const service = new GameStateService();
+    const initial = service.getSnapshot();
+    let leakedContractsDraft: ContractInstance[] = [];
+
+    service.updateContracts((contracts) => {
+      leakedContractsDraft = contracts;
+      return contracts.map((c, i) =>
+        i === 0 ? { ...c, state: ContractState.Active } : c,
+      );
+    });
+
+    leakedContractsDraft[0] = { ...leakedContractsDraft[0]!, state: ContractState.Completed };
+
+    const updated = service.getSnapshot();
+    expect(updated.contracts[0]!.state).toBe(ContractState.Active);
+    expect(updated.contracts[1]!.state).toBe(ContractState.Available);
+    expect(updated.resources).toEqual(initial.resources);
+    expect(updated.inventory).toEqual(initial.inventory);
+    expect(leakedContractsDraft[0]!.state).toBe(ContractState.Completed);
+    expect(service.getSnapshot().contracts[0]!.state).toBe(ContractState.Active);
+  });
+
+  it('persists and restores contract state through a save/load round-trip', () => {
+    const source = new GameStateService();
+
+    source.updateContracts((contracts) =>
+      contracts.map((c, i) =>
+        i === 0 ? { ...c, state: ContractState.Active } : c,
+      ),
+    );
+
+    const saveData = source.toSaveData('2026-05-23T10:00:00.000Z');
+    const target = new GameStateService();
+    target.loadFromSave(saveData);
+
+    const restored = target.getSnapshot();
+    expect(restored.contracts[0]!.state).toBe(ContractState.Active);
+    expect(restored.contracts[1]!.state).toBe(ContractState.Available);
+
+    saveData.contracts[0]!.state = ContractState.Completed;
+    expect(target.getSnapshot().contracts[0]!.state).toBe(ContractState.Active);
   });
 });

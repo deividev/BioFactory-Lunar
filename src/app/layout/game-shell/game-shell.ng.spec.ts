@@ -177,7 +177,7 @@ describe('GameShell Angular component', () => {
 
     expect(gameState.getSnapshot().ui).toEqual({ activePanel: PanelType.Contracts });
     expect(activePanel?.textContent).toContain('Contracts');
-    expect(activeStatePanel?.textContent).toContain('Contracts placeholder online');
+    expect(activeStatePanel?.textContent).toContain('Starter Biofood Delivery');
     expect(activeStatePanel?.textContent).not.toContain('Storage placeholder online');
   });
 
