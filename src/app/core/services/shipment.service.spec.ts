@@ -7,6 +7,7 @@ import { AlertService } from './alert.service';
 import { type GameClockTick } from './game-clock.service';
 import { GameStateService } from './game-state.service';
 import { ShipmentService } from './shipment.service';
+import { TutorialService } from './tutorial.service';
 
 let lastEffectFn: (() => void) | undefined;
 
@@ -59,15 +60,17 @@ describe('ShipmentService', () => {
   let service: ShipmentService;
   let gameState: GameStateService;
   let alerts: AlertService;
+  let tutorialService: TutorialService;
   let mockLastTick: ReturnType<typeof signal<GameClockTick | undefined>>;
 
   beforeEach(() => {
     lastEffectFn = undefined;
     gameState = new GameStateService();
     alerts = new AlertService(gameState);
+    tutorialService = new TutorialService(gameState);
     mockLastTick = signal<GameClockTick | undefined>(undefined);
     const mockGameClock = { lastTick: mockLastTick.asReadonly() };
-    service = new ShipmentService(gameState, mockGameClock as never, alerts);
+    service = new ShipmentService(gameState, mockGameClock as never, alerts, tutorialService);
   });
 
   function makeTick(deltaGameSeconds: number): GameClockTick {
@@ -325,5 +328,70 @@ describe('ShipmentService', () => {
     service.receiveShipment('ship_orphan_01');
     expect(gameState.getSnapshot().shipments).toHaveLength(1);
     expect(successSpy).not.toHaveBeenCalled();
+  });
+
+  // ── Tutorial hook behavior ─────────────────────────────────────────────────
+
+  it('advances the buy_seeds tutorial step on a successful buyShipment', () => {
+    const spy = vi.spyOn(tutorialService, 'completeStep');
+
+    service.buyShipment('shipment_seed_protein_leaf_pack');
+
+    expect(spy).toHaveBeenCalledWith('buy_seeds');
+  });
+
+  it('does not advance tutorial on a failed buyShipment (insufficient credits)', () => {
+    gameState.updateResources((r) => ({ ...r, values: { ...r.values, credits: 0 } }));
+    const spy = vi.spyOn(tutorialService, 'completeStep');
+
+    service.buyShipment('shipment_seed_protein_leaf_pack');
+
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it('does not advance tutorial on a failed buyShipment (unknown catalog id)', () => {
+    const spy = vi.spyOn(tutorialService, 'completeStep');
+
+    service.buyShipment('shipment_does_not_exist');
+
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it('advances the receive_seeds tutorial step on a successful receiveShipment', () => {
+    const delivered: ShipmentInstance = {
+      id: 'ship_recv_01',
+      catalogItemId: 'shipment_seed_protein_leaf_pack',
+      state: ShipmentState.Delivered,
+      remainingSeconds: 0,
+    };
+    gameState.updateShipments((list) => [...list, delivered]);
+    const spy = vi.spyOn(tutorialService, 'completeStep');
+
+    service.receiveShipment('ship_recv_01');
+
+    expect(spy).toHaveBeenCalledWith('receive_seeds');
+  });
+
+  it('does not advance tutorial when receiveShipment is called for an InTransit shipment', () => {
+    const inTransit: ShipmentInstance = {
+      id: 'ship_recv_transit_01',
+      catalogItemId: 'shipment_seed_protein_leaf_pack',
+      state: ShipmentState.InTransit,
+      remainingSeconds: 20,
+    };
+    gameState.updateShipments((list) => [...list, inTransit]);
+    const spy = vi.spyOn(tutorialService, 'completeStep');
+
+    service.receiveShipment('ship_recv_transit_01');
+
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it('does not advance tutorial when receiveShipment is called with an unknown id', () => {
+    const spy = vi.spyOn(tutorialService, 'completeStep');
+
+    service.receiveShipment('nonexistent_ship_id');
+
+    expect(spy).not.toHaveBeenCalled();
   });
 });

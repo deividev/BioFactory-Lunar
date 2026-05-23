@@ -5,6 +5,7 @@ import { ShipmentState } from '../enums';
 import { AlertService } from './alert.service';
 import { GameClockService } from './game-clock.service';
 import { GameStateService } from './game-state.service';
+import { TutorialService } from './tutorial.service';
 
 @Injectable({ providedIn: 'root' })
 export class ShipmentService {
@@ -12,6 +13,7 @@ export class ShipmentService {
     private readonly gameState: GameStateService,
     private readonly gameClock: GameClockService,
     private readonly alerts: AlertService,
+    private readonly tutorialService: TutorialService,
   ) {
     effect(() => {
       const tick = this.gameClock.lastTick();
@@ -50,6 +52,7 @@ export class ShipmentService {
         remainingSeconds: item.durationSeconds,
       },
     ]);
+    this.tutorialService.completeStep('buy_seeds');
   }
 
   receiveShipment(shipmentId: string): void {
@@ -77,6 +80,7 @@ export class ShipmentService {
 
     this.gameState.updateShipments((list) => list.filter((s) => s.id !== shipmentId));
     this.alerts.addSuccess(`${catalogItem.name} received!`);
+    this.tutorialService.completeStep('receive_seeds');
   }
 
   processTick(deltaGameSeconds: number): void {

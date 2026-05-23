@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/c
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PanelType } from '../../core/enums';
 import { GameStateService, ModuleSelectionService } from '../../core/services';
+import { CommandCenter } from '../../features/command-center/command-center';
 import { Contracts } from '../../features/contracts/contracts';
 import { Greenhouse } from '../../features/greenhouse/greenhouse';
 import { Processing } from '../../features/processing/processing';
@@ -26,7 +27,7 @@ const PANEL_LABELS: Readonly<Record<PanelType, string>> = {
 
 @Component({
   selector: 'app-game-shell',
-  imports: [AlertsPanel, BottomNav, Contracts, Greenhouse, HudTop, PhaserGame, Processing, Shipments, Storage],
+  imports: [AlertsPanel, BottomNav, CommandCenter, Contracts, Greenhouse, HudTop, PhaserGame, Processing, Shipments, Storage],
   templateUrl: './game-shell.html',
   styleUrl: './game-shell.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

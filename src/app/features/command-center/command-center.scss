@@ -1,0 +1,85 @@
+.command-center {
+  display: grid;
+  align-content: start;
+  gap: 0.85rem;
+  height: 100%;
+  padding: clamp(0.875rem, 2vw, 1.25rem);
+  overflow: auto;
+  color: var(--bf-text-primary);
+  background: color-mix(in srgb, var(--bf-surface-panel) 86%, transparent);
+}
+
+.command-center__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.command-center__title {
+  margin: 0;
+  font-size: clamp(1.05rem, 1.5vw, 1.35rem);
+}
+
+.command-center__tutorial {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.command-center__tutorial-heading {
+  margin: 0;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--bf-text-secondary, currentcolor);
+}
+
+.command-center__tutorial-counter {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--bf-text-secondary, currentcolor);
+}
+
+.command-center__step {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.5rem 0.75rem;
+  border-left: 3px solid var(--bf-accent-primary, #4af);
+}
+
+.command-center__step-label {
+  margin: 0;
+  font-weight: 600;
+}
+
+.command-center__step-desc {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.command-center__tutorial-complete {
+  margin: 0;
+  font-weight: 600;
+  color: var(--bf-success, #4caf50);
+}
+
+.command-center__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  align-items: flex-start;
+}
+
+.command-center__btn {
+  padding: 0.35rem 0.9rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.command-center__save-status {
+  margin: 0;
+  font-size: 0.8rem;
+}
+
+.command-center__save-status--error {
+  color: var(--bf-error, #f44);
+}

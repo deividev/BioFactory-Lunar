@@ -11,6 +11,7 @@ import type {
   ResourceState,
   SaveData,
   ShipmentInstance,
+  TutorialState,
   UIState,
 } from '../models';
 import { CURRENT_SAVE_VERSION } from '../models';
@@ -55,6 +56,7 @@ export class GameStateService {
   readonly contracts: Signal<DeepReadonly<ContractInstance[]>> = computed(() => deepFreeze(cloneState(this.#state().contracts)));
   readonly shipments: Signal<DeepReadonly<ShipmentInstance[]>> = computed(() => deepFreeze(cloneState(this.#state().shipments)));
   readonly alerts: Signal<DeepReadonly<Alert[]>> = computed(() => deepFreeze(cloneState(this.#state().alerts)));
+  readonly tutorial: Signal<DeepReadonly<TutorialState>> = computed(() => deepFreeze(cloneState(this.#state().tutorial)));
 
   getSnapshot(): GameState {
     return cloneState(this.#state());
@@ -171,6 +173,13 @@ export class GameStateService {
     this.#state.update((state) => ({
       ...state,
       contracts: cloneState(updater(cloneState(state.contracts))),
+    }));
+  }
+
+  updateTutorial(updater: (tutorial: TutorialState) => TutorialState): void {
+    this.#state.update((state) => ({
+      ...state,
+      tutorial: cloneState(updater(cloneState(state.tutorial))),
     }));
   }
 }

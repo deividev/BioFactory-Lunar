@@ -20,6 +20,7 @@ export default defineConfig({
         'src/app/features/greenhouse/greenhouse.ts',
         'src/app/features/processing/processing.ts',
         'src/app/features/shipments/shipments.ts',
+        'src/app/features/command-center/command-center.ts',
         'src/app/layout/game-shell/game-shell.ts',
         'src/app/layout/alerts-panel/alerts-panel.ts',
         'src/app/layout/bottom-nav/bottom-nav.ts',

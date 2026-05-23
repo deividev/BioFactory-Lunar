@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { AlertType, ContractState, CropSlotState, GameSpeed, MachineState, PanelType, ShipmentState } from '../enums';
-import type { ContractInstance, MachineInstance, ShipmentInstance } from '../models';
+import type { ContractInstance, MachineInstance, ShipmentInstance, TutorialState } from '../models';
 import { createInitialGameState } from '../state';
 import { GameStateService } from './game-state.service';
 
@@ -446,5 +446,88 @@ describe('GameStateService', () => {
 
     saveData.contracts[0]!.state = ContractState.Completed;
     expect(target.getSnapshot().contracts[0]!.state).toBe(ContractState.Active);
+  });
+
+  // ── updateTutorial ───────────────────────────────────────────────────────
+
+  it('updates tutorial without mutating unrelated game state or leaking updater drafts', () => {
+    const service = new GameStateService();
+    const initial = service.getSnapshot();
+    let leakedTutorialDraft: TutorialState = initial.tutorial;
+
+    service.updateTutorial((tutorial) => {
+      leakedTutorialDraft = tutorial;
+      return {
+        ...tutorial,
+        completedStepIds: ['accept_first_contract'],
+        activeStepId: 'plant_crop',
+      };
+    });
+
+    leakedTutorialDraft.completedStepIds.push('leaked_step');
+
+    const updated = service.getSnapshot();
+    expect(updated.tutorial).toEqual({
+      completedStepIds: ['accept_first_contract'],
+      activeStepId: 'plant_crop',
+    });
+    expect(updated.resources).toEqual(initial.resources);
+    expect(updated.inventory).toEqual(initial.inventory);
+    expect(leakedTutorialDraft.completedStepIds).toContain('leaked_step');
+    expect(service.getSnapshot().tutorial.completedStepIds).not.toContain('leaked_step');
+  });
+
+  it('tutorial signal is frozen and prevents direct mutation', () => {
+    const service = new GameStateService();
+
+    service.updateTutorial((tutorial) => ({
+      ...tutorial,
+      completedStepIds: ['accept_first_contract'],
+      activeStepId: 'plant_crop',
+    }));
+
+    const tutorialView = service.tutorial();
+    expect(Object.isFrozen(tutorialView)).toBe(true);
+    expect(Object.isFrozen(tutorialView.completedStepIds)).toBe(true);
+    expect(() => {
+      (tutorialView as { activeStepId: string | undefined }).activeStepId = 'harvest_crop';
+    }).toThrow(TypeError);
+  });
+
+  it('persists and restores tutorial state through a save/load round-trip', () => {
+    const source = new GameStateService();
+
+    source.updateTutorial((tutorial) => ({
+      ...tutorial,
+      completedStepIds: ['accept_first_contract', 'plant_crop'],
+      activeStepId: 'harvest_crop',
+    }));
+
+    const saveData = source.toSaveData('2026-05-23T12:00:00.000Z');
+    const target = new GameStateService();
+    target.loadFromSave(saveData);
+
+    const restored = target.getSnapshot();
+    expect(restored.tutorial.completedStepIds).toEqual(['accept_first_contract', 'plant_crop']);
+    expect(restored.tutorial.activeStepId).toBe('harvest_crop');
+
+    saveData.tutorial.completedStepIds.push('leaked_step');
+    expect(target.getSnapshot().tutorial.completedStepIds).toEqual(['accept_first_contract', 'plant_crop']);
+  });
+
+  it('persists tutorial in toSaveData output', () => {
+    const service = new GameStateService();
+
+    service.updateTutorial((tutorial) => ({
+      ...tutorial,
+      completedStepIds: ['accept_first_contract'],
+      activeStepId: 'plant_crop',
+    }));
+
+    const saveData = service.toSaveData('2026-05-23T12:00:00.000Z');
+    expect(saveData.tutorial).toEqual({
+      completedStepIds: ['accept_first_contract'],
+      activeStepId: 'plant_crop',
+    });
   });
 });
