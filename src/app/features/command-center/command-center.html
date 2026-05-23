@@ -1,0 +1,45 @@
+<section class="command-center" aria-label="Command Center panel">
+  <header class="command-center__header">
+    <h2 class="command-center__title">Command Center</h2>
+  </header>
+
+  <section class="command-center__tutorial" aria-label="Tutorial progress">
+    <h3 class="command-center__tutorial-heading">Mission Progress</h3>
+    <p class="command-center__tutorial-counter">
+      {{ completedCount() }} / {{ totalSteps }} steps completed
+    </p>
+
+    @if (tutorialService.isComplete()) {
+      <p class="command-center__tutorial-complete" data-testid="tutorial-complete">
+        MVP loop complete. All steps done.
+      </p>
+    } @else {
+      <div class="command-center__step" data-testid="active-step">
+        <p class="command-center__step-label">{{ activeStep()?.label }}</p>
+        <p class="command-center__step-desc">{{ activeStep()?.description }}</p>
+      </div>
+    }
+  </section>
+
+  <section class="command-center__actions" aria-label="Base actions">
+    <button
+      type="button"
+      class="command-center__btn"
+      data-testid="save-btn"
+      (click)="save()"
+    >
+      Save
+    </button>
+
+    @if (saveStatus()) {
+      <p
+        class="command-center__save-status"
+        [class.command-center__save-status--error]="hasSaveError()"
+        aria-live="polite"
+        data-testid="save-status"
+      >
+        {{ saveStatus() }}
+      </p>
+    }
+  </section>
+</section>

@@ -72,7 +72,8 @@
                             "src/app/layout/hud-top/hud-top.ts",
                             "src/app/features/storage/storage.ts",
                             "src/app/features/shipments/shipments.ts",
-                            "src/app/game/phaser/phaser-game.ts"
+                            "src/app/game/phaser/phaser-game.ts",
+                            "src/app/features/command-center/command-center.ts"
                         ],
                         "coverageExclude": [
                             "**/*.ng.spec.ts",

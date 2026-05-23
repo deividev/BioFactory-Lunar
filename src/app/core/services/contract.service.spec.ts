@@ -1,10 +1,12 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ContractState } from '../enums';
+import { AlertService } from './alert.service';
+import { ContractService } from './contract.service';
 import { GameStateService } from './game-state.service';
 import { InventoryService } from './inventory.service';
 import { ResourceService } from './resource.service';
-import { ContractService } from './contract.service';
+import { TutorialService } from './tutorial.service';
 
 // Instance IDs follow the pattern: contract_${definitionId}_01
 const STARTER_BIOFOOD_ID = 'contract_contract_starter_biofood_01';
@@ -15,13 +17,17 @@ describe('ContractService', () => {
   let gameState: GameStateService;
   let inventory: InventoryService;
   let resources: ResourceService;
+  let alerts: AlertService;
+  let tutorial: TutorialService;
   let service: ContractService;
 
   beforeEach(() => {
     gameState = new GameStateService();
     inventory = new InventoryService(gameState);
     resources = new ResourceService(gameState);
-    service = new ContractService(gameState, inventory, resources);
+    alerts = new AlertService(gameState);
+    tutorial = new TutorialService(gameState);
+    service = new ContractService(gameState, inventory, resources, alerts, tutorial);
   });
 
   // ── acceptContract ────────────────────────────────────────────────────────
@@ -74,6 +80,40 @@ describe('ContractService', () => {
       if (!result.success) {
         expect(result.code).toBe('invalid_state');
       }
+    });
+
+    it('emits a success alert when accepting a valid contract', () => {
+      const successSpy = vi.spyOn(alerts, 'addSuccess');
+
+      service.acceptContract(STARTER_BIOFOOD_ID);
+
+      expect(successSpy).toHaveBeenCalledWith('Contract accepted.');
+    });
+
+    it('does not emit an alert when accepting fails', () => {
+      const successSpy = vi.spyOn(alerts, 'addSuccess');
+      const warnSpy = vi.spyOn(alerts, 'addWarning');
+
+      service.acceptContract('contract_does_not_exist');
+
+      expect(successSpy).not.toHaveBeenCalled();
+      expect(warnSpy).not.toHaveBeenCalled();
+    });
+
+    it('advances the tutorial to accept_first_contract on success', () => {
+      const stepSpy = vi.spyOn(tutorial, 'completeStep');
+
+      service.acceptContract(STARTER_BIOFOOD_ID);
+
+      expect(stepSpy).toHaveBeenCalledWith('accept_first_contract');
+    });
+
+    it('does not advance the tutorial when accepting fails', () => {
+      const stepSpy = vi.spyOn(tutorial, 'completeStep');
+
+      service.acceptContract('contract_does_not_exist');
+
+      expect(stepSpy).not.toHaveBeenCalled();
     });
   });
 
@@ -214,6 +254,59 @@ describe('ContractService', () => {
       const others = gameState.contracts().filter((c) => c.id !== STARTER_BIOFOOD_ID);
       expect(others.every((c) => c.state === ContractState.Available)).toBe(true);
     });
+
+    it('emits a success alert when delivering successfully', () => {
+      service.acceptContract(STARTER_BIOFOOD_ID);
+      gameState.updateInventory((inv) => ({
+        ...inv,
+        items: { ...inv.items, biofood_pack: 1 },
+      }));
+      const successSpy = vi.spyOn(alerts, 'addSuccess');
+
+      service.deliverContract(STARTER_BIOFOOD_ID);
+
+      expect(successSpy).toHaveBeenCalledWith('Contract delivered!');
+    });
+
+    it('emits a warning alert when items are insufficient', () => {
+      service.acceptContract(STARTER_BIOFOOD_ID);
+      const warnSpy = vi.spyOn(alerts, 'addWarning');
+
+      service.deliverContract(STARTER_BIOFOOD_ID);
+
+      expect(warnSpy).toHaveBeenCalledWith('Not enough items to deliver this contract.');
+    });
+
+    it('does not emit a success alert when delivery fails', () => {
+      service.acceptContract(STARTER_BIOFOOD_ID);
+      const successSpy = vi.spyOn(alerts, 'addSuccess');
+
+      service.deliverContract(STARTER_BIOFOOD_ID); // no items
+
+      expect(successSpy).not.toHaveBeenCalledWith('Contract delivered!');
+    });
+
+    it('advances the tutorial to deliver_contract on delivery success', () => {
+      service.acceptContract(STARTER_BIOFOOD_ID);
+      gameState.updateInventory((inv) => ({
+        ...inv,
+        items: { ...inv.items, biofood_pack: 1 },
+      }));
+      const stepSpy = vi.spyOn(tutorial, 'completeStep');
+
+      service.deliverContract(STARTER_BIOFOOD_ID);
+
+      expect(stepSpy).toHaveBeenCalledWith('deliver_contract');
+    });
+
+    it('does not advance the tutorial when delivery fails', () => {
+      service.acceptContract(STARTER_BIOFOOD_ID);
+      const stepSpy = vi.spyOn(tutorial, 'completeStep');
+
+      service.deliverContract(STARTER_BIOFOOD_ID); // no items
+
+      expect(stepSpy).not.toHaveBeenCalled();
+    });
   });
 
   // ── getProgress ───────────────────────────────────────────────────────────
@@ -342,7 +435,9 @@ describe('ContractService', () => {
       const targetGameState = new GameStateService();
       const targetInventory = new InventoryService(targetGameState);
       const targetResources = new ResourceService(targetGameState);
-      const targetService = new ContractService(targetGameState, targetInventory, targetResources);
+      const targetAlerts = new AlertService(targetGameState);
+      const targetTutorial = new TutorialService(targetGameState);
+      const targetService = new ContractService(targetGameState, targetInventory, targetResources, targetAlerts, targetTutorial);
       targetGameState.loadFromSave(saveData);
 
       expect(targetGameState.contracts().find((c) => c.id === STARTER_BIOFOOD_ID)!.state).toBe(ContractState.Active);
@@ -365,7 +460,9 @@ describe('ContractService', () => {
       const targetGameState = new GameStateService();
       const targetInventory = new InventoryService(targetGameState);
       const targetResources = new ResourceService(targetGameState);
-      const targetService = new ContractService(targetGameState, targetInventory, targetResources);
+      const targetAlerts = new AlertService(targetGameState);
+      const targetTutorial = new TutorialService(targetGameState);
+      const targetService = new ContractService(targetGameState, targetInventory, targetResources, targetAlerts, targetTutorial);
       targetGameState.loadFromSave(saveData);
 
       expect(targetGameState.contracts().find((c) => c.id === GREENHOUSE_PROTEIN_ID)!.state).toBe(ContractState.Completed);

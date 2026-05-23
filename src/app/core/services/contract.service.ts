@@ -3,9 +3,11 @@ import { Injectable } from '@angular/core';
 import { CONTRACT_DEFINITIONS } from '../data';
 import { ContractState } from '../enums';
 import type { ActionResult, ContractInstance } from '../models';
+import { AlertService } from './alert.service';
 import { GameStateService } from './game-state.service';
 import { InventoryService } from './inventory.service';
 import { ResourceService } from './resource.service';
+import { TutorialService } from './tutorial.service';
 
 export type ContractActionFailureCode = 'unknown_contract' | 'invalid_state' | 'insufficient_items';
 
@@ -34,6 +36,8 @@ export class ContractService {
     private readonly gameState: GameStateService,
     private readonly inventory: InventoryService,
     private readonly resources: ResourceService,
+    private readonly alerts: AlertService,
+    private readonly tutorial: TutorialService,
   ) {}
 
   acceptContract(instanceId: string): ContractActionResult {
@@ -52,6 +56,9 @@ export class ContractService {
     this.gameState.updateContracts((contracts) =>
       contracts.map((c) => (c.id === instanceId ? { ...c, state: ContractState.Active } : c)),
     );
+
+    this.alerts.addSuccess('Contract accepted.');
+    this.tutorial.completeStep('accept_first_contract');
 
     return { success: true };
   }
@@ -75,6 +82,7 @@ export class ContractService {
     }
 
     if (!this.inventory.hasItems(definition.requiredItems)) {
+      this.alerts.addWarning('Not enough items to deliver this contract.');
       return {
         success: false,
         code: 'insufficient_items',
@@ -93,6 +101,9 @@ export class ContractService {
     this.gameState.updateContracts((contracts) =>
       contracts.map((c) => (c.id === instanceId ? { ...c, state: ContractState.Completed } : c)),
     );
+
+    this.alerts.addSuccess('Contract delivered!');
+    this.tutorial.completeStep('deliver_contract');
 
     return { success: true };
   }
