@@ -183,6 +183,8 @@ describe('HudTop Angular component', () => {
 
     const fixture = TestBed.createComponent(HudTop);
     fixture.detectChanges();
+    // Flush pending Promise microtasks (zoneless — fakeAsync/whenStable not available)
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
 
     expect(restoreSpy).toHaveBeenCalledOnce();
     expect(startSpy).toHaveBeenCalledOnce();

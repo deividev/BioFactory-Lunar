@@ -97,24 +97,26 @@ describe('CommandCenter panel', () => {
     expect(spy).toHaveBeenCalledTimes(1);
   });
 
-  it('shows "Game saved." status after a successful save', () => {
-    vi.spyOn(saveService, 'saveGame').mockReturnValue({ success: true });
+  it('shows "Game saved." status after a successful save', async () => {
+    vi.spyOn(saveService, 'saveGame').mockResolvedValue({ success: true });
     const btn = el.querySelector<HTMLButtonElement>('[data-testid="save-btn"]')!;
     btn.click();
+    await fixture.whenStable();
     fixture.detectChanges();
     const status = el.querySelector('[data-testid="save-status"]');
     expect(status).not.toBeNull();
     expect(status!.textContent).toContain('Game saved.');
   });
 
-  it('shows error message when save fails', () => {
-    vi.spyOn(saveService, 'saveGame').mockReturnValue({
+  it('shows error message when save fails', async () => {
+    vi.spyOn(saveService, 'saveGame').mockResolvedValue({
       success: false,
       code: 'save_failed',
       message: 'Save failed unexpectedly.',
     });
     const btn = el.querySelector<HTMLButtonElement>('[data-testid="save-btn"]')!;
     btn.click();
+    await fixture.whenStable();
     fixture.detectChanges();
     const status = el.querySelector('[data-testid="save-status"]');
     expect(status).not.toBeNull();

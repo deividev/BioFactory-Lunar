@@ -4,6 +4,7 @@
     on(event: string, listener: (...args: unknown[]) => void): void;
     quit(): void;
     getVersion(): string;
+    getPath(name: string): string;
   };
 
   export class BrowserWindow {

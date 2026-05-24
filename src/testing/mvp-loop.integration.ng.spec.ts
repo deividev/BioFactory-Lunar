@@ -232,7 +232,7 @@ describe('MVP loop integration', () => {
 
   // ── save / load continuity ────────────────────────────────────────────────
 
-  it('save/load continuity — tutorial progress survives a save/load round-trip', () => {
+  it('save/load continuity — tutorial progress survives a save/load round-trip', async () => {
     const { contractService, tutorial, saveService, gameState } = getServices();
 
     // advance tutorial by one step
@@ -240,7 +240,7 @@ describe('MVP loop integration', () => {
     expect(tutorial.tutorial().activeStepId).toBe('buy_seeds');
 
     // save
-    const saveResult = saveService.saveGame();
+    const saveResult = await saveService.saveGame();
     expect(saveResult.success).toBe(true);
 
     // reset to fresh state
@@ -248,7 +248,7 @@ describe('MVP loop integration', () => {
     expect(tutorial.tutorial().activeStepId).toBe('accept_first_contract');
 
     // load
-    const loadResult = saveService.loadGame();
+    const loadResult = await saveService.loadGame();
     expect(loadResult.success).toBe(true);
 
     // tutorial step should be restored
@@ -258,7 +258,7 @@ describe('MVP loop integration', () => {
     localStorage.removeItem(DEFAULT_SAVE_STORAGE_KEY);
   });
 
-  it('save/load continuity — completed tutorial survives a save/load round-trip', () => {
+  it('save/load continuity — completed tutorial survives a save/load round-trip', async () => {
     const { contractService, shipmentService, gameState, cropService, productionService, tutorial, saveService } = getServices();
     // complete all 7 steps
     contractService.acceptContract(CONTRACT_ID);
@@ -294,12 +294,12 @@ describe('MVP loop integration', () => {
     expect(tutorial.isComplete()).toBe(true);
 
     // save
-    saveService.saveGame();
+    await saveService.saveGame();
     gameState.reset();
     expect(tutorial.isComplete()).toBe(false);
 
     // load — tutorial should remain complete
-    saveService.loadGame();
+    await saveService.loadGame();
     expect(tutorial.isComplete()).toBe(true);
     expect(tutorial.tutorial().activeStepId).toBeUndefined();
 

@@ -1,10 +1,11 @@
-﻿import { mkdirSync } from 'node:fs';
+﻿import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const { app, BrowserWindow, ipcMain } = require('electron') as typeof import('electron');
 import { resolveElectronMainPaths } from './main-paths.js';
 import { createElectronRuntimePolicy } from './runtime-policy.js';
 import { createMainWindowOptions } from './window-options.js';
+import { createSaveHandlers } from './save-handlers.js';
 
 type MainBrowserWindow = InstanceType<typeof BrowserWindow>;
 
@@ -39,6 +40,16 @@ async function loadRenderer(window: MainBrowserWindow): Promise<void> {
 
 function registerIpcHandlers(): void {
   ipcMain.handle('get-app-version', () => app.getVersion());
+
+  const saveHandlers = createSaveHandlers(app.getPath('userData'), {
+    readFile: (filePath) => readFileSync(filePath, 'utf8'),
+    writeFile: (filePath, data) => writeFileSync(filePath, data, 'utf8'),
+    exists: (filePath) => existsSync(filePath)
+  });
+
+  ipcMain.handle('save-game', (_event, payload: string) => saveHandlers.saveGame(payload));
+  ipcMain.handle('load-game', () => saveHandlers.loadGame());
+  ipcMain.handle('has-save', () => saveHandlers.hasSave());
 }
 
 async function createWindow(): Promise<void> {
