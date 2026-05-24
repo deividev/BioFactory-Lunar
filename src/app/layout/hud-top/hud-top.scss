@@ -1,4 +1,9 @@
+@use '../../../styles/mixins/panel';
+@use '../../../styles/mixins/button';
+
 .hud-top {
+  @include panel.bf-strip-chrome(var(--bf-accent-interactive));
+
   position: relative;
   display: grid;
   grid-template-columns: minmax(9rem, 13rem) minmax(0, 1fr) minmax(11rem, auto);
@@ -8,12 +13,6 @@
   padding: 0.35rem;
   border-bottom: 1px solid var(--bf-border-subtle);
   color: var(--bf-text-primary);
-  background:
-    radial-gradient(circle at 8% 15%, color-mix(in srgb, var(--bf-accent-interactive) 16%, transparent), transparent 10rem),
-    linear-gradient(180deg, color-mix(in srgb, var(--bf-surface-panel) 96%, transparent), var(--bf-surface-canvas));
-  box-shadow:
-    inset 0 -1px 0 color-mix(in srgb, var(--bf-accent-interactive) 24%, transparent),
-    0 0.5rem 1.4rem color-mix(in srgb, var(--bf-surface-canvas) 68%, transparent);
 }
 
 h1,
@@ -24,33 +23,22 @@ ul {
 }
 
 button {
+  @include button.bf-btn-primary(var(--bf-accent-info));
+
   min-width: 2rem;
-  border: 1px solid color-mix(in srgb, var(--bf-border-subtle) 82%, transparent);
-  border-radius: 0.25rem;
   padding: 0.28rem 0.45rem;
-  color: var(--bf-text-primary);
-  background: color-mix(in srgb, var(--bf-surface-raised) 74%, transparent);
 }
 
-button:hover,
-button:focus-visible {
-  border-color: var(--bf-border-strong);
-  color: var(--bf-accent-interactive);
-  outline: none;
-  box-shadow: 0 0 0.8rem color-mix(in srgb, var(--bf-accent-interactive) 18%, transparent);
+.hud-top__save-controls button {
+  @include button.bf-btn-action(var(--bf-accent-interactive), var(--bf-surface-canvas));
+
+  min-width: 0;
 }
 
 .hud-top__brand-card,
 .hud-top__clock-card,
 .hud-top__status-card {
-  border: 1px solid color-mix(in srgb, var(--bf-border-subtle) 72%, transparent);
-  border-radius: 0.35rem;
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--bf-surface-raised) 58%, transparent), transparent),
-    color-mix(in srgb, var(--bf-surface-panel) 92%, transparent);
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--bf-accent-info) 12%, transparent),
-    inset 0 -1px 0 color-mix(in srgb, var(--bf-surface-canvas) 68%, transparent);
+  @include panel.bf-card-chrome(var(--bf-accent-info));
 }
 
 .hud-top__brand-card {

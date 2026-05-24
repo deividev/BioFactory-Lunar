@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const PHASER_ASSETS = [
+  'phaser/backgrounds/lunar/bg_lunar_basic_temp.png',
   'phaser/backgrounds/lunar/bg_sky_base.png',
   'phaser/backgrounds/lunar/bg_stars_far.png',
   'phaser/backgrounds/lunar/bg_earth.png',

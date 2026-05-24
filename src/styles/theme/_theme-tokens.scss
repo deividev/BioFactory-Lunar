@@ -19,13 +19,13 @@
 :root {
   // ── Surfaces ─────────────────────────────────────────────
   // Deep canvas — app root background and Phaser host wrapper fill
-  --bf-surface-canvas: #0b1220;
+  --bf-surface-canvas: #050b13;
   // Primary panel — top-level card and drawer fills
-  --bf-surface-panel: #0f172a;
+  --bf-surface-panel: #08111a;
   // Raised layer — inset panels, secondary cards
-  --bf-surface-raised: #1e293b;
+  --bf-surface-raised: #0d1824;
   // Elevated layer — tooltips, dropdowns, active surface states
-  --bf-surface-elevated: #334155;
+  --bf-surface-elevated: #162434;
 
   // ── Text ─────────────────────────────────────────────────
   // Primary body copy, HUD labels, headings

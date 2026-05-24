@@ -1,9 +1,13 @@
+@use '../../../styles/mixins/panel';
+
 .game-shell {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
   min-height: 100dvh;
   height: 100dvh;
   overflow: hidden;
+  transform-origin: top left;
+  scale: var(--ui-scale);
   background:
     radial-gradient(circle at 75% 18%, color-mix(in srgb, var(--bf-accent-interactive) 18%, transparent), transparent 18rem),
     linear-gradient(180deg, var(--bf-surface-panel) 0%, var(--bf-surface-canvas) 100%);
@@ -57,6 +61,11 @@
   scrollbar-color: color-mix(in srgb, var(--bf-accent-info) 46%, transparent) transparent;
   scrollbar-width: thin;
   border-right: 1px solid var(--bf-border-subtle);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--bf-surface-panel) 98%, transparent),
+    color-mix(in srgb, var(--bf-surface-canvas) 96%, transparent)
+  );
 }
 
 .game-shell__panel-host::-webkit-scrollbar {
@@ -73,10 +82,11 @@
 }
 
 .active-panel {
+  @include panel.bf-card-chrome(var(--bf-accent-interactive));
+
   padding: 0.85rem 1rem;
   border-right: 1px solid var(--bf-border-subtle);
   border-bottom: 1px solid var(--bf-border-subtle);
-  background: color-mix(in srgb, var(--bf-surface-raised) 88%, transparent);
   color: var(--bf-text-primary);
 }
 
@@ -100,6 +110,8 @@
 }
 
 .command-panel {
+  @include panel.bf-panel-chrome(var(--bf-accent-info));
+
   display: grid;
   align-content: start;
   gap: 0.65rem;
@@ -107,7 +119,6 @@
   padding: clamp(0.875rem, 2vw, 1.25rem);
   overflow: auto;
   color: var(--bf-text-primary);
-  background: color-mix(in srgb, var(--bf-surface-panel) 86%, transparent);
 }
 
 .command-panel__eyebrow {

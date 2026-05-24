@@ -1,11 +1,15 @@
+@use '../../../styles/mixins/panel';
+@use '../../../styles/mixins/button';
+
 .greenhouse {
+  @include panel.bf-panel-chrome(var(--bf-accent-success));
+
   display: grid;
   gap: 1rem;
   height: 100%;
   padding: clamp(0.875rem, 2vw, 1.25rem);
   overflow: auto;
   color: var(--bf-text-primary);
-  background: color-mix(in srgb, var(--bf-surface-panel) 86%, transparent);
 }
 
 h2,
@@ -113,16 +117,14 @@ h2 {
 }
 
 .greenhouse__btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  border: 1px solid var(--bf-border-subtle);
-  border-radius: 999px;
+  @include button.bf-btn-primary(var(--bf-accent-interactive));
+
   padding: 0.3rem 0.65rem 0.3rem 0.45rem;
-  color: var(--bf-text-primary);
   font-size: 0.8rem;
-  background: color-mix(in srgb, var(--bf-accent-interactive) 18%, transparent);
-  cursor: pointer;
+}
+
+.greenhouse__btn--harvest {
+  @include button.bf-btn-action(var(--bf-accent-success), var(--bf-surface-canvas));
 }
 
 .greenhouse__btn-icon {

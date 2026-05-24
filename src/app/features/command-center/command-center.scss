@@ -1,4 +1,9 @@
+@use '../../../styles/mixins/panel';
+@use '../../../styles/mixins/button';
+
 .command-center {
+  @include panel.bf-panel-chrome(var(--bf-accent-interactive));
+
   display: grid;
   align-content: start;
   gap: 0.85rem;
@@ -6,7 +11,6 @@
   padding: clamp(0.875rem, 2vw, 1.25rem);
   overflow: auto;
   color: var(--bf-text-primary);
-  background: color-mix(in srgb, var(--bf-surface-panel) 86%, transparent);
 }
 
 .command-center__header {
@@ -70,9 +74,10 @@
 }
 
 .command-center__btn {
+  @include button.bf-btn-action(var(--bf-accent-interactive), var(--bf-surface-canvas));
+
   padding: 0.35rem 0.9rem;
   font-size: 0.85rem;
-  cursor: pointer;
 }
 
 .command-center__save-status {

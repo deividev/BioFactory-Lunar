@@ -28,12 +28,14 @@ interface ModuleHotspotConfig {
   readonly yRatio: number;
   readonly widthRatio: number;
   readonly heightRatio: number;
+  readonly spritePath: string;
 }
 
 interface ModuleHotspotView {
   readonly config: ModuleHotspotConfig;
   readonly hotspot: Phaser.GameObjects.Rectangle;
   readonly label: Phaser.GameObjects.Text;
+  readonly sprite: Phaser.GameObjects.Image;
 }
 
 interface BackgroundLayerView {
@@ -62,49 +64,13 @@ const CROP_READY_FLASH_DURATION_MS = 1800;
 
 const LUNAR_BACKGROUND_LAYERS: readonly BackgroundLayerConfig[] = [
   {
-    key: 'bg_sky_base',
-    path: 'assets/phaser/backgrounds/lunar/bg_sky_base.png',
+    key: 'bg_lunar_basic_temp',
+    path: 'assets/phaser/backgrounds/lunar/bg_lunar_basic_temp.png',
     xRatio: 0.5,
     yRatio: 0.5,
     widthRatio: 1,
     heightRatio: 1,
     depth: 0,
-  },
-  {
-    key: 'bg_stars_far',
-    path: 'assets/phaser/backgrounds/lunar/bg_stars_far.png',
-    xRatio: 0.5,
-    yRatio: 0.5,
-    widthRatio: 1,
-    heightRatio: 1,
-    depth: 1,
-  },
-  {
-    key: 'bg_earth',
-    path: 'assets/phaser/backgrounds/lunar/bg_earth.png',
-    xRatio: 0.78,
-    yRatio: 0.2,
-    widthRatio: 0.16,
-    heightRatio: 0.28,
-    depth: 2,
-  },
-  {
-    key: 'bg_lunar_ground',
-    path: 'assets/phaser/backgrounds/lunar/bg_lunar_ground.png',
-    xRatio: 0.5,
-    yRatio: 0.82,
-    widthRatio: 1,
-    heightRatio: 0.4,
-    depth: 3,
-  },
-  {
-    key: 'bg_platform_front',
-    path: 'assets/phaser/backgrounds/lunar/bg_platform_front.png',
-    xRatio: 0.5,
-    yRatio: 0.83,
-    widthRatio: 1,
-    heightRatio: 0.34,
-    depth: 4,
   },
 ];
 
@@ -116,6 +82,7 @@ const MVP_MODULE_HOTSPOTS: readonly ModuleHotspotConfig[] = [
     yRatio: 0.52,
     widthRatio: 0.14,
     heightRatio: 0.08,
+    spritePath: 'assets/phaser/modules/module_command_center.png',
   },
   {
     id: 'module_greenhouse_basic_01',
@@ -124,6 +91,7 @@ const MVP_MODULE_HOTSPOTS: readonly ModuleHotspotConfig[] = [
     yRatio: 0.66,
     widthRatio: 0.16,
     heightRatio: 0.09,
+    spritePath: 'assets/phaser/modules/module_greenhouse_basic.png',
   },
   {
     id: 'module_processing_basic_01',
@@ -132,6 +100,7 @@ const MVP_MODULE_HOTSPOTS: readonly ModuleHotspotConfig[] = [
     yRatio: 0.68,
     widthRatio: 0.14,
     heightRatio: 0.09,
+    spritePath: 'assets/phaser/modules/module_processing.png',
   },
   {
     id: 'module_shipping_hangar_basic_01',
@@ -140,6 +109,7 @@ const MVP_MODULE_HOTSPOTS: readonly ModuleHotspotConfig[] = [
     yRatio: 0.66,
     widthRatio: 0.16,
     heightRatio: 0.09,
+    spritePath: 'assets/phaser/modules/module_shipping_hangar.png',
   },
   {
     id: 'module_storage_basic_01',
@@ -148,8 +118,15 @@ const MVP_MODULE_HOTSPOTS: readonly ModuleHotspotConfig[] = [
     yRatio: 0.82,
     widthRatio: 0.22,
     heightRatio: 0.07,
+    spritePath: 'assets/phaser/modules/module_storage.png',
   },
 ];
+
+function spriteKeyFromPath(path: string): string {
+  const lastSlash = path.lastIndexOf('/');
+  const lastDot = path.lastIndexOf('.');
+  return path.slice(lastSlash + 1, lastDot);
+}
 
 export class MainBaseScene extends Phaser.Scene {
   private readonly backgroundLayers: BackgroundLayerView[] = [];
@@ -165,7 +142,11 @@ export class MainBaseScene extends Phaser.Scene {
   }
 
   preload(): void {
-    this.preloadAssets(LUNAR_BACKGROUND_LAYERS);
+    const moduleAssets: PhaserAssetConfig[] = MVP_MODULE_HOTSPOTS.map((config) => ({
+      key: spriteKeyFromPath(config.spritePath),
+      path: config.spritePath,
+    }));
+    this.preloadAssets([...LUNAR_BACKGROUND_LAYERS, ...moduleAssets]);
   }
 
   create(): void {
@@ -212,6 +193,8 @@ export class MainBaseScene extends Phaser.Scene {
 
   private createModuleHotspots(): void {
     for (const config of MVP_MODULE_HOTSPOTS) {
+      const sprite = this.add.image(0, 0, spriteKeyFromPath(config.spritePath)).setOrigin(0.5).setDepth(9);
+
       const hotspot = this.add
         .rectangle(0, 0, 1, 1, MODULE_HOTSPOT_FILL_COLOR, DEFAULT_MODULE_FILL_ALPHA)
         .setData('moduleId', config.id)
@@ -235,7 +218,7 @@ export class MainBaseScene extends Phaser.Scene {
           this.sceneBridge.emitFromPhaser({ type: 'moduleSelected', moduleId: config.id });
         });
 
-      this.moduleViews.set(config.id, { config, hotspot, label });
+      this.moduleViews.set(config.id, { config, hotspot, label, sprite });
       this.applyModuleVisualState(config.id);
     }
   }
@@ -258,7 +241,7 @@ export class MainBaseScene extends Phaser.Scene {
   }
 
   private layoutModuleHotspots(width: number, height: number): void {
-    for (const { config, hotspot, label } of this.moduleViews.values()) {
+    for (const { config, hotspot, label, sprite } of this.moduleViews.values()) {
       const moduleWidth = width * config.widthRatio;
       const moduleHeight = height * config.heightRatio;
       const x = width * config.xRatio;
@@ -266,6 +249,7 @@ export class MainBaseScene extends Phaser.Scene {
 
       hotspot.setPosition(x, y).setDisplaySize(moduleWidth, moduleHeight);
       label.setPosition(x, y - moduleHeight / 2 - 8);
+      sprite.setPosition(x, y).setDisplaySize(moduleWidth, moduleHeight);
     }
   }
 
@@ -323,6 +307,7 @@ export class MainBaseScene extends Phaser.Scene {
       view.hotspot
         .setFillStyle(MODULE_HOTSPOT_FILL_COLOR, HOVER_MODULE_FILL_ALPHA)
         .setStrokeStyle(2, CROP_READY_FLASH_COLOR, CROP_READY_FLASH_STROKE_ALPHA);
+      view.sprite.setTint(CROP_READY_FLASH_COLOR);
       view.label.setVisible(true).setAlpha(0.95);
       return;
     }
@@ -331,6 +316,7 @@ export class MainBaseScene extends Phaser.Scene {
       view.hotspot
         .setFillStyle(MODULE_HOTSPOT_FILL_COLOR, SELECTED_MODULE_FILL_ALPHA)
         .setStrokeStyle(2, SELECTED_MODULE_STROKE_COLOR, SELECTED_MODULE_STROKE_ALPHA);
+      view.sprite.setTint(SELECTED_MODULE_STROKE_COLOR);
       view.label.setVisible(true).setAlpha(1);
       return;
     }
@@ -339,6 +325,7 @@ export class MainBaseScene extends Phaser.Scene {
       view.hotspot
         .setFillStyle(MODULE_HOTSPOT_FILL_COLOR, HOVER_MODULE_FILL_ALPHA)
         .setStrokeStyle(2, HOVER_MODULE_STROKE_COLOR, HOVER_MODULE_STROKE_ALPHA);
+      view.sprite.setTint(HOVER_MODULE_STROKE_COLOR);
       view.label.setVisible(true).setAlpha(0.95);
       return;
     }
@@ -346,6 +333,7 @@ export class MainBaseScene extends Phaser.Scene {
     view.hotspot
       .setFillStyle(MODULE_HOTSPOT_FILL_COLOR, DEFAULT_MODULE_FILL_ALPHA)
       .setStrokeStyle(1, DEFAULT_MODULE_STROKE_COLOR, DEFAULT_MODULE_STROKE_ALPHA);
+    view.sprite.clearTint();
     view.label.setVisible(false).setAlpha(0);
   }
 

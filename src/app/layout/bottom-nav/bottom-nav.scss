@@ -1,29 +1,22 @@
+@use '../../../styles/mixins/panel';
+@use '../../../styles/mixins/button';
+
 .bottom-nav {
+  @include panel.bf-strip-chrome(var(--bf-accent-info));
+
   display: flex;
   justify-content: center;
   gap: clamp(0.35rem, 1vw, 0.75rem);
   min-width: 0;
   padding: 0.55rem clamp(0.75rem, 2vw, 1.25rem);
   border-top: 1px solid var(--bf-border-subtle);
-  background: color-mix(in srgb, var(--bf-surface-panel) 92%, transparent);
-  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--bf-accent-info) 12%, transparent);
 }
 
 button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.42rem;
-  min-width: 0;
-  border: 1px solid color-mix(in srgb, var(--bf-border-subtle) 62%, transparent);
-  border-radius: 0.65rem;
+  @include button.bf-btn-nav(var(--bf-accent-info));
+
   padding: 0.45rem 0.7rem;
-  color: var(--bf-text-muted);
   font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  background: color-mix(in srgb, var(--bf-surface-raised) 28%, transparent);
 }
 
 button:hover,

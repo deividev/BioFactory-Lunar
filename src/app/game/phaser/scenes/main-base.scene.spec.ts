@@ -156,7 +156,7 @@ function createModuleScene(): {
 }
 
 describe('MainBaseScene visual placeholder', () => {
-  it('preloads the style spike background layers from stable runtime paths', () => {
+  it('preloads the temporary lunar matte background from a stable runtime path', () => {
     const scene = new MainBaseScene() as unknown as {
       textures: {
         exists(key: string): boolean;
@@ -183,20 +183,22 @@ describe('MainBaseScene visual placeholder', () => {
     scene.preload();
 
     expect(calls).toEqual([
-      'texture-exists:bg_sky_base',
-      'load-image:bg_sky_base|assets/phaser/backgrounds/lunar/bg_sky_base.png',
-      'texture-exists:bg_stars_far',
-      'load-image:bg_stars_far|assets/phaser/backgrounds/lunar/bg_stars_far.png',
-      'texture-exists:bg_earth',
-      'load-image:bg_earth|assets/phaser/backgrounds/lunar/bg_earth.png',
-      'texture-exists:bg_lunar_ground',
-      'load-image:bg_lunar_ground|assets/phaser/backgrounds/lunar/bg_lunar_ground.png',
-      'texture-exists:bg_platform_front',
-      'load-image:bg_platform_front|assets/phaser/backgrounds/lunar/bg_platform_front.png'
+      'texture-exists:bg_lunar_basic_temp',
+      'load-image:bg_lunar_basic_temp|assets/phaser/backgrounds/lunar/bg_lunar_basic_temp.png',
+      'texture-exists:module_command_center',
+      'load-image:module_command_center|assets/phaser/modules/module_command_center.png',
+      'texture-exists:module_greenhouse_basic',
+      'load-image:module_greenhouse_basic|assets/phaser/modules/module_greenhouse_basic.png',
+      'texture-exists:module_processing',
+      'load-image:module_processing|assets/phaser/modules/module_processing.png',
+      'texture-exists:module_shipping_hangar',
+      'load-image:module_shipping_hangar|assets/phaser/modules/module_shipping_hangar.png',
+      'texture-exists:module_storage',
+      'load-image:module_storage|assets/phaser/modules/module_storage.png',
     ]);
   });
 
-  it('resizes the style spike background layers with the scene', () => {
+  it('resizes the temporary lunar matte background with the scene', () => {
     const scene = new MainBaseScene() as unknown as {
       textures: {
         exists(key: string): boolean;
@@ -317,10 +319,9 @@ describe('MainBaseScene visual placeholder', () => {
       resizeHandlers[0]({ width: 900, height: 600 });
     }
 
-    expect(calls).toContain('texture-exists:bg_sky_base');
-    expect(calls).toContain('load-image:bg_sky_base|assets/phaser/backgrounds/lunar/bg_sky_base.png');
-    expect(calls).toContain('image-add:0|0|bg_sky_base');
-    expect(calls).toContain('image-add:0|0|bg_platform_front');
+    expect(calls).toContain('texture-exists:bg_lunar_basic_temp');
+    expect(calls).toContain('load-image:bg_lunar_basic_temp|assets/phaser/backgrounds/lunar/bg_lunar_basic_temp.png');
+    expect(calls).toContain('image-add:0|0|bg_lunar_basic_temp');
     expect(calls).toContain('background-position:960|540');
     expect(calls).toContain('background-display-size:1920|1080');
     expect(calls).toContain('scale-on:resize');
@@ -328,7 +329,7 @@ describe('MainBaseScene visual placeholder', () => {
     expect(calls).toContain('background-display-size:900|600');
   });
 
-  it('skips reloading style spike assets when textures are already cached', () => {
+  it('skips reloading the temporary lunar matte when the texture is already cached', () => {
     const scene = new MainBaseScene() as unknown as {
       textures: {
         exists(key: string): boolean;
@@ -355,11 +356,12 @@ describe('MainBaseScene visual placeholder', () => {
     scene.preload();
 
     expect(calls).toEqual([
-      'texture-exists:bg_sky_base',
-      'texture-exists:bg_stars_far',
-      'texture-exists:bg_earth',
-      'texture-exists:bg_lunar_ground',
-      'texture-exists:bg_platform_front'
+      'texture-exists:bg_lunar_basic_temp',
+      'texture-exists:module_command_center',
+      'texture-exists:module_greenhouse_basic',
+      'texture-exists:module_processing',
+      'texture-exists:module_shipping_hangar',
+      'texture-exists:module_storage',
     ]);
   });
 
@@ -369,11 +371,12 @@ describe('MainBaseScene visual placeholder', () => {
     scene.create();
 
     expect(images.map((image) => image.key)).toEqual([
-      'bg_sky_base',
-      'bg_stars_far',
-      'bg_earth',
-      'bg_lunar_ground',
-      'bg_platform_front'
+      'bg_lunar_basic_temp',
+      'module_command_center',
+      'module_greenhouse_basic',
+      'module_processing',
+      'module_shipping_hangar',
+      'module_storage',
     ]);
     expect(rectangles.map((rectangle) => rectangle.data['moduleId'])).toEqual([
       'module_command_center_basic_01',
@@ -399,6 +402,45 @@ describe('MainBaseScene visual placeholder', () => {
     ]);
     expect(rectangles.every((rectangle) => rectangle.strokes.at(-1) === '1|3918280|0.14')).toBe(true);
     expect(labels.every((label) => label.visibility.at(-1) === false)).toBe(true);
+  });
+
+  it('clears the module sprite tint in the default visual state after create', () => {
+    const { images, scene } = createModuleScene();
+
+    scene.create();
+
+    // images[0] = bg, images[1..5] = module sprites in hotspot order
+    const moduleSprites = images.slice(1);
+
+    expect(moduleSprites.every((s) => s.tints.at(-1) === 'clear')).toBe(true);
+  });
+
+  it('tints the module sprite with the hover color on pointerover', () => {
+    const { images, rectangles, scene } = createModuleScene();
+
+    scene.create();
+    // rectangles[1] = greenhouse hotspot, images[2] = greenhouse sprite
+    rectangles[1]!.handlers['pointerover']!();
+
+    expect(images[2]!.tints.at(-1)).toBe(String(0x9be8ff));
+  });
+
+  it('tints the module sprite with the selected color on highlightModule command', () => {
+    const { commands, images, scene } = createModuleScene();
+
+    scene.create();
+    commands.next({ type: 'highlightModule', moduleId: 'module_greenhouse_basic_01' });
+
+    expect(images[2]!.tints.at(-1)).toBe(String(0x00e6ff));
+  });
+
+  it('tints the module sprite with the crop-ready color on cropReady command', () => {
+    const { commands, images, scene } = createModuleScene();
+
+    scene.create();
+    commands.next({ type: 'cropReady', moduleId: 'module_greenhouse_basic_01' });
+
+    expect(images[2]!.tints.at(-1)).toBe(String(0x4ade80));
   });
 
   it('emits typed bridge events from module hotspot pointer interactions', () => {
