@@ -52,14 +52,14 @@ describe('GameShell Angular component', () => {
     expect(shell).toBeInstanceOf(HTMLElement);
     expect(operations).toBeInstanceOf(HTMLElement);
     expect(resourceHud?.textContent).toContain('Credits');
-    expect(resourceHud?.textContent).toContain('Day 1');
-    expect(resourceHud?.textContent).toContain('Speed x1');
     expect(activePanel?.textContent).toContain('Command Center');
     expect(activeStatePanel?.textContent).toContain('Command Center');
     expect(activeStatePanel?.textContent).not.toContain('Command center placeholder online');
     expect(activeStatePanel?.textContent).toContain('Mission Progress');
     expect(alertsPanel?.textContent).toContain('No active alerts.');
     expect(bottomNav?.textContent).toContain('Contracts');
+    expect(bottomNav?.textContent).toContain('Day 1');
+    expect(bottomNav?.textContent).toContain('Speed x1');
     expect(visualLayer?.textContent).toContain('Stub Phaser layer');
     expect(text).toMatch(/Biofactory\s+Lunar/);
     expect(text).not.toContain('HUD placeholder online');
@@ -67,8 +67,7 @@ describe('GameShell Angular component', () => {
     expect(text).not.toContain('Command center placeholder online');
     expect(text).toContain('Credits');
     expect(text).toContain('200');
-    expect(text).toContain('Game clock');
-    expect(text).toContain('00:00');
+    expect(text).toContain('00:00:00');
     expect(text).toContain('Mission Progress');
     expect(text).toContain('Command');
     expect(text).toContain('Stub Phaser layer');

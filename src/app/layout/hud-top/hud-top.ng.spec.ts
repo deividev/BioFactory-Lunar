@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { GameSpeed } from '../../core/enums';
-import { GameClockService, GameStateService, ResourceService, SaveService } from '../../core/services';
+import { GameStateService, ResourceService } from '../../core/services';
 import { HudTop } from './hud-top';
 
 function visibleText(fixture: { nativeElement: HTMLElement }): string {
@@ -71,10 +71,6 @@ describe('HudTop Angular component', () => {
     expect(text).toContain('Available');
     expect(text).toContain('Shipments');
     expect(text).toContain('Catalog');
-    expect(text).toContain('Game clock');
-    expect(text).toContain('Day 1');
-    expect(text).toContain('00:00');
-    expect(text).toContain('Speed x1');
     expect(resourceIconSources(fixture)).toEqual([
       'assets/ui/icons/resources/ui_icon_credits.png',
       'assets/ui/icons/resources/ui_icon_energy.png',
@@ -89,113 +85,6 @@ describe('HudTop Angular component', () => {
       'assets/ui/icons/actions/ui_icon_contracts.png',
       'assets/ui/icons/actions/ui_icon_shipments.png',
     ]);
-    expect(fixture.nativeElement.querySelector('.hud-top__clock-card')).toBeInstanceOf(HTMLElement);
-  });
-
-  it('renders manual save and load controls in the command bar', async () => {
-    await TestBed.configureTestingModule({
-      imports: [HudTop],
-    }).compileComponents();
-
-    const fixture = TestBed.createComponent(HudTop);
-    fixture.detectChanges();
-
-    expect(fixture.nativeElement.querySelector('[aria-label="Save controls"]')).toBeInstanceOf(HTMLElement);
-    expectButton(fixture, 'Save');
-    expectButton(fixture, 'Load');
-  });
-
-  it('routes manual save and load controls through SaveService and alert state', async () => {
-    await TestBed.configureTestingModule({
-      imports: [HudTop],
-    }).compileComponents();
-
-    const fixture = TestBed.createComponent(HudTop);
-    const saveService = TestBed.inject(SaveService);
-    const gameState = TestBed.inject(GameStateService);
-    const saveSpy = vi.spyOn(saveService, 'saveGame');
-    const loadSpy = vi.spyOn(saveService, 'loadGame');
-
-    fixture.detectChanges();
-
-    clickButton(fixture, 'Save');
-    expect(saveSpy).toHaveBeenCalledOnce();
-    expect(gameState.getSnapshot().alerts.at(-1)?.message).toBe('Game saved.');
-
-    clickButton(fixture, 'Load');
-    expect(loadSpy).toHaveBeenCalledOnce();
-    expect(gameState.getSnapshot().alerts.at(-1)?.message).toBe('Game loaded.');
-  });
-
-  it('renders speed controls for pause, resume, x1, x2, and x4', async () => {
-    await TestBed.configureTestingModule({
-      imports: [HudTop],
-    }).compileComponents();
-
-    const fixture = TestBed.createComponent(HudTop);
-    fixture.detectChanges();
-
-    expectButton(fixture, 'Pause');
-    expectButton(fixture, 'Resume');
-    expectButton(fixture, 'x1');
-    expectButton(fixture, 'x2');
-    expectButton(fixture, 'x4');
-  });
-
-  it('routes clock controls through GameClockService and rerenders the active speed', async () => {
-    await TestBed.configureTestingModule({
-      imports: [HudTop],
-    }).compileComponents();
-
-    const fixture = TestBed.createComponent(HudTop);
-    const gameClock = TestBed.inject(GameClockService);
-    const setSpeedSpy = vi.spyOn(gameClock, 'setSpeed');
-    const pauseSpy = vi.spyOn(gameClock, 'pause');
-    const resumeSpy = vi.spyOn(gameClock, 'resume');
-
-    fixture.detectChanges();
-
-    clickButton(fixture, 'x2');
-    expect(setSpeedSpy).toHaveBeenCalledWith(GameSpeed.X2);
-    expect(visibleText(fixture)).toContain('Speed x2');
-
-    clickButton(fixture, 'Pause');
-    expect(pauseSpy).toHaveBeenCalled();
-    expect(visibleText(fixture)).toContain('Speed paused');
-
-    clickButton(fixture, 'Resume');
-    expect(resumeSpy).toHaveBeenCalled();
-    expect(visibleText(fixture)).toContain('Speed x1');
-  });
-
-  it('starts and stops runtime clock ticking with the HUD lifecycle', async () => {
-    await TestBed.configureTestingModule({
-      imports: [HudTop],
-    }).compileComponents();
-
-    const gameClock = TestBed.inject(GameClockService);
-    const saveService = TestBed.inject(SaveService);
-    const startSpy = vi.spyOn(gameClock, 'start');
-    const stopSpy = vi.spyOn(gameClock, 'stop');
-    const restoreSpy = vi.spyOn(saveService, 'restoreLatestGame');
-    const autosaveStartSpy = vi.spyOn(saveService, 'startAutosave');
-    const autosaveStopSpy = vi.spyOn(saveService, 'stopAutosave');
-
-    const fixture = TestBed.createComponent(HudTop);
-    fixture.detectChanges();
-    // Flush pending Promise microtasks (zoneless — fakeAsync/whenStable not available)
-    await new Promise<void>((resolve) => setTimeout(resolve, 0));
-
-    expect(restoreSpy).toHaveBeenCalledOnce();
-    expect(startSpy).toHaveBeenCalledOnce();
-    expect(autosaveStartSpy).toHaveBeenCalledOnce();
-    expect(restoreSpy.mock.invocationCallOrder[0]).toBeLessThan(startSpy.mock.invocationCallOrder[0]!);
-    expect(startSpy.mock.invocationCallOrder[0]).toBeLessThan(autosaveStartSpy.mock.invocationCallOrder[0]!);
-
-    fixture.destroy();
-
-    expect(stopSpy).toHaveBeenCalledOnce();
-    expect(autosaveStopSpy).toHaveBeenCalledOnce();
   });
 
   it('routes valid placeholder actions through ResourceService and rerenders balances', async () => {
