@@ -178,7 +178,11 @@ export class HudTop implements OnInit, OnDestroy {
   protected readonly feedbackRole = computed(() => (this.hasFeedbackError() ? 'alert' : 'status'));
 
   ngOnInit(): void {
-    this.saveService.restoreLatestGame();
+    void this.restoreAndStart();
+  }
+
+  private async restoreAndStart(): Promise<void> {
+    await this.saveService.restoreLatestGame();
     this.gameClock.start();
     this.saveService.startAutosave();
   }
@@ -213,11 +217,15 @@ export class HudTop implements OnInit, OnDestroy {
   }
 
   protected saveGame(): void {
-    this.applySaveAction('Save game', this.saveService.saveGame());
+    void this.saveService.saveGame().then((result) => {
+      this.applySaveAction('Save game', result);
+    });
   }
 
   protected loadGame(): void {
-    this.applySaveAction('Load game', this.saveService.loadGame());
+    void this.saveService.loadGame().then((result) => {
+      this.applySaveAction('Load game', result);
+    });
   }
 
   private applySaveAction(label: string, result: SaveActionResult | SaveActionResult<unknown>): void {

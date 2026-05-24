@@ -2,13 +2,17 @@
 import { ELECTRON_API_CHANNELS } from './preload-api';
 
 describe('Electron preload API contract', () => {
-  it('exposes only minimal shell-safe channels for the base scaffold', () => {
-    expect(ELECTRON_API_CHANNELS).toEqual(['get-app-version']);
+  it('still exposes the get-app-version shell channel', () => {
+    expect(ELECTRON_API_CHANNELS).toContain('get-app-version');
   });
 
-  it('does not expose save, filesystem, or gameplay channels yet', () => {
-    expect(ELECTRON_API_CHANNELS).not.toContain('save-game');
-    expect(ELECTRON_API_CHANNELS).not.toContain('load-game');
+  it('exposes the save-game, load-game, and has-save IPC channels', () => {
+    expect(ELECTRON_API_CHANNELS).toContain('save-game');
+    expect(ELECTRON_API_CHANNELS).toContain('load-game');
+    expect(ELECTRON_API_CHANNELS).toContain('has-save');
+  });
+
+  it('does not expose filesystem or gameplay state channels', () => {
     expect(ELECTRON_API_CHANNELS).not.toContain('fs');
     expect(ELECTRON_API_CHANNELS).not.toContain('game-state');
   });

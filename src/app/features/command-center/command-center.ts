@@ -29,7 +29,9 @@ export class CommandCenter {
   protected readonly totalSteps = TUTORIAL_STEPS.length;
 
   protected save(): void {
-    this.applySaveResult(this.saveService.saveGame());
+    void this.saveService.saveGame().then((result) => {
+      this.applySaveResult(result);
+    });
   }
 
   private applySaveResult(result: SaveActionResult): void {

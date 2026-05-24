@@ -4,7 +4,15 @@ const { contextBridge, ipcRenderer } = require('electron') as typeof import('ele
 import type { ElectronApi } from './preload-api.js';
 
 const electronApi: ElectronApi = {
-  getAppVersion: async () => String(await ipcRenderer.invoke('get-app-version'))
+  getAppVersion: async () => String(await ipcRenderer.invoke('get-app-version')),
+  saveGame: async (payload: string) => {
+    await ipcRenderer.invoke('save-game', payload);
+  },
+  loadGame: async () => {
+    const result = await ipcRenderer.invoke('load-game');
+    return result === null ? null : String(result);
+  },
+  hasSave: async () => Boolean(await ipcRenderer.invoke('has-save'))
 };
 
 contextBridge.exposeInMainWorld('electronAPI', electronApi);

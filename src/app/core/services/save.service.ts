@@ -2,6 +2,7 @@
 
 import { CURRENT_SAVE_VERSION, type SaveData } from '../models';
 import { AlertService } from './alert.service';
+import { ElectronBridgeService } from './electron-bridge.service';
 import { GameStateService } from './game-state.service';
 
 export interface SaveStorage {
@@ -59,19 +60,20 @@ export class SaveService {
   constructor(
     private readonly gameState: GameStateService,
     private readonly alerts: AlertService,
+    private readonly electronBridge: ElectronBridgeService,
   ) {}
 
-  static createWithStorage(gameState: GameStateService, alerts: AlertService, storage: SaveStorage): SaveService {
-    const service = new SaveService(gameState, alerts);
+  static createWithStorage(gameState: GameStateService, alerts: AlertService, storage: SaveStorage, electronBridge = new ElectronBridgeService()): SaveService {
+    const service = new SaveService(gameState, alerts, electronBridge);
     service.storage = storage;
     return service;
   }
 
-  saveGame(savedAt = new Date().toISOString()): SaveActionResult {
+  async saveGame(savedAt = new Date().toISOString()): Promise<SaveActionResult> {
     return this.writeSave(savedAt, { notifyOnSuccess: true, dedupeAutosaveFailures: false });
   }
 
-  restoreLatestGame(): RestoreLatestSaveResult {
+  async restoreLatestGame(): Promise<RestoreLatestSaveResult> {
     return this.readSave({ notifyOnSuccess: false, warnOnMissingSave: false });
   }
 
@@ -81,7 +83,7 @@ export class SaveService {
     }
 
     this.autosaveTimerId = setInterval(() => {
-      this.writeSave(new Date().toISOString(), { notifyOnSuccess: false, dedupeAutosaveFailures: true });
+      void this.writeSave(new Date().toISOString(), { notifyOnSuccess: false, dedupeAutosaveFailures: true });
     }, intervalMs);
   }
 
@@ -94,14 +96,29 @@ export class SaveService {
     this.autosaveTimerId = undefined;
   }
 
-  private writeSave(
+  private async writeSave(
     savedAt: string,
     options: { notifyOnSuccess: boolean; dedupeAutosaveFailures: boolean },
-  ): SaveActionResult {
+  ): Promise<SaveActionResult> {
     const saveData = this.gameState.toSaveData(savedAt);
 
     if (!isValidSaveData(saveData)) {
       return this.fail('invalid_save_data', 'Saved game data is invalid.', 'warning', options.dedupeAutosaveFailures);
+    }
+
+    if (this.electronBridge.isElectron()) {
+      try {
+        await this.electronBridge.saveGame(JSON.stringify(saveData));
+
+        if (options.notifyOnSuccess) {
+          this.alerts.addSuccess('Game saved.');
+        }
+
+        this.autosaveFailureAlertShown = false;
+        return { success: true };
+      } catch {
+        return this.fail('save_failed', 'Unable to save game.', 'critical', options.dedupeAutosaveFailures);
+      }
     }
 
     try {
@@ -118,8 +135,8 @@ export class SaveService {
     }
   }
 
-  loadGame(): SaveActionResult<SaveData> {
-    const result = this.readSave({ notifyOnSuccess: true, warnOnMissingSave: true });
+  async loadGame(): Promise<SaveActionResult<SaveData>> {
+    const result = await this.readSave({ notifyOnSuccess: true, warnOnMissingSave: true });
 
     if (result.success && 'restored' in result) {
       return this.fail('save_not_found', 'No saved game found.', 'warning');
@@ -128,7 +145,35 @@ export class SaveService {
     return result;
   }
 
-  private readSave(options: { notifyOnSuccess: boolean; warnOnMissingSave: boolean }): RestoreLatestSaveResult {
+  private async readSave(options: { notifyOnSuccess: boolean; warnOnMissingSave: boolean }): Promise<RestoreLatestSaveResult> {
+    if (this.electronBridge.isElectron()) {
+      return this.readSaveFromElectron(options);
+    }
+
+    return this.readSaveFromStorage(options);
+  }
+
+  private async readSaveFromElectron(options: { notifyOnSuccess: boolean; warnOnMissingSave: boolean }): Promise<RestoreLatestSaveResult> {
+    let rawSaveData: string | null;
+
+    try {
+      rawSaveData = await this.electronBridge.loadGame();
+    } catch {
+      return this.fail('load_failed', 'Unable to load game.', 'critical');
+    }
+
+    if (rawSaveData === null) {
+      if (!options.warnOnMissingSave) {
+        return { success: true, restored: false };
+      }
+
+      return this.fail('save_not_found', 'No saved game found.', 'warning');
+    }
+
+    return this.parseSaveAndRestore(rawSaveData, options);
+  }
+
+  private readSaveFromStorage(options: { notifyOnSuccess: boolean; warnOnMissingSave: boolean }): RestoreLatestSaveResult {
     let rawSaveData: string | null;
 
     try {
@@ -145,6 +190,10 @@ export class SaveService {
       return this.fail('save_not_found', 'No saved game found.', 'warning');
     }
 
+    return this.parseSaveAndRestore(rawSaveData, options);
+  }
+
+  private parseSaveAndRestore(rawSaveData: string, options: { notifyOnSuccess: boolean }): SaveActionResult<SaveData> {
     let parsedSaveData: unknown;
 
     try {
@@ -170,7 +219,15 @@ export class SaveService {
     }
   }
 
-  hasSave(): boolean {
+  async hasSave(): Promise<boolean> {
+    if (this.electronBridge.isElectron()) {
+      try {
+        return await this.electronBridge.hasSave();
+      } catch {
+        return false;
+      }
+    }
+
     try {
       return this.storage.getItem(DEFAULT_SAVE_STORAGE_KEY) !== null;
     } catch {
