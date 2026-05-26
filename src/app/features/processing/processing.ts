@@ -1,16 +1,22 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 
-import { ITEM_DEFINITIONS, MACHINE_DEFINITIONS, RECIPE_DEFINITIONS } from '../../core/data';
+import { ITEM_DEFINITIONS, MACHINE_DEFINITIONS, RECIPE_DEFINITIONS, RESOURCE_DEFINITIONS } from '../../core/data';
 import { MachineState } from '../../core/enums';
 import { GameStateService, InventoryService, ProductionService, ResourceService } from '../../core/services';
 
 const ITEM_NAME_BY_ID = new Map(ITEM_DEFINITIONS.map((d) => [d.id, d.name]));
 const MACHINE_DEF_BY_ID = new Map(MACHINE_DEFINITIONS.map((d) => [d.id, d]));
 const RECIPE_DEF_BY_ID = new Map(RECIPE_DEFINITIONS.map((d) => [d.id, d]));
+const RESOURCE_NAME_BY_ID = new Map(RESOURCE_DEFINITIONS.map((d) => [d.id, d.name]));
+
+function formatRequirement(name: string, quantity: number): string {
+  return `${name} x${quantity}`;
+}
 
 interface RecipeViewModel {
   readonly id: string;
   readonly name: string;
+  readonly durationSeconds: number;
 }
 
 interface MachineViewModel {
@@ -20,6 +26,7 @@ interface MachineViewModel {
   readonly compatibleRecipes: readonly RecipeViewModel[];
   readonly selectedRecipeId: string | undefined;
   readonly canStart: boolean;
+  readonly startHint: string | undefined;
   readonly currentRecipeName: string | undefined;
   readonly remainingSeconds: number | undefined;
   readonly progressPercent: number | undefined;
@@ -47,10 +54,8 @@ export class Processing {
   protected readonly machineViewModels = computed<readonly MachineViewModel[]>(() => {
     const machines = this.gameState.machines();
     const selections = this.selectedRecipeByMachine();
-    // Read these signals at the top so the computed re-runs when inventory or
-    // resources change, regardless of short-circuit paths in the canStart check.
-    this.inventoryService.items();
-    this.resourceService.balances();
+    const inventoryItems = this.inventoryService.items();
+    const resourceBalances = this.resourceService.balances();
 
     return machines.map((machine) => {
       const machineDef = MACHINE_DEF_BY_ID.get(machine.definitionId);
@@ -59,16 +64,42 @@ export class Processing {
       const compatibleRecipes: RecipeViewModel[] = (machineDef?.acceptedRecipeIds ?? []).map((recipeId) => ({
         id: recipeId,
         name: RECIPE_DEF_BY_ID.get(recipeId)?.name ?? recipeId,
+        durationSeconds: RECIPE_DEF_BY_ID.get(recipeId)?.durationSeconds ?? 0,
       }));
 
       const selectedRecipeId = selections[machine.id];
       const selectedRecipeDef = selectedRecipeId !== undefined ? RECIPE_DEF_BY_ID.get(selectedRecipeId) : undefined;
 
+      const missingInputs =
+        selectedRecipeDef?.inputs.filter((input) => (inventoryItems[input.itemId] ?? 0) < input.quantity) ?? [];
+
+      const missingResources =
+        selectedRecipeDef?.resourceCosts.filter((cost) => (resourceBalances[cost.resourceId] ?? 0) < cost.quantity) ?? [];
+
       const canStart =
         machine.state === MachineState.Idle &&
         selectedRecipeDef !== undefined &&
-        this.inventoryService.hasItems(selectedRecipeDef.inputs) &&
-        this.resourceService.canAfford(selectedRecipeDef.resourceCosts);
+        missingInputs.length === 0 &&
+        missingResources.length === 0;
+
+      let startHint: string | undefined;
+
+      if (machine.state === MachineState.Idle) {
+        if (selectedRecipeDef === undefined) {
+          startHint = 'Select a recipe to enable Start.';
+        } else if (!canStart) {
+          const missingParts = [
+            ...missingInputs.map((input) =>
+              formatRequirement(ITEM_NAME_BY_ID.get(input.itemId) ?? input.itemId, input.quantity),
+            ),
+            ...missingResources.map((cost) =>
+              formatRequirement(RESOURCE_NAME_BY_ID.get(cost.resourceId) ?? cost.resourceId, cost.quantity),
+            ),
+          ];
+
+          startHint = `Missing: ${missingParts.join(', ')}.`;
+        }
+      }
 
       const currentRecipeDef =
         machine.currentRecipeId !== undefined ? RECIPE_DEF_BY_ID.get(machine.currentRecipeId) : undefined;
@@ -94,6 +125,7 @@ export class Processing {
         compatibleRecipes,
         selectedRecipeId,
         canStart,
+        startHint,
         currentRecipeName: currentRecipeDef?.name,
         remainingSeconds,
         progressPercent,

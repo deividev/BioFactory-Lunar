@@ -11,6 +11,9 @@ import { ResourceService } from './resource.service';
 import { TutorialService } from './tutorial.service';
 
 let lastEffectFn: (() => void) | undefined;
+const { untrackedSpy } = vi.hoisted(() => ({
+  untrackedSpy: vi.fn((fn: () => void) => fn()),
+}));
 
 vi.mock('@angular/core', async (importOriginal) => {
   const mod = await importOriginal<typeof import('@angular/core')>();
@@ -19,6 +22,7 @@ vi.mock('@angular/core', async (importOriginal) => {
     effect: vi.fn((fn: () => void) => {
       lastEffectFn = fn;
     }),
+    untracked: untrackedSpy,
   };
 });
 
@@ -53,6 +57,7 @@ describe('ProductionService', () => {
 
   beforeEach(() => {
     lastEffectFn = undefined;
+    untrackedSpy.mockClear();
     gameState = new GameStateService();
     inventory = new InventoryService(gameState);
     resources = new ResourceService(gameState);
@@ -287,6 +292,15 @@ describe('ProductionService', () => {
       expect(stepSpy).toHaveBeenCalledWith('process_product');
     });
 
+    it('does not advance the tutorial when a non-starter recipe starts successfully', () => {
+      seedInputsForExtractor();
+      const stepSpy = vi.spyOn(tutorial, 'completeStep');
+
+      service.startRecipe(MACHINE_EXTRACTOR_ID, RECIPE_AQUA_SPROUT);
+
+      expect(stepSpy).not.toHaveBeenCalled();
+    });
+
     it('does not advance the tutorial when startRecipe fails', () => {
       const stepSpy = vi.spyOn(tutorial, 'completeStep');
 
@@ -385,6 +399,19 @@ describe('ProductionService', () => {
 
       const machine = gameState.machines().find((m) => m.id === MACHINE_PACKAGER_ID)!;
       expect(machine.remainingSeconds).toBe(40);
+    });
+
+    it('wraps tick processing in untracked so machine state updates do not retrigger the same tick', () => {
+      seedInputsForPackager();
+      service.startRecipe(MACHINE_PACKAGER_ID, RECIPE_PROTEIN_LEAF);
+
+      mockLastTick.set(makeTick(1));
+      lastEffectFn!();
+
+      const machine = gameState.machines().find((m) => m.id === MACHINE_PACKAGER_ID)!;
+      expect(machine.state).toBe(MachineState.Running);
+      expect(machine.remainingSeconds).toBe(59);
+      expect(untrackedSpy).toHaveBeenCalledTimes(1);
     });
 
     it('does nothing when lastTick is undefined', () => {

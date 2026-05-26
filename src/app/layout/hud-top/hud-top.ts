@@ -1,20 +1,17 @@
-import { ChangeDetectionStrategy, Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ContractState, ShipmentState } from '../../core/enums';
 
 import {
   ACTION_ICON_PATHS,
-  CONTRACT_DEFINITIONS,
   RESOURCE_DEFINITIONS,
   RESOURCE_ICON_PATHS,
-  SHIPMENT_CATALOG,
+  isDemoContractVisible,
 } from '../../core/data';
-import { GameSpeed } from '../../core/enums';
 import {
-  GameClockService,
+  GameStateService,
   InventoryService,
   ResourceService,
-  SaveService,
-  type ResourceActionResult,
-  type SaveActionResult,
+  TutorialService,
 } from '../../core/services';
 
 interface HudResourceRow {
@@ -24,12 +21,6 @@ interface HudResourceRow {
   readonly metaLabel: string;
   readonly iconSrc: string;
   readonly tone: HudCardTone;
-}
-
-interface HudClockView {
-  readonly dayLabel: string;
-  readonly timeLabel: string;
-  readonly speedLabel: string;
 }
 
 interface HudSystemCard {
@@ -47,9 +38,7 @@ type HudCardTone =
   | 'water'
   | 'nutrients'
   | 'oxygen'
-  | 'robots'
   | 'storage'
-  | 'research'
   | 'contracts'
   | 'shipments';
 
@@ -63,6 +52,7 @@ const RESOURCE_HUD_DETAILS: Readonly<Record<string, ResourceHudDetails>> = {
   energy: { iconSrc: RESOURCE_ICON_PATHS.energy, tone: 'energy' },
   water: { iconSrc: RESOURCE_ICON_PATHS.water, tone: 'water' },
   nutrients: { iconSrc: RESOURCE_ICON_PATHS.nutrients, tone: 'nutrients' },
+  oxygen: { iconSrc: RESOURCE_ICON_PATHS.oxygen, tone: 'oxygen' },
 };
 
 function formatPercent(value: number, total: number): string {
@@ -79,13 +69,11 @@ function formatPercent(value: number, total: number): string {
   styleUrl: './hud-top.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class HudTop implements OnInit, OnDestroy {
-  protected readonly gameSpeed = GameSpeed;
-
+export class HudTop {
   private readonly resourceService = inject(ResourceService);
   private readonly inventoryService = inject(InventoryService);
-  private readonly gameClock = inject(GameClockService);
-  private readonly saveService = inject(SaveService);
+  private readonly gameState = inject(GameStateService);
+  private readonly tutorialService = inject(TutorialService);
 
   protected readonly resources = computed<readonly HudResourceRow[]>(() => {
     const balances = this.resourceService.balances();
@@ -110,24 +98,17 @@ export class HudTop implements OnInit, OnDestroy {
   protected readonly systemCards = computed<readonly HudSystemCard[]>(() => {
     const usedCapacity = this.inventoryService.usedCapacity();
     const totalCapacity = usedCapacity + this.inventoryService.remainingCapacity();
+    const contracts = this.gameState.contracts();
+    const shipments = this.gameState.shipments();
+    const tutorialComplete = this.tutorialService.isComplete();
+    const activeContracts = contracts.filter((contract) => contract.state === ContractState.Active).length;
+    const availableContracts = contracts.filter(
+      (contract) => contract.state === ContractState.Available && isDemoContractVisible(contract.id, tutorialComplete),
+    ).length;
+    const pendingShipments = shipments.filter((shipment) => shipment.state === ShipmentState.InTransit).length;
+    const deliveredShipments = shipments.filter((shipment) => shipment.state === ShipmentState.Delivered).length;
 
     return [
-      {
-        id: 'oxygen',
-        label: 'Oxygen',
-        valueLabel: '92%',
-        metaLabel: 'Stable',
-        iconSrc: RESOURCE_ICON_PATHS.oxygen,
-        tone: 'oxygen',
-      },
-      {
-        id: 'robots',
-        label: 'Robots',
-        valueLabel: '0 / 0',
-        metaLabel: 'Waiting',
-        iconSrc: ACTION_ICON_PATHS.robots,
-        tone: 'robots',
-      },
       {
         id: 'storage',
         label: 'Storage',
@@ -137,116 +118,21 @@ export class HudTop implements OnInit, OnDestroy {
         tone: 'storage',
       },
       {
-        id: 'research',
-        label: 'Research',
-        valueLabel: '0',
-        metaLabel: 'Queued',
-        iconSrc: ACTION_ICON_PATHS.investigation,
-        tone: 'research',
-      },
-      {
         id: 'contracts',
         label: 'Contracts',
-        valueLabel: `${CONTRACT_DEFINITIONS.length}`,
-        metaLabel: 'Available',
+        valueLabel: `${activeContracts}`,
+        metaLabel: `${availableContracts} available`,
         iconSrc: ACTION_ICON_PATHS.contracts,
         tone: 'contracts',
       },
       {
         id: 'shipments',
         label: 'Shipments',
-        valueLabel: `${SHIPMENT_CATALOG.length}`,
-        metaLabel: 'Catalog',
+        valueLabel: `${pendingShipments}`,
+        metaLabel: deliveredShipments > 0 ? `${deliveredShipments} delivered` : 'In transit',
         iconSrc: ACTION_ICON_PATHS.shipments,
         tone: 'shipments',
       },
     ];
   });
-
-  protected readonly clock = computed<HudClockView>(() => {
-    const clock = this.gameClock.clock();
-
-    return {
-      dayLabel: `Day ${clock.day}`,
-      timeLabel: this.gameClock.formatElapsedTime(clock),
-      speedLabel: `Speed ${this.gameClock.speedLabel(clock.speed)}`,
-    };
-  });
-
-  protected readonly feedbackMessage = signal('Resource controls ready.');
-  protected readonly hasFeedbackError = signal(false);
-  protected readonly feedbackRole = computed(() => (this.hasFeedbackError() ? 'alert' : 'status'));
-
-  ngOnInit(): void {
-    void this.restoreAndStart();
-  }
-
-  private async restoreAndStart(): Promise<void> {
-    await this.saveService.restoreLatestGame();
-    this.gameClock.start();
-    this.saveService.startAutosave();
-  }
-
-  ngOnDestroy(): void {
-    this.gameClock.stop();
-    this.saveService.stopAutosave();
-  }
-
-  protected pauseClock(): void {
-    this.gameClock.pause();
-  }
-
-  protected resumeClock(): void {
-    this.gameClock.resume();
-  }
-
-  protected setClockSpeed(speed: GameSpeed): void {
-    this.gameClock.setSpeed(speed);
-  }
-
-  protected collectCredits(): void {
-    this.applyResourceAction('Collect 25 credits', this.resourceService.add('credits', 25));
-  }
-
-  protected spendCredits(): void {
-    this.applyResourceAction('Spend 50 credits', this.resourceService.consume('credits', 50));
-  }
-
-  protected overfillWater(): void {
-    this.applyResourceAction('Overfill water', this.resourceService.add('water', 1));
-  }
-
-  protected saveGame(): void {
-    void this.saveService.saveGame().then((result) => {
-      this.applySaveAction('Save game', result);
-    });
-  }
-
-  protected loadGame(): void {
-    void this.saveService.loadGame().then((result) => {
-      this.applySaveAction('Load game', result);
-    });
-  }
-
-  private applySaveAction(label: string, result: SaveActionResult | SaveActionResult<unknown>): void {
-    if (result.success) {
-      this.hasFeedbackError.set(false);
-      this.feedbackMessage.set(`${label} completed.`);
-      return;
-    }
-
-    this.hasFeedbackError.set(true);
-    this.feedbackMessage.set(result.message);
-  }
-
-  private applyResourceAction(label: string, result: ResourceActionResult): void {
-    if (result.success) {
-      this.hasFeedbackError.set(false);
-      this.feedbackMessage.set(`${label} applied.`);
-      return;
-    }
-
-    this.hasFeedbackError.set(true);
-    this.feedbackMessage.set(result.message);
-  }
 }

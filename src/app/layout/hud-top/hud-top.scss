@@ -1,19 +1,18 @@
+@use '../../../styles/mixins/panel';
+@use '../../../styles/mixins/button';
+
 .hud-top {
+  @include panel.bf-strip-chrome(var(--bf-accent-interactive));
+
   position: relative;
   display: grid;
-  grid-template-columns: minmax(9rem, 13rem) minmax(0, 1fr) minmax(11rem, auto);
+  grid-template-columns: minmax(9rem, 13rem) minmax(0, 1fr);
   align-items: stretch;
   gap: 0.35rem;
   min-width: 0;
   padding: 0.35rem;
   border-bottom: 1px solid var(--bf-border-subtle);
   color: var(--bf-text-primary);
-  background:
-    radial-gradient(circle at 8% 15%, color-mix(in srgb, var(--bf-accent-interactive) 16%, transparent), transparent 10rem),
-    linear-gradient(180deg, color-mix(in srgb, var(--bf-surface-panel) 96%, transparent), var(--bf-surface-canvas));
-  box-shadow:
-    inset 0 -1px 0 color-mix(in srgb, var(--bf-accent-interactive) 24%, transparent),
-    0 0.5rem 1.4rem color-mix(in srgb, var(--bf-surface-canvas) 68%, transparent);
 }
 
 h1,
@@ -23,34 +22,9 @@ ul {
   margin: 0;
 }
 
-button {
-  min-width: 2rem;
-  border: 1px solid color-mix(in srgb, var(--bf-border-subtle) 82%, transparent);
-  border-radius: 0.25rem;
-  padding: 0.28rem 0.45rem;
-  color: var(--bf-text-primary);
-  background: color-mix(in srgb, var(--bf-surface-raised) 74%, transparent);
-}
-
-button:hover,
-button:focus-visible {
-  border-color: var(--bf-border-strong);
-  color: var(--bf-accent-interactive);
-  outline: none;
-  box-shadow: 0 0 0.8rem color-mix(in srgb, var(--bf-accent-interactive) 18%, transparent);
-}
-
 .hud-top__brand-card,
-.hud-top__clock-card,
 .hud-top__status-card {
-  border: 1px solid color-mix(in srgb, var(--bf-border-subtle) 72%, transparent);
-  border-radius: 0.35rem;
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--bf-surface-raised) 58%, transparent), transparent),
-    color-mix(in srgb, var(--bf-surface-panel) 92%, transparent);
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--bf-accent-info) 12%, transparent),
-    inset 0 -1px 0 color-mix(in srgb, var(--bf-surface-canvas) 68%, transparent);
+  @include panel.bf-card-chrome(var(--bf-accent-info));
 }
 
 .hud-top__brand-card {
@@ -132,7 +106,6 @@ button:focus-visible {
 }
 
 .hud-top__resource-card {
-  min-width: clamp(7.25rem, 9.2vw, 9.25rem);
 }
 
 .hud-top__system-card {
@@ -154,8 +127,7 @@ button:focus-visible {
 }
 
 .hud-top__card-label,
-.hud-top__card-meta,
-.hud-top__clock-readout span {
+.hud-top__card-meta {
   color: var(--bf-text-muted);
   font-size: clamp(0.52rem, 0.68vw, 0.64rem);
   letter-spacing: 0.09em;
@@ -202,44 +174,6 @@ button:focus-visible {
   color: var(--bf-accent-info);
 }
 
-.hud-top__clock-card {
-  display: grid;
-  align-content: center;
-  gap: 0.32rem;
-  min-width: 0;
-  padding: 0.4rem 0.55rem;
-}
-
-.hud-top__clock-readout {
-  display: grid;
-  grid-template-columns: auto auto;
-  align-items: baseline;
-  gap: 0.12rem 0.55rem;
-  white-space: nowrap;
-}
-
-.hud-top__clock-readout strong {
-  color: var(--bf-text-primary);
-  font-size: clamp(0.82rem, 1.08vw, 1rem);
-  letter-spacing: 0.06em;
-}
-
-.hud-top__clock-readout span:last-child {
-  grid-column: 1 / -1;
-  color: var(--bf-accent-info);
-}
-
-.hud-top__clock-controls,
-.hud-top__save-controls {
-  display: flex;
-  flex-wrap: nowrap;
-  gap: 0.22rem;
-}
-
-.hud-top__save-controls button {
-  border-color: color-mix(in srgb, var(--bf-accent-interactive) 38%, transparent);
-}
-
 .hud-top__actions {
   position: absolute;
   width: 1px;
@@ -257,12 +191,6 @@ button:focus-visible {
   .hud-top {
     grid-template-columns: minmax(8rem, 11rem) minmax(0, 1fr);
   }
-
-  .hud-top__clock-card {
-    grid-column: 1 / -1;
-    grid-template-columns: auto minmax(0, 1fr);
-    align-items: center;
-  }
 }
 
 @media (max-width: 720px) {
@@ -270,8 +198,7 @@ button:focus-visible {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .hud-top__brand-card,
-  .hud-top__clock-card {
+  .hud-top__brand-card {
     grid-column: auto;
   }
 

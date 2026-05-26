@@ -1,8 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 
-import { CONTRACT_DEFINITIONS, ITEM_DEFINITIONS } from '../../core/data';
+import { CONTRACT_DEFINITIONS, ITEM_DEFINITIONS, isDemoContractVisible } from '../../core/data';
 import { ContractState } from '../../core/enums';
-import { ContractService, GameStateService } from '../../core/services';
+import { ContractService, GameStateService, TutorialService } from '../../core/services';
 
 @Component({
   selector: 'app-contracts',
@@ -13,6 +13,7 @@ import { ContractService, GameStateService } from '../../core/services';
 export class Contracts {
   private readonly gameState = inject(GameStateService);
   private readonly contractService = inject(ContractService);
+  private readonly tutorialService = inject(TutorialService);
 
   protected readonly ContractState = ContractState;
 
@@ -28,7 +29,9 @@ export class Contracts {
   );
 
   protected readonly availableContracts = computed(() =>
-    this.allContracts().filter((c) => c.state === ContractState.Available),
+    this.allContracts().filter(
+      (c) => c.state === ContractState.Available && isDemoContractVisible(c.id, this.tutorialService.isComplete()),
+    ),
   );
 
   protected readonly activeContracts = computed(() =>

@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
 import { Subject, type Observable } from 'rxjs';
 
+import type { ModuleLayoutPatch } from '../phaser/scenes/main-base-layout.config';
+
 export type PhaserToAngularEvent =
   | { readonly type: 'sceneReady' }
   | { readonly type: 'moduleHovered'; readonly moduleId: string }
@@ -10,7 +12,11 @@ export type PhaserToAngularEvent =
 export type AngularToPhaserEvent =
   | { readonly type: 'highlightModule'; readonly moduleId: string }
   | { readonly type: 'clearHighlight' }
-  | { readonly type: 'cropReady'; readonly moduleId: string };
+  | { readonly type: 'adjustModuleLayout'; readonly moduleId: string; readonly patch: ModuleLayoutPatch }
+  | { readonly type: 'cropReady'; readonly moduleId: string }
+  | { readonly type: 'playObjectivePulse' }
+  | { readonly type: 'playCompletionPulse' }
+  | { readonly type: 'clearDemoPulse' };
 
 @Injectable({ providedIn: 'root' })
 export class PhaserBridgeService {
@@ -36,7 +42,23 @@ export class PhaserBridgeService {
     this.sendToPhaser({ type: 'clearHighlight' });
   }
 
+  sendModuleLayoutAdjust(moduleId: string, patch: ModuleLayoutPatch): void {
+    this.sendToPhaser({ type: 'adjustModuleLayout', moduleId, patch });
+  }
+
   notifyCropReady(moduleId: string): void {
     this.sendToPhaser({ type: 'cropReady', moduleId });
+  }
+
+  playObjectivePulse(): void {
+    this.sendToPhaser({ type: 'playObjectivePulse' });
+  }
+
+  playCompletionPulse(): void {
+    this.sendToPhaser({ type: 'playCompletionPulse' });
+  }
+
+  clearDemoPulse(): void {
+    this.sendToPhaser({ type: 'clearDemoPulse' });
   }
 }

@@ -81,7 +81,7 @@ describe('GameClockService', () => {
     const { clock } = createService();
 
     expect(clock.speedLabel(GameSpeed.X1)).toBe('x1');
-    expect(clock.formatElapsedTime({ elapsedSeconds: 65, day: 1, speed: GameSpeed.X1 })).toBe('00:01');
+    expect(clock.formatElapsedTime({ elapsedSeconds: 65, day: 1, speed: GameSpeed.X1 })).toBe('00:01:05');
 
     expect(clock.cycleSpeed()).toBe(GameSpeed.X2);
     expect(clock.cycleSpeed()).toBe(GameSpeed.X4);

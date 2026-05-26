@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 
-import { CONTRACT_DEFINITIONS } from '../data';
+import { CONTRACT_DEFINITIONS, TUTORIAL_STARTER_CONTRACT_INSTANCE_ID } from '../data';
 import { ContractState } from '../enums';
 import type { ActionResult, ContractInstance } from '../models';
 import { AlertService } from './alert.service';
@@ -58,7 +58,9 @@ export class ContractService {
     );
 
     this.alerts.addSuccess('Contract accepted.');
-    this.tutorial.completeStep('accept_first_contract');
+    if (instanceId === TUTORIAL_STARTER_CONTRACT_INSTANCE_ID) {
+      this.tutorial.completeStep('accept_first_contract');
+    }
 
     return { success: true };
   }
@@ -103,7 +105,9 @@ export class ContractService {
     );
 
     this.alerts.addSuccess('Contract delivered!');
-    this.tutorial.completeStep('deliver_contract');
+    if (instanceId === TUTORIAL_STARTER_CONTRACT_INSTANCE_ID) {
+      this.tutorial.completeStep('deliver_contract');
+    }
 
     return { success: true };
   }

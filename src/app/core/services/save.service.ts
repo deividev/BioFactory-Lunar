@@ -42,12 +42,35 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+function isValidDemoFlowState(value: unknown): boolean {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  const phase = value['phase'];
+  const guidanceMode = value['guidanceMode'];
+  const optionalScopes = value['optionalScopes'];
+
+  return (
+    (phase === 'menu' || phase === 'guided_run' || phase === 'completed') &&
+    (guidanceMode === 'tutorial' || guidanceMode === 'objective') &&
+    (!('completedAt' in value) || typeof value['completedAt'] === 'string' || value['completedAt'] === undefined) &&
+    (!('objectiveContractInstanceId' in value)
+      || typeof value['objectiveContractInstanceId'] === 'string'
+      || value['objectiveContractInstanceId'] === undefined) &&
+    isRecord(optionalScopes) &&
+    typeof optionalScopes['event'] === 'boolean' &&
+    typeof optionalScopes['robot'] === 'boolean'
+  );
+}
+
 export function isValidSaveData(value: unknown): value is SaveData {
   return (
     isRecord(value) &&
     value['saveVersion'] === CURRENT_SAVE_VERSION &&
     typeof value['savedAt'] === 'string' &&
-    SAVE_REQUIRED_BRANCH_KEYS.every((key) => key in value)
+    SAVE_REQUIRED_BRANCH_KEYS.every((key) => key in value) &&
+    (!('demo' in value) || value['demo'] === undefined || isValidDemoFlowState(value['demo']))
   );
 }
 

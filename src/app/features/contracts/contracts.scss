@@ -1,4 +1,9 @@
+@use '../../../styles/mixins/panel';
+@use '../../../styles/mixins/button';
+
 .contracts {
+  @include panel.bf-panel-chrome(var(--bf-accent-info));
+
   display: grid;
   align-content: start;
   gap: 0.85rem;
@@ -6,18 +11,24 @@
   padding: clamp(0.875rem, 2vw, 1.25rem);
   overflow: auto;
   color: var(--bf-text-primary);
-  background: color-mix(in srgb, var(--bf-surface-panel) 86%, transparent);
+}
+
+h2,
+p {
+  margin: 0;
+}
+
+h2 {
+  font-size: clamp(1.05rem, 1.5vw, 1.35rem);
+  letter-spacing: 0.04em;
 }
 
 .contracts__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  @include panel.bf-panel-header();
 }
 
-.contracts__title {
-  margin: 0;
-  font-size: clamp(1.05rem, 1.5vw, 1.35rem);
+.contracts__eyebrow {
+  @include panel.bf-panel-eyebrow();
 }
 
 .contracts__section {
@@ -112,28 +123,21 @@
 }
 
 .contracts__btn {
+  @include button.bf-btn-action(var(--bf-accent-interactive), var(--bf-surface-canvas));
+
   padding: 0.25rem 0.6rem;
   font-size: 0.76rem;
-  font-weight: 600;
-  border: none;
-  border-radius: 3px;
-  cursor: pointer;
   white-space: nowrap;
 
-  &:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-
   &--accept {
-    background: var(--bf-accent-info);
-    color: #fff;
+    @include button.bf-btn-action(var(--bf-accent-info), var(--bf-surface-canvas));
+
     margin-left: auto;
   }
 
   &--deliver {
-    background: var(--bf-accent-success);
-    color: #fff;
+    @include button.bf-btn-action(var(--bf-accent-success), var(--bf-surface-canvas));
+
     align-self: flex-end;
   }
 }

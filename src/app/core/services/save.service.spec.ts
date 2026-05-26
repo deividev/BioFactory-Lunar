@@ -1,7 +1,9 @@
 ﻿import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { DEMO_FINALE_CONTRACT_INSTANCE_ID } from '../data';
+import { ContractState } from '../enums';
 import { AlertType, GameSpeed } from '../enums';
-import { CURRENT_SAVE_VERSION } from '../models';
+import { CURRENT_SAVE_VERSION, type SaveData } from '../models';
 import { AlertService } from './alert.service';
 import { ElectronBridgeService } from './electron-bridge.service';
 import { GameStateService } from './game-state.service';
@@ -69,8 +71,8 @@ describe('SaveService', () => {
 
     expect(result.success).toBe(true);
     if (result.success) expect(result.data.resources.values['credits']).toBe(480);
-    expect(gameState.getSnapshot().resources.values).toEqual({ credits: 480, energy: 100, water: 75, nutrients: 20 });
-    expect(gameState.getSnapshot().inventory.items).toEqual({ seed_protein_leaf: 2, biofood_pack: 4 });
+    expect(gameState.getSnapshot().resources.values).toEqual({ credits: 480, energy: 100, water: 75, nutrients: 20, oxygen: 100 });
+    expect(gameState.getSnapshot().inventory.items).toEqual({ biofood_pack: 4 });
     expect(gameState.getSnapshot().clock).toEqual({ elapsedSeconds: 300, day: 3, speed: GameSpeed.X2 });
     expect(lastAlert()).toMatchObject({ type: AlertType.Success, message: 'Game loaded.' });
   });
@@ -85,9 +87,134 @@ describe('SaveService', () => {
     const result = await service.restoreLatestGame();
 
     expect(result).toMatchObject({ success: true });
-    expect(gameState.getSnapshot().resources.values).toEqual({ credits: 480, energy: 100, water: 75, nutrients: 20 });
-    expect(gameState.getSnapshot().inventory.items).toEqual({ seed_protein_leaf: 2, biofood_pack: 4 });
+    expect(gameState.getSnapshot().resources.values).toEqual({ credits: 480, energy: 100, water: 75, nutrients: 20, oxygen: 100 });
+    expect(gameState.getSnapshot().inventory.items).toEqual({ biofood_pack: 4 });
     expect(gameState.getSnapshot().alerts).toHaveLength(0);
+    expect(gameState.getSnapshot().demo.phase).toBe('menu');
+  });
+
+  it('accepts legacy saves without a demo branch and hydrates the default demo state on restore', async () => {
+    const legacySave = gameState.toSaveData('2026-05-24T12:30:00.000Z') as SaveData & Record<string, unknown>;
+    delete legacySave['demo'];
+    storage.setItem(DEFAULT_SAVE_STORAGE_KEY, JSON.stringify(legacySave));
+
+    const result = await service.restoreLatestGame();
+
+    expect(result).toMatchObject({ success: true });
+    expect(gameState.getSnapshot().demo).toEqual({
+      phase: 'menu',
+      guidanceMode: 'tutorial',
+      optionalScopes: { event: false, robot: false },
+    });
+  });
+
+  it('hydrates oxygen defaults when restoring a legacy save that predates the oxygen resource', async () => {
+    const legacySave = gameState.toSaveData('2026-05-24T12:30:00.000Z') as SaveData & {
+      resources: SaveData['resources'] & { values: Record<string, number>; maxValues: Record<string, number> };
+    };
+    delete legacySave.resources.values['oxygen'];
+    delete legacySave.resources.maxValues['oxygen'];
+    legacySave.resources.values['water'] = 60;
+    storage.setItem(DEFAULT_SAVE_STORAGE_KEY, JSON.stringify(legacySave));
+
+    const result = await service.restoreLatestGame();
+
+    expect(result).toMatchObject({ success: true });
+    expect(gameState.getSnapshot().resources.values).toEqual({
+      credits: 200,
+      energy: 100,
+      water: 60,
+      nutrients: 20,
+      oxygen: 100,
+    });
+    expect(gameState.getSnapshot().resources.maxValues).toEqual({
+      energy: 100,
+      water: 100,
+      nutrients: 100,
+      oxygen: 100,
+    });
+  });
+
+  it('preserves finale objective and tutorial continuity across save and restore', async () => {
+    gameState.updateTutorial(() => ({
+      completedStepIds: ['accept_first_contract', 'buy_seeds', 'receive_seeds', 'plant_crop', 'harvest_crop', 'process_product', 'deliver_contract'],
+      activeStepId: undefined,
+    }));
+    gameState.updateDemo((demo) => ({
+      ...demo,
+      phase: 'guided_run',
+      objectiveContractInstanceId: DEMO_FINALE_CONTRACT_INSTANCE_ID,
+      guidanceMode: 'objective',
+    }));
+    gameState.updateContracts((contracts) =>
+      contracts.map((contract) =>
+        contract.id === DEMO_FINALE_CONTRACT_INSTANCE_ID
+          ? { ...contract, state: ContractState.Active }
+          : contract,
+      ),
+    );
+    gameState.updateInventory((inventory) => ({
+      ...inventory,
+      items: {
+        ...inventory.items,
+        biofood_pack: 1,
+        nutrient_mix: 1,
+      },
+    }));
+
+    await service.saveGame('2026-05-24T13:00:00.000Z');
+    gameState.reset();
+
+    const result = await service.restoreLatestGame();
+
+    expect(result).toMatchObject({ success: true });
+    expect(gameState.getSnapshot().tutorial).toEqual({
+      completedStepIds: ['accept_first_contract', 'buy_seeds', 'receive_seeds', 'plant_crop', 'harvest_crop', 'process_product', 'deliver_contract'],
+      activeStepId: undefined,
+    });
+    expect(gameState.getSnapshot().demo).toEqual({
+      phase: 'guided_run',
+      objectiveContractInstanceId: DEMO_FINALE_CONTRACT_INSTANCE_ID,
+      guidanceMode: 'objective',
+      optionalScopes: { event: false, robot: false },
+    });
+    expect(gameState.getSnapshot().contracts.find((contract) => contract.id === DEMO_FINALE_CONTRACT_INSTANCE_ID)?.state)
+      .toBe(ContractState.Active);
+    expect(gameState.getSnapshot().inventory.items['biofood_pack']).toBe(1);
+    expect(gameState.getSnapshot().inventory.items['nutrient_mix']).toBe(1);
+  });
+
+  it('restores completed demo saves without dropping the finale objective state', async () => {
+    gameState.updateDemo((demo) => ({
+      ...demo,
+      phase: 'completed',
+      objectiveContractInstanceId: DEMO_FINALE_CONTRACT_INSTANCE_ID,
+      guidanceMode: 'objective',
+      completedAt: '2026-05-24T13:15:00.000Z',
+    }));
+    gameState.updateContracts((contracts) =>
+      contracts.map((contract) =>
+        contract.id === DEMO_FINALE_CONTRACT_INSTANCE_ID
+          ? { ...contract, state: ContractState.Completed }
+          : contract,
+      ),
+    );
+
+    await service.saveGame('2026-05-24T13:16:00.000Z');
+    gameState.reset();
+
+    const result = await service.loadGame();
+
+    expect(result.success).toBe(true);
+    expect(gameState.getSnapshot().demo).toEqual({
+      phase: 'completed',
+      objectiveContractInstanceId: DEMO_FINALE_CONTRACT_INSTANCE_ID,
+      guidanceMode: 'objective',
+      completedAt: '2026-05-24T13:15:00.000Z',
+      optionalScopes: { event: false, robot: false },
+    });
+    expect(gameState.getSnapshot().contracts.find((contract) => contract.id === DEMO_FINALE_CONTRACT_INSTANCE_ID)?.state)
+      .toBe(ContractState.Completed);
   });
 
   it('reports whether the single MVP save exists without mutating alerts', async () => {
@@ -149,6 +276,19 @@ describe('SaveService', () => {
     expect(lastAlert()).toMatchObject({ type: AlertType.Warning, message: 'Saved game data is invalid.' });
   });
 
+  it('rejects malformed demo payloads during save before writing to storage', async () => {
+    const invalidGameState = {
+      toSaveData: () => ({
+        ...gameState.toSaveData('2026-05-24T12:30:00.000Z'),
+        demo: { phase: 'bad_phase', guidanceMode: 'tutorial', optionalScopes: { event: false, robot: false } },
+      }),
+    } as unknown as GameStateService;
+    service = SaveService.createWithStorage(invalidGameState, alerts, storage);
+
+    expect(await service.saveGame('2026-05-24T12:30:00.000Z')).toEqual({ success: false, code: 'invalid_save_data', message: 'Saved game data is invalid.' });
+    expect(storage.getItem(DEFAULT_SAVE_STORAGE_KEY)).toBeNull();
+  });
+
   it('autosaves silently on an interval and persists updated inventory values', () => {
     vi.useFakeTimers();
 
@@ -163,6 +303,19 @@ describe('SaveService', () => {
     const parsed = JSON.parse(storage.getItem(DEFAULT_SAVE_STORAGE_KEY)!);
     expect(parsed.inventory.items['biofood_pack']).toBe(3);
     expect(gameState.getSnapshot().alerts).toHaveLength(0);
+  });
+
+  it('does not create duplicate autosave timers when startAutosave is called twice', () => {
+    vi.useFakeTimers();
+    const saveSpy = vi.spyOn(service, 'saveGame');
+
+    service.startAutosave(5000);
+    service.startAutosave(5000);
+
+    vi.advanceTimersByTime(5000);
+
+    expect(saveSpy).not.toHaveBeenCalled();
+    expect(storage.getItem(DEFAULT_SAVE_STORAGE_KEY)).not.toBeNull();
   });
 
   it('stops autosaving after stopAutosave is called', () => {
@@ -180,6 +333,10 @@ describe('SaveService', () => {
     expect(storage.getItem(DEFAULT_SAVE_STORAGE_KEY)).toBeNull();
   });
 
+  it('treats stopAutosave as a no-op when no autosave timer is running', () => {
+    expect(() => service.stopAutosave()).not.toThrow();
+  });
+
   it('deduplicates repeated autosave failure alerts until a save succeeds again', () => {
     vi.useFakeTimers();
 
@@ -195,10 +352,45 @@ describe('SaveService', () => {
 
   it('validates SaveData shape before loading it into game state', () => {
     const validSave = gameState.toSaveData('2026-05-19T12:30:00.000Z');
-    const invalidValues = [null, [], { ...validSave, saveVersion: 999 }, { ...validSave, savedAt: 123 }, { saveVersion: CURRENT_SAVE_VERSION, savedAt: validSave.savedAt }];
+    const completedSave = {
+      ...validSave,
+      demo: {
+        phase: 'completed',
+        guidanceMode: 'objective',
+        objectiveContractInstanceId: 'contract_finale_01',
+        completedAt: '2026-05-24T12:45:00.000Z',
+        optionalScopes: { event: false, robot: false },
+      },
+    };
+    const legacySave = structuredClone(validSave) as unknown as Record<string, unknown>;
+    delete legacySave['demo'];
+    const invalidValues = [
+      null,
+      [],
+      { ...validSave, saveVersion: 999 },
+      { ...validSave, savedAt: 123 },
+      { saveVersion: CURRENT_SAVE_VERSION, savedAt: validSave.savedAt },
+      { ...validSave, demo: null },
+      { ...validSave, demo: { phase: 'bad_phase', guidanceMode: 'tutorial', optionalScopes: { event: false, robot: false } } },
+      { ...validSave, demo: { phase: 'menu', guidanceMode: 'tutorial', optionalScopes: { event: 'no', robot: false } } },
+    ];
 
     expect(isValidSaveData(validSave)).toBe(true);
+    expect(isValidSaveData(completedSave)).toBe(true);
+    expect(isValidSaveData(legacySave)).toBe(true);
     for (const value of invalidValues) expect(isValidSaveData(value)).toBe(false);
+  });
+
+  it('rejects malformed demo payloads during load', async () => {
+    const invalidSave = {
+      ...gameState.toSaveData('2026-05-24T12:30:00.000Z'),
+      demo: { phase: 'completed', guidanceMode: 'tutorial', optionalScopes: { event: false } },
+    };
+    storage.setItem(DEFAULT_SAVE_STORAGE_KEY, JSON.stringify(invalidSave));
+
+    const result = await service.loadGame();
+
+    expect(result).toEqual({ success: false, code: 'invalid_save_data', message: 'Saved game data is invalid.' });
   });
 
   // ── Electron bridge path ────────────────────────────────────────────────────

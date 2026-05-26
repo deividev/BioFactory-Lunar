@@ -45,6 +45,20 @@ describe('PhaserBridgeService', () => {
     subscription.unsubscribe();
   });
 
+  it('sendModuleLayoutAdjust publishes per-module layout patches', () => {
+    const service = new PhaserBridgeService();
+    const commands: AngularToPhaserEvent[] = [];
+    const subscription = service.angularEvents$.subscribe((event) => commands.push(event));
+
+    service.sendModuleLayoutAdjust('module_processing_basic_01', { xRatio: 0.61, yRatio: 0.88 });
+
+    expect(commands).toEqual([
+      { type: 'adjustModuleLayout', moduleId: 'module_processing_basic_01', patch: { xRatio: 0.61, yRatio: 0.88 } },
+    ]);
+
+    subscription.unsubscribe();
+  });
+
   it('notifyCropReady sends a cropReady event with the given moduleId', () => {
     const service = new PhaserBridgeService();
     const commands: AngularToPhaserEvent[] = [];
@@ -53,6 +67,24 @@ describe('PhaserBridgeService', () => {
     service.notifyCropReady('module_greenhouse_basic_01');
 
     expect(commands).toEqual([{ type: 'cropReady', moduleId: 'module_greenhouse_basic_01' }]);
+
+    subscription.unsubscribe();
+  });
+
+  it('publishes demo pulse commands without exposing gameplay ownership to Phaser', () => {
+    const service = new PhaserBridgeService();
+    const commands: AngularToPhaserEvent[] = [];
+    const subscription = service.angularEvents$.subscribe((event) => commands.push(event));
+
+    service.playObjectivePulse();
+    service.playCompletionPulse();
+    service.clearDemoPulse();
+
+    expect(commands).toEqual([
+      { type: 'playObjectivePulse' },
+      { type: 'playCompletionPulse' },
+      { type: 'clearDemoPulse' },
+    ]);
 
     subscription.unsubscribe();
   });

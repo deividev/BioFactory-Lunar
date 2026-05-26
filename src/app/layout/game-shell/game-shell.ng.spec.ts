@@ -1,8 +1,12 @@
 import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { PanelType } from '../../core/enums';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+import { DEMO_STEAM_WISHLIST_URL } from '../../core/config/demo-links.config';
+import { DEMO_FINALE_CONTRACT_INSTANCE_ID, TUTORIAL_STEPS } from '../../core/data';
+import { ContractState, PanelType } from '../../core/enums';
 import { DEFAULT_SAVE_STORAGE_KEY, GameStateService, ResourceService } from '../../core/services';
-import { PhaserBridgeService } from '../../game/bridge';
+import { PhaserBridgeService, type AngularToPhaserEvent } from '../../game/bridge';
 import { PHASER_GAME_FACTORY, PhaserGame } from '../../game/phaser/phaser-game';
 import { GameShell } from './game-shell';
 
@@ -12,8 +16,44 @@ import { GameShell } from './game-shell';
 })
 class StubPhaserGame {}
 
+function createDemoSaveData(
+  phase: 'guided_run' | 'completed',
+  configure?: (state: GameStateService) => void,
+): Record<string, unknown> {
+  const state = new GameStateService();
+  configure?.(state);
+
+  return {
+    ...state.toSaveData('2026-05-24T12:30:00.000Z'),
+    demo: {
+      phase,
+      objectiveContractInstanceId: DEMO_FINALE_CONTRACT_INSTANCE_ID,
+      guidanceMode: 'tutorial',
+      completedAt: phase === 'completed' ? '2026-05-24T12:45:00.000Z' : undefined,
+      optionalScopes: { event: false, robot: false },
+    },
+  };
+}
+
+async function flushShell(fixture: ReturnType<typeof TestBed.createComponent<GameShell>>): Promise<void> {
+  await fixture.whenStable();
+  await new Promise<void>((resolve) => setTimeout(resolve, 0));
+  fixture.detectChanges();
+}
+
+function clickButton(fixture: ReturnType<typeof TestBed.createComponent<GameShell>>, label: string): void {
+  const button = Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>).find((candidate) =>
+    candidate.textContent?.includes(label),
+  );
+
+  expect(button).toBeTruthy();
+  button?.click();
+  fixture.detectChanges();
+}
+
 async function createShellWithStubbedPhaser(): Promise<{
   readonly bridge: PhaserBridgeService;
+  readonly commands: AngularToPhaserEvent[];
   readonly fixture: ReturnType<typeof TestBed.createComponent<GameShell>>;
   readonly gameState: GameStateService;
 }> {
@@ -26,118 +66,281 @@ async function createShellWithStubbedPhaser(): Promise<{
     })
     .compileComponents();
 
+  const bridge = TestBed.inject(PhaserBridgeService);
+  const commands: AngularToPhaserEvent[] = [];
+
+  bridge.angularEvents$.subscribe((event) => commands.push(event));
+
   const fixture = TestBed.createComponent(GameShell);
   fixture.detectChanges();
+  await flushShell(fixture);
 
   return {
-    bridge: TestBed.inject(PhaserBridgeService),
+    bridge,
+    commands,
     fixture,
     gameState: TestBed.inject(GameStateService)
   };
 }
 
+async function startDemo(fixture: ReturnType<typeof TestBed.createComponent<GameShell>>): Promise<void> {
+  clickButton(fixture, 'Start Demo');
+  await flushShell(fixture);
+}
+
+async function continueDemo(fixture: ReturnType<typeof TestBed.createComponent<GameShell>>): Promise<void> {
+  clickButton(fixture, 'Continue Demo');
+  await flushShell(fixture);
+}
+
+afterEach(() => {
+  localStorage.removeItem(DEFAULT_SAVE_STORAGE_KEY);
+});
+
 describe('GameShell Angular component', () => {
-  it('composes the state-backed HUD and preserves the Phaser visual host', async () => {
-    const { fixture } = await createShellWithStubbedPhaser();
-    const text = fixture.nativeElement.textContent;
-    const shell = fixture.nativeElement.querySelector('[aria-label="Biofactory Lunar game shell"]') as HTMLElement | null;
-    const operations = fixture.nativeElement.querySelector('[aria-label="State-backed operations"]') as HTMLElement | null;
-    const resourceHud = fixture.nativeElement.querySelector('header[aria-label="Resource HUD"]') as HTMLElement | null;
-    const activePanel = fixture.nativeElement.querySelector('[aria-label="Active module panel"]') as HTMLElement | null;
-    const activeStatePanel = fixture.nativeElement.querySelector('[aria-label="Active state panel"]') as HTMLElement | null;
-    const alertsPanel = fixture.nativeElement.querySelector('[aria-label="Alerts panel"]') as HTMLElement | null;
+  it('shows the demo entry menu before gameplay when no save exists', async () => {
+    const { commands, fixture } = await createShellWithStubbedPhaser();
+
+    const menu = fixture.nativeElement.querySelector('[aria-label="Demo entry menu"]') as HTMLElement | null;
+    const statusCard = fixture.nativeElement.querySelector('.demo-screen__status-card') as HTMLElement | null;
     const bottomNav = fixture.nativeElement.querySelector('[aria-label="Main panel navigation"]') as HTMLElement | null;
-    const visualLayer = fixture.nativeElement.querySelector('[aria-label="Visual layer placeholder"]') as HTMLElement | null;
 
-    expect(shell).toBeInstanceOf(HTMLElement);
-    expect(operations).toBeInstanceOf(HTMLElement);
-    expect(resourceHud?.textContent).toContain('Credits');
-    expect(resourceHud?.textContent).toContain('Day 1');
-    expect(resourceHud?.textContent).toContain('Speed x1');
-    expect(activePanel?.textContent).toContain('Command Center');
-    expect(activeStatePanel?.textContent).toContain('Command Center');
-    expect(activeStatePanel?.textContent).not.toContain('Command center placeholder online');
-    expect(activeStatePanel?.textContent).toContain('Mission Progress');
-    expect(alertsPanel?.textContent).toContain('No active alerts.');
-    expect(bottomNav?.textContent).toContain('Contracts');
-    expect(visualLayer?.textContent).toContain('Stub Phaser layer');
-    expect(text).toMatch(/Biofactory\s+Lunar/);
-    expect(text).not.toContain('HUD placeholder online');
-    expect(text).not.toContain('Angular shell ready');
-    expect(text).not.toContain('Command center placeholder online');
-    expect(text).toContain('Credits');
-    expect(text).toContain('200');
-    expect(text).toContain('Game clock');
-    expect(text).toContain('00:00');
-    expect(text).toContain('Mission Progress');
-    expect(text).toContain('Command');
-    expect(text).toContain('Stub Phaser layer');
+    expect(menu?.textContent).toContain('Start Demo');
+    expect(menu?.textContent).not.toContain('Continue Demo');
+    expect(statusCard?.getAttribute('data-state')).toBe('blocked');
+    expect(statusCard?.textContent).toContain('Blocked');
+    expect(statusCard?.textContent).toContain('Lunar Habitat Kit');
+    expect(bottomNav).toBeNull();
+    expect(commands.at(-1)).toEqual({ type: 'clearDemoPulse' });
   });
 
-  it('lets HUD actions update resource state through ResourceService inside the shell', async () => {
-    const { fixture } = await createShellWithStubbedPhaser();
-    const resourceService = TestBed.inject(ResourceService);
-    const addSpy = vi.spyOn(resourceService, 'add');
-
-    const collectCredits = Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>).find((button) =>
-      button.textContent?.includes('Collect 25 credits'),
+  it('keeps a restored guided run at the menu until Continue Demo is chosen', async () => {
+    localStorage.setItem(
+      DEFAULT_SAVE_STORAGE_KEY,
+      JSON.stringify(
+        createDemoSaveData('guided_run', (state) => {
+          state.updateResources((resources) => ({
+            ...resources,
+            values: { ...resources.values, credits: 480, water: 75 },
+          }));
+        }),
+      ),
     );
-
-    expect(collectCredits).toBeTruthy();
-
-    collectCredits?.click();
-    fixture.detectChanges();
-
-    expect(addSpy).toHaveBeenCalledWith('credits', 25);
-    expect(resourceService.getAmount('credits')).toBe(225);
-    expect(fixture.nativeElement.textContent).toContain('225');
-    expect(fixture.nativeElement.textContent).toContain('Stub Phaser layer');
-  });
-
-  it('shows manual save and load feedback through the alerts panel', async () => {
-    localStorage.removeItem(DEFAULT_SAVE_STORAGE_KEY);
-    const { fixture } = await createShellWithStubbedPhaser();
-
-    const buttons = Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>);
-    const saveButton = buttons.find((button) => button.textContent?.trim() === 'Save');
-    const loadButton = buttons.find((button) => button.textContent?.trim() === 'Load');
-
-    expect(saveButton).toBeTruthy();
-    expect(loadButton).toBeTruthy();
-
-    saveButton?.click();
-    fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('[aria-label="Alerts panel"]')?.textContent).toContain('Game saved.');
-
-    loadButton?.click();
-    fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('[aria-label="Alerts panel"]')?.textContent).toContain('Game loaded.');
-  });
-
-  it('restores the latest saved state automatically when the shell boots', async () => {
-    const bootstrapState = new GameStateService();
-    bootstrapState.updateResources((resources) => ({
-      ...resources,
-      values: { ...resources.values, credits: 480, water: 75 },
-    }));
-    bootstrapState.updateInventory((inventory) => ({
-      ...inventory,
-      items: { ...inventory.items, biofood_pack: 4 },
-    }));
-    localStorage.setItem(DEFAULT_SAVE_STORAGE_KEY, JSON.stringify(bootstrapState.toSaveData('2026-05-19T12:30:00.000Z')));
 
     const { fixture, gameState } = await createShellWithStubbedPhaser();
 
-    expect(gameState.getSnapshot().resources.values).toEqual({ credits: 480, energy: 100, water: 75, nutrients: 20 });
-    expect(gameState.getSnapshot().inventory.items).toEqual({ seed_protein_leaf: 2, biofood_pack: 4 });
-    expect(fixture.nativeElement.textContent).toContain('480');
-    expect(fixture.nativeElement.textContent).toContain('75 / 100');
+    const menu = fixture.nativeElement.querySelector('[aria-label="Demo entry menu"]') as HTMLElement | null;
+    const bottomNav = fixture.nativeElement.querySelector('[aria-label="Main panel navigation"]') as HTMLElement | null;
 
-    localStorage.removeItem(DEFAULT_SAVE_STORAGE_KEY);
+    expect(menu?.textContent).toContain('Continue Demo');
+    expect(bottomNav).toBeNull();
+    expect(gameState.getSnapshot().resources.values['credits']).toBe(480);
   });
 
-  it('routes Phaser module selections to the mapped Angular panel proof', async () => {
+  it('shows the actionable objective state on the menu when onboarding is already complete', async () => {
+    localStorage.setItem(
+      DEFAULT_SAVE_STORAGE_KEY,
+      JSON.stringify(
+        createDemoSaveData('guided_run', (state) => {
+          state.updateTutorial(() => ({
+            completedStepIds: TUTORIAL_STEPS.map((step) => step.id),
+            activeStepId: undefined,
+          }));
+        }),
+      ),
+    );
+
+    const { fixture } = await createShellWithStubbedPhaser();
+    const statusCard = fixture.nativeElement.querySelector('.demo-screen__status-card') as HTMLElement | null;
+
+    expect(statusCard?.getAttribute('data-state')).toBe('actionable');
+    expect(statusCard?.textContent).toContain('Actionable');
+    expect(statusCard?.textContent).toContain('Lunar Habitat Kit');
+  });
+
+  it('shows the completable objective state on the menu when finale cargo is ready', async () => {
+    localStorage.setItem(
+      DEFAULT_SAVE_STORAGE_KEY,
+      JSON.stringify(
+        createDemoSaveData('guided_run', (state) => {
+          state.updateTutorial(() => ({
+            completedStepIds: TUTORIAL_STEPS.map((step) => step.id),
+            activeStepId: undefined,
+          }));
+          state.updateContracts((contracts) =>
+            contracts.map((contract) =>
+              contract.id === DEMO_FINALE_CONTRACT_INSTANCE_ID
+                ? { ...contract, state: ContractState.Active }
+                : contract,
+            ),
+          );
+          state.updateInventory((inventory) => ({
+            ...inventory,
+            items: {
+              ...inventory.items,
+              biofood_pack: 1,
+              nutrient_mix: 1,
+              glow_pigment: 1,
+            },
+          }));
+        }),
+      ),
+    );
+
+    const { fixture } = await createShellWithStubbedPhaser();
+    const statusCard = fixture.nativeElement.querySelector('.demo-screen__status-card') as HTMLElement | null;
+
+    expect(statusCard?.getAttribute('data-state')).toBe('completable');
+    expect(statusCard?.textContent).toContain('Completable');
+    expect(statusCard?.textContent).toContain('Lunar Habitat Kit');
+  });
+
+  it('shows the demo completion shell when the restored save is already completed', async () => {
+    localStorage.setItem(DEFAULT_SAVE_STORAGE_KEY, JSON.stringify(createDemoSaveData('completed')));
+
+    const { fixture } = await createShellWithStubbedPhaser();
+    const completion = fixture.nativeElement.querySelector('[aria-label="Demo completion screen"]') as HTMLElement | null;
+    const statusCard = fixture.nativeElement.querySelector('.demo-screen__status-card') as HTMLElement | null;
+
+    expect(completion?.textContent).toContain('Wishlist');
+    expect(completion?.textContent).toContain('Lunar Habitat Kit');
+    expect(completion?.textContent).toContain('Wishlist');
+    expect(completion?.textContent).toContain('Wishlist on Steam');
+    expect(completion?.textContent).toContain('Continue Demo');
+    expect(completion?.textContent).toContain('Return to Menu');
+    expect(statusCard?.getAttribute('data-state')).toBe('wishlist');
+  });
+
+  it('opens the configured Steam wishlist URL from the completion screen in browser mode', async () => {
+    localStorage.setItem(DEFAULT_SAVE_STORAGE_KEY, JSON.stringify(createDemoSaveData('completed')));
+    const openSpy = vi.fn();
+    vi.stubGlobal('open', openSpy);
+
+    const { fixture } = await createShellWithStubbedPhaser();
+
+    clickButton(fixture, 'Wishlist on Steam');
+
+    expect(openSpy).toHaveBeenCalledWith(DEMO_STEAM_WISHLIST_URL, '_blank', 'noopener,noreferrer');
+  });
+
+  it('starts the guided run from the menu and renders the gameplay shell', async () => {
+    const { fixture } = await createShellWithStubbedPhaser();
+
+    await startDemo(fixture);
+
+    const operations = fixture.nativeElement.querySelector('[aria-label="State-backed operations"]') as HTMLElement | null;
+    const resourceHud = fixture.nativeElement.querySelector('header[aria-label="Resource HUD"]') as HTMLElement | null;
+    const activePanel = fixture.nativeElement.querySelector('[aria-label="Active module panel"]') as HTMLElement | null;
+    const bottomNav = fixture.nativeElement.querySelector('[aria-label="Main panel navigation"]') as HTMLElement | null;
+    const visualLayer = fixture.nativeElement.querySelector('[aria-label="Visual layer placeholder"]') as HTMLElement | null;
+
+    expect(operations).toBeInstanceOf(HTMLElement);
+    expect(resourceHud?.textContent).toContain('Credits');
+    expect(activePanel?.textContent).toContain('Command Center');
+    expect(bottomNav?.textContent).toContain('Contracts');
+    expect(visualLayer?.textContent).toContain('Stub Phaser layer');
+    expect(fixture.nativeElement.textContent).not.toContain('Start Demo');
+  });
+
+  it('shows a dev-tools toggle and lets the panel be hidden or shown during the guided run', async () => {
+    const { fixture } = await createShellWithStubbedPhaser();
+
+    await startDemo(fixture);
+
+    const toggle = fixture.nativeElement.querySelector('[data-testid="dev-tools-toggle"]') as HTMLButtonElement | null;
+
+    expect(toggle?.textContent).toContain('Hide Dev Tools');
+    expect(toggle?.getAttribute('aria-expanded')).toBe('true');
+    expect(fixture.nativeElement.querySelector('app-module-layout-dev-panel')).toBeTruthy();
+
+    toggle?.click();
+    fixture.detectChanges();
+
+    expect(toggle?.textContent).toContain('Show Dev Tools');
+    expect(toggle?.getAttribute('aria-expanded')).toBe('false');
+    expect(fixture.nativeElement.querySelector('app-module-layout-dev-panel')).toBeNull();
+
+    toggle?.click();
+    fixture.detectChanges();
+
+    expect(toggle?.textContent).toContain('Hide Dev Tools');
+    expect(toggle?.getAttribute('aria-expanded')).toBe('true');
+    expect(fixture.nativeElement.querySelector('app-module-layout-dev-panel')).toBeTruthy();
+  });
+
+  it('continues a restored guided run into gameplay with its saved state intact', async () => {
+    localStorage.setItem(
+      DEFAULT_SAVE_STORAGE_KEY,
+      JSON.stringify(
+        createDemoSaveData('guided_run', (state) => {
+          state.updateResources((resources) => ({
+            ...resources,
+            values: { ...resources.values, credits: 480, water: 75 },
+          }));
+          state.updateInventory((inventory) => ({
+            ...inventory,
+            items: { ...inventory.items, biofood_pack: 4 },
+          }));
+        }),
+      ),
+    );
+
+    const { commands, fixture, gameState } = await createShellWithStubbedPhaser();
+
+    await continueDemo(fixture);
+
+    expect(gameState.getSnapshot().resources.values).toEqual({ credits: 480, energy: 100, water: 75, nutrients: 20, oxygen: 100 });
+    expect(gameState.getSnapshot().inventory.items).toEqual({ biofood_pack: 4 });
+    expect(fixture.nativeElement.textContent).toContain('480');
+    expect(fixture.nativeElement.textContent).toContain('75 / 100');
+    expect(commands.at(-1)).toEqual({ type: 'playObjectivePulse' });
+  });
+
+  it('emits a completion pulse for completed saves and clears it when returning to the menu', async () => {
+    localStorage.setItem(DEFAULT_SAVE_STORAGE_KEY, JSON.stringify(createDemoSaveData('completed')));
+
+    const { commands, fixture } = await createShellWithStubbedPhaser();
+
+    expect(commands.at(-1)).toEqual({ type: 'playCompletionPulse' });
+
+    clickButton(fixture, 'Return to Menu');
+    await flushShell(fixture);
+
+    expect(commands.at(-1)).toEqual({ type: 'clearDemoPulse' });
+    expect(fixture.nativeElement.querySelector('[aria-label="Demo entry menu"]')?.textContent).toContain('Continue Demo');
+  });
+
+  it('reflects resource state changes in the HUD during gameplay', async () => {
+    const { fixture } = await createShellWithStubbedPhaser();
+    const resourceService = TestBed.inject(ResourceService);
+
+    await startDemo(fixture);
+
+    resourceService.add('credits', 25);
+    fixture.detectChanges();
+
+    expect(resourceService.getAmount('credits')).toBe(225);
+    expect(fixture.nativeElement.textContent).toContain('225');
+  });
+
+  it('shows manual save and load feedback through the alerts panel during gameplay', async () => {
+    const { fixture } = await createShellWithStubbedPhaser();
+
+    await startDemo(fixture);
+
+    clickButton(fixture, 'Save');
+    await flushShell(fixture);
+    expect(fixture.nativeElement.querySelector('[aria-label="Alerts panel"]')?.textContent).toContain('Game saved.');
+
+    clickButton(fixture, 'Load');
+    await flushShell(fixture);
+    expect(fixture.nativeElement.querySelector('[aria-label="Alerts panel"]')?.textContent).toContain('Game loaded.');
+  });
+
+  it('routes Phaser module selections to the mapped Angular panel proof during guided gameplay', async () => {
     const { bridge, fixture, gameState } = await createShellWithStubbedPhaser();
+    await startDemo(fixture);
+
     const selections: ReadonlyArray<{
       readonly moduleId: string;
       readonly panel: PanelType;
@@ -166,14 +369,12 @@ describe('GameShell Angular component', () => {
     }
   });
 
-  it('opens placeholder panels from bottom navigation with one active panel in UI state', async () => {
+  it('opens placeholder panels from bottom navigation with one active panel in UI state during gameplay', async () => {
     const { fixture, gameState } = await createShellWithStubbedPhaser();
-    const contractsButton = Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>).find((button) =>
-      button.textContent?.includes('Contracts'),
-    );
+    await startDemo(fixture);
 
-    contractsButton?.click();
-    fixture.detectChanges();
+    clickButton(fixture, 'Contracts');
+    await flushShell(fixture);
 
     const activePanel = fixture.nativeElement.querySelector('[aria-label="Active module panel"]') as HTMLElement | null;
     const activeStatePanel = fixture.nativeElement.querySelector('[aria-label="Active state panel"]') as HTMLElement | null;
@@ -181,11 +382,11 @@ describe('GameShell Angular component', () => {
     expect(gameState.getSnapshot().ui).toEqual({ activePanel: PanelType.Contracts });
     expect(activePanel?.textContent).toContain('Contracts');
     expect(activeStatePanel?.textContent).toContain('Starter Biofood Delivery');
-    expect(activeStatePanel?.textContent).not.toContain('Storage placeholder online');
   });
 
-  it('keeps storage selection state-backed without mutating inventory', async () => {
+  it('keeps storage selection state-backed without mutating inventory during gameplay', async () => {
     const { bridge, fixture, gameState } = await createShellWithStubbedPhaser();
+    await startDemo(fixture);
     const initialInventory = gameState.getSnapshot().inventory;
 
     bridge.emitFromPhaser({ type: 'moduleSelected', moduleId: 'module_storage_basic_01' });
@@ -197,7 +398,7 @@ describe('GameShell Angular component', () => {
     expect(activePanel?.textContent).toContain('Storage');
     expect(activePanel?.textContent).toContain('module_storage_basic_01');
     expect(storage?.textContent).toContain('Protein Leaf Seed');
-    expect(storage?.textContent).toContain('2');
+    expect(storage?.textContent).toContain('0');
     expect(gameState.getSnapshot().inventory).toEqual(initialInventory);
     expect(gameState.getSnapshot().ui).toEqual({
       activePanel: PanelType.Storage,
@@ -205,7 +406,33 @@ describe('GameShell Angular component', () => {
     });
   });
 
-  it('renders the real Phaser host when a safe Phaser factory is provided', async () => {
+  it('returns a completed session to the menu while keeping Continue Demo available', async () => {
+    localStorage.setItem(DEFAULT_SAVE_STORAGE_KEY, JSON.stringify(createDemoSaveData('completed')));
+
+    const { fixture } = await createShellWithStubbedPhaser();
+
+    clickButton(fixture, 'Return to Menu');
+    await flushShell(fixture);
+
+    const menu = fixture.nativeElement.querySelector('[aria-label="Demo entry menu"]') as HTMLElement | null;
+    expect(menu?.textContent).toContain('Continue Demo');
+  });
+
+  it('keeps Phaser demo pulse commands visual-only by leaving Angular state untouched', async () => {
+    const { bridge, fixture, gameState } = await createShellWithStubbedPhaser();
+    await startDemo(fixture);
+
+    const before = gameState.getSnapshot();
+
+    bridge.playObjectivePulse();
+    bridge.playCompletionPulse();
+    bridge.clearDemoPulse();
+    fixture.detectChanges();
+
+    expect(gameState.getSnapshot()).toEqual(before);
+  });
+
+  it('renders the real Phaser host when a safe Phaser factory is provided and gameplay starts', async () => {
     await TestBed.configureTestingModule({
       imports: [GameShell],
       providers: [
@@ -218,6 +445,8 @@ describe('GameShell Angular component', () => {
 
     const fixture = TestBed.createComponent(GameShell);
     fixture.detectChanges();
+    await flushShell(fixture);
+    await startDemo(fixture);
 
     const phaserHost = fixture.nativeElement.querySelector('#phaser-container') as HTMLElement | null;
     expect(phaserHost?.getAttribute('aria-label')).toBe('Phaser visual layer placeholder');

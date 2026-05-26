@@ -4,6 +4,7 @@ import { ContractState, CropSlotState, GameSpeed, MachineState, ModuleState, Pan
 import {
   createInitialClockState,
   createInitialContractInstances,
+  createInitialDemoFlowState,
   createInitialGameState,
   createInitialGreenhouseState,
   createInitialInventoryState,
@@ -22,20 +23,20 @@ describe('initial state factories', () => {
         energy: 100,
         water: 100,
         nutrients: 20,
+        oxygen: 100,
       },
       maxValues: {
         energy: 100,
         water: 100,
         nutrients: 100,
+        oxygen: 100,
       },
     });
   });
 
-  it('creates the starter inventory and greenhouse state', () => {
+  it('creates the empty starter inventory and greenhouse state', () => {
     expect(createInitialInventoryState()).toEqual({
-      items: {
-        seed_protein_leaf: 2,
-      },
+      items: {},
       capacity: 100,
     });
 
@@ -54,6 +55,9 @@ describe('initial state factories', () => {
     ]);
 
     expect(createInitialContractInstances().map((contract) => contract.state)).toEqual([
+      ContractState.Available,
+      ContractState.Available,
+      ContractState.Available,
       ContractState.Available,
       ContractState.Available,
       ContractState.Available,
@@ -102,6 +106,14 @@ describe('initial state factories', () => {
       fullscreen: false,
     });
     expect(createInitialTutorialState()).toEqual({ completedStepIds: [], activeStepId: 'accept_first_contract' });
+    expect(createInitialDemoFlowState()).toEqual({
+      phase: 'menu',
+      guidanceMode: 'tutorial',
+      optionalScopes: {
+        event: false,
+        robot: false,
+      },
+    });
   });
 
   it('creates a full initial game state with placeholder-safe optional systems', () => {
@@ -114,6 +126,14 @@ describe('initial state factories', () => {
     expect(state.research).toEqual([]);
     expect(state.events).toEqual([]);
     expect(state.alerts).toEqual([]);
+    expect(state.demo).toEqual({
+      phase: 'menu',
+      guidanceMode: 'tutorial',
+      optionalScopes: {
+        event: false,
+        robot: false,
+      },
+    });
     expect(state.meta.schemaVersion).toBe(1);
     expect(state.meta.createdAt).toBe(state.meta.updatedAt);
   });
@@ -129,14 +149,16 @@ describe('initial state factories', () => {
     first.contracts[0].progressItems['biofood_pack'] = 1;
     first.modules[0].position.x = 99;
     first.tutorial.completedStepIds.push('mutated');
+    first.demo.phase = 'completed';
 
     expect(second.resources.values['credits']).toBe(200);
-    expect(second.inventory.items['seed_protein_leaf']).toBe(2);
+    expect(second.inventory.items['seed_protein_leaf']).toBeUndefined();
     expect(second.greenhouse.slots[0].state).toBe(CropSlotState.Empty);
     expect(second.machines[0].state).toBe(MachineState.Idle);
     expect(second.contracts[0].progressItems).toEqual({});
     expect(second.modules[0].position.x).toBe(0);
     expect(second.tutorial.completedStepIds).toEqual([]);
+    expect(second.demo.phase).toBe('menu');
   });
 
   it('creates independent clock objects for focused consumers', () => {

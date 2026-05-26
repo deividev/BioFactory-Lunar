@@ -27,16 +27,21 @@ describe('HUD icon asset and layout contract', () => {
     }
   });
 
-  it('keeps the top HUD arranged as a screenshot-like segmented command bar', () => {
-    const styles = readFileSync(join(process.cwd(), 'src/app/layout/hud-top/hud-top.scss'), 'utf8');
+  it('keeps the top HUD focused on brand plus telemetry, with simulation controls moved to the footer', () => {
+    const hudStyles = readFileSync(join(process.cwd(), 'src/app/layout/hud-top/hud-top.scss'), 'utf8');
+    const footerStyles = readFileSync(join(process.cwd(), 'src/app/layout/bottom-nav/bottom-nav.scss'), 'utf8');
 
-    expect(styles).toContain('.hud-top__brand-card');
-    expect(styles).toContain('.hud-top__telemetry-strip');
-    expect(styles).toContain('.hud-top__clock-card');
-    expect(styles).toContain('.hud-top__resource-card');
-    expect(styles).toContain('.hud-top__system-card');
-    expect(styles).toMatch(/\.hud-top\s*{[\s\S]*grid-template-columns:\s*minmax\(9rem,\s*13rem\)\s+minmax\(0,\s*1fr\)\s+minmax\(11rem,\s*auto\)/);
-    expect(styles).toMatch(/\.hud-top__telemetry-strip\s*{[\s\S]*display:\s*flex/);
-    expect(styles).toMatch(/\.hud-top__card-icon\s*{[\s\S]*width:\s*clamp\(1\.35rem,\s*1\.8vw,\s*1\.75rem\)/);
+    expect(hudStyles).toContain('.hud-top__brand-card');
+    expect(hudStyles).toContain('.hud-top__telemetry-strip');
+    expect(hudStyles).not.toContain('.hud-top__clock-card');
+    expect(hudStyles).toContain('.hud-top__resource-card');
+    expect(hudStyles).toContain('.hud-top__system-card');
+    expect(hudStyles).toMatch(/\.hud-top\s*{[\s\S]*grid-template-columns:\s*minmax\(9rem,\s*13rem\)\s+minmax\(0,\s*1fr\)/);
+    expect(hudStyles).toMatch(/\.hud-top__telemetry-strip\s*{[\s\S]*display:\s*flex/);
+    expect(hudStyles).toMatch(/\.hud-top__card-icon\s*{[\s\S]*width:\s*clamp\(1\.35rem,\s*1\.8vw,\s*1\.75rem\)/);
+
+    expect(footerStyles).toContain('.bottom-nav__sim-controls');
+    expect(footerStyles).toContain('.bottom-nav__clock-readout');
+    expect(footerStyles).toContain('.bottom-nav__control-group');
   });
 });

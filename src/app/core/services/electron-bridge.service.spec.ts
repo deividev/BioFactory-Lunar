@@ -7,6 +7,8 @@ type MockElectronApi = {
   saveGame: (payload: string) => Promise<void>;
   loadGame: () => Promise<string | null>;
   hasSave: () => Promise<boolean>;
+  applyDevLayouts: (overridesJson: string) => Promise<void>;
+  openExternalUrl: (url: string) => Promise<void>;
 };
 
 function stubElectronApi(overrides: Partial<MockElectronApi> = {}): MockElectronApi {
@@ -15,6 +17,8 @@ function stubElectronApi(overrides: Partial<MockElectronApi> = {}): MockElectron
     saveGame: vi.fn().mockResolvedValue(undefined),
     loadGame: vi.fn().mockResolvedValue(null),
     hasSave: vi.fn().mockResolvedValue(false),
+    applyDevLayouts: vi.fn().mockResolvedValue(undefined),
+    openExternalUrl: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
   vi.stubGlobal('electronAPI', api);
@@ -87,5 +91,25 @@ describe('ElectronBridgeService', () => {
     const result = await service.hasSave();
 
     expect(result).toBe(false);
+  });
+
+  it('delegates applyDevLayouts() to electronAPI.applyDevLayouts()', async () => {
+    const applyDevLayoutsMock = vi.fn().mockResolvedValue(undefined);
+    stubElectronApi({ applyDevLayouts: applyDevLayoutsMock });
+
+    await service.applyDevLayouts('{"module":"layout"}');
+
+    expect(applyDevLayoutsMock).toHaveBeenCalledOnce();
+    expect(applyDevLayoutsMock).toHaveBeenCalledWith('{"module":"layout"}');
+  });
+
+  it('delegates openExternalUrl() to electronAPI.openExternalUrl()', async () => {
+    const openExternalUrlMock = vi.fn().mockResolvedValue(undefined);
+    stubElectronApi({ openExternalUrl: openExternalUrlMock });
+
+    await service.openExternalUrl('https://store.steampowered.com/app/480/Spacewar/');
+
+    expect(openExternalUrlMock).toHaveBeenCalledOnce();
+    expect(openExternalUrlMock).toHaveBeenCalledWith('https://store.steampowered.com/app/480/Spacewar/');
   });
 });

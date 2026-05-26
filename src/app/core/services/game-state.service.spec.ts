@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { AlertType, ContractState, CropSlotState, GameSpeed, MachineState, PanelType, ShipmentState } from '../enums';
-import type { ContractInstance, MachineInstance, ShipmentInstance, TutorialState } from '../models';
+import type { ContractInstance, MachineInstance, SaveData, ShipmentInstance, TutorialState } from '../models';
 import { createInitialGameState } from '../state';
 import { GameStateService } from './game-state.service';
 
@@ -17,18 +17,23 @@ describe('GameStateService', () => {
         energy: 100,
         water: 100,
         nutrients: 20,
+        oxygen: 100,
       },
       maxValues: {
         energy: 100,
         water: 100,
         nutrients: 100,
+        oxygen: 100,
       },
     });
     expect(snapshot.inventory).toEqual({
-      items: {
-        seed_protein_leaf: 2,
-      },
+      items: {},
       capacity: 100,
+    });
+    expect(snapshot.demo).toEqual({
+      phase: 'menu',
+      guidanceMode: 'tutorial',
+      optionalScopes: { event: false, robot: false },
     });
     expect(Object.values(snapshot.resources.values).every((quantity) => quantity >= 0)).toBe(true);
     expect(Object.values(snapshot.inventory.items).every((quantity) => quantity >= 0)).toBe(true);
@@ -65,7 +70,7 @@ describe('GameStateService', () => {
     snapshot.ui.activePanel = PanelType.Storage;
 
     expect(service.getSnapshot().resources.values['credits']).toBe(200);
-    expect(service.getSnapshot().inventory.items['seed_protein_leaf']).toBe(2);
+    expect(service.getSnapshot().inventory.items['seed_protein_leaf']).toBeUndefined();
     expect(service.getSnapshot().greenhouse.slots[0]!.id).toBe('crop_slot_01');
     expect(service.getSnapshot().ui.activePanel).toBe(PanelType.CommandCenter);
 
@@ -105,7 +110,7 @@ describe('GameStateService', () => {
       (greenhouseView.slots[0] as { id: string }).id = 'leaked_slot';
     }).toThrow(TypeError);
     expect(service.getSnapshot().resources.values['credits']).toBe(200);
-    expect(service.getSnapshot().inventory.items['seed_protein_leaf']).toBe(2);
+    expect(service.getSnapshot().inventory.items['seed_protein_leaf']).toBeUndefined();
     expect(service.getSnapshot().clock.elapsedSeconds).toBe(0);
     expect(service.getSnapshot().greenhouse.slots[0]!.id).toBe('crop_slot_01');
     expect(service.getSnapshot().contracts[0]!.id).toBe('contract_contract_starter_biofood_01');
@@ -185,6 +190,7 @@ describe('GameStateService', () => {
     expect(saveData.inventory.items['biofood_pack']).toBe(2);
     expect(saveData.clock).toEqual(service.getSnapshot().clock);
     expect(saveData.modules).toEqual(service.getSnapshot().modules);
+    expect(saveData.demo).toEqual(service.getSnapshot().demo);
     expect(rawSaveData['ui']).toBeUndefined();
     expect(rawSaveData['state']).toBeUndefined();
 
@@ -215,7 +221,7 @@ describe('GameStateService', () => {
     target.loadFromSave(saveData);
 
     const restored = target.getSnapshot();
-    expect(restored.resources.values).toEqual({ credits: 450, energy: 100, water: 80, nutrients: 20 });
+    expect(restored.resources.values).toEqual({ credits: 450, energy: 100, water: 80, nutrients: 20, oxygen: 100 });
     expect(restored.inventory.items).toEqual({ seed_protein_leaf: 5, biofood_pack: 1 });
     expect(restored.clock).toEqual({ elapsedSeconds: 240, day: 2, speed: GameSpeed.X4 });
     expect(restored.ui).toEqual({ activePanel: PanelType.CommandCenter });
@@ -223,6 +229,50 @@ describe('GameStateService', () => {
 
     saveData.inventory.items['biofood_pack'] = 99;
     expect(target.getSnapshot().inventory.items['biofood_pack']).toBe(1);
+  });
+
+  it('hydrates legacy saves without a demo branch back to the default demo flow state', () => {
+    const source = new GameStateService();
+    const saveData = source.toSaveData('2026-05-24T12:00:00.000Z') as SaveData & Record<string, unknown>;
+    delete saveData['demo'];
+
+    const target = new GameStateService();
+
+    target.loadFromSave(saveData);
+
+    expect(target.getSnapshot().demo).toEqual({
+      phase: 'menu',
+      guidanceMode: 'tutorial',
+      optionalScopes: { event: false, robot: false },
+    });
+  });
+
+  it('hydrates legacy saves without oxygen by backfilling current resource defaults', () => {
+    const source = new GameStateService();
+    const saveData = source.toSaveData('2026-05-24T12:00:00.000Z') as SaveData & {
+      resources: SaveData['resources'] & { values: Record<string, number>; maxValues: Record<string, number> };
+    };
+    delete saveData.resources.values['oxygen'];
+    delete saveData.resources.maxValues['oxygen'];
+    saveData.resources.values['water'] = 75;
+
+    const target = new GameStateService();
+
+    target.loadFromSave(saveData);
+
+    expect(target.getSnapshot().resources.values).toEqual({
+      credits: 200,
+      energy: 100,
+      water: 75,
+      nutrients: 20,
+      oxygen: 100,
+    });
+    expect(target.getSnapshot().resources.maxValues).toEqual({
+      energy: 100,
+      water: 100,
+      nutrients: 100,
+      oxygen: 100,
+    });
   });
 
   it('updates alerts without mutating unrelated game state or leaking updater drafts', () => {

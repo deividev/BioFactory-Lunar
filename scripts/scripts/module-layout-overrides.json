@@ -1,0 +1,42 @@
+{
+  "module_command_center_basic_01": {
+    "xRatio": 0.505,
+    "yRatio": 0.775,
+    "widthRatio": 0.15,
+    "heightRatio": 0.1,
+    "spriteWidthRatio": 0.29,
+    "spriteHeightRatio": 0.245
+  },
+  "module_greenhouse_basic_01": {
+    "xRatio": 0.26,
+    "yRatio": 0.785,
+    "widthRatio": 0.18,
+    "heightRatio": 0.11,
+    "spriteWidthRatio": 0.245,
+    "spriteHeightRatio": 0.23
+  },
+  "module_processing_basic_01": {
+    "xRatio": 0.36,
+    "yRatio": 0.945,
+    "widthRatio": 0.16,
+    "heightRatio": 0.1,
+    "spriteWidthRatio": 0.28,
+    "spriteHeightRatio": 0.2
+  },
+  "module_shipping_hangar_basic_01": {
+    "xRatio": 0.755,
+    "yRatio": 0.775,
+    "widthRatio": 0.18,
+    "heightRatio": 0.12,
+    "spriteWidthRatio": 0.275,
+    "spriteHeightRatio": 0.36
+  },
+  "module_storage_basic_01": {
+    "xRatio": 0.615,
+    "yRatio": 0.92,
+    "widthRatio": 0.22,
+    "heightRatio": 0.095,
+    "spriteWidthRatio": 0.4,
+    "spriteHeightRatio": 0.2
+  }
+}

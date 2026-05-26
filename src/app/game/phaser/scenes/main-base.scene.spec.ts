@@ -4,6 +4,7 @@ import { vi } from 'vitest';
 vi.mock('phaser', () => ({
   default: {
     AUTO: 'AUTO',
+    BlendModes: { SCREEN: 'SCREEN' },
     Scale: { RESIZE: 'RESIZE', CENTER_BOTH: 'CENTER_BOTH' },
     Scene: class MockScene {
       constructor(readonly key?: string) {}
@@ -26,9 +27,19 @@ interface ModuleRectangleHarness {
 
 interface SceneImageHarness {
   readonly key: string;
+  readonly blendModes: string[];
   readonly displaySizes: string[];
+  readonly glows: string[];
   readonly positions: string[];
   readonly tints: string[];
+}
+
+function getImageByKey(images: SceneImageHarness[], key: string): SceneImageHarness {
+  const image = images.find((entry) => entry.key === key);
+
+  expect(image).toBeDefined();
+
+  return image!;
 }
 
 interface SceneTextHarness {
@@ -61,18 +72,32 @@ function createModuleScene(): {
   scene.load = { image: () => undefined };
   scene.scale = { width: 1920, height: 1080, on: () => undefined };
   scene.events = { once: () => undefined };
+  scene.tweens = { add: () => undefined };
   scene.add = {
     image: (_x: number, _y: number, key: string) => {
       const image = {
         key,
+        blendModes: [] as string[],
         displaySizes: [] as string[],
+        glows: [] as string[],
         positions: [] as string[],
         tints: [] as string[],
+        preFX: {
+          clear: (): void => { image.glows.push('glow:clear'); },
+          addGlow: (color: number, outer: number, inner: number, knockout: boolean): Record<string, never> => {
+            image.glows.push(`glow:${color}|${outer}|${inner}|${knockout}`);
+            return {};
+          },
+        },
         clearTint: () => {
           image.tints.push('clear');
           return image;
         },
         setAlpha: () => image,
+        setBlendMode: (mode: string) => {
+          image.blendModes.push(mode);
+          return image;
+        },
         setDepth: () => image,
         setDisplaySize: (width: number, height: number) => {
           image.displaySizes.push(`${width}|${height}`);
@@ -156,7 +181,7 @@ function createModuleScene(): {
 }
 
 describe('MainBaseScene visual placeholder', () => {
-  it('preloads the style spike background layers from stable runtime paths', () => {
+  it('preloads the layered lunar background assets from stable runtime paths', () => {
     const scene = new MainBaseScene() as unknown as {
       textures: {
         exists(key: string): boolean;
@@ -190,13 +215,21 @@ describe('MainBaseScene visual placeholder', () => {
       'texture-exists:bg_earth',
       'load-image:bg_earth|assets/phaser/backgrounds/lunar/bg_earth.png',
       'texture-exists:bg_lunar_ground',
-      'load-image:bg_lunar_ground|assets/phaser/backgrounds/lunar/bg_lunar_ground.png',
-      'texture-exists:bg_platform_front',
-      'load-image:bg_platform_front|assets/phaser/backgrounds/lunar/bg_platform_front.png'
+      'load-image:bg_lunar_ground|assets/phaser/backgrounds/lunar/bg_lunar_ground_removebg.png',
+      'texture-exists:module_command_center',
+      'load-image:module_command_center|assets/phaser/modules/module_command_center.png',
+      'texture-exists:module_greenhouse_basic',
+      'load-image:module_greenhouse_basic|assets/phaser/modules/module_greenhouse_basic.png',
+      'texture-exists:module_processing',
+      'load-image:module_processing|assets/phaser/modules/module_processing.png',
+      'texture-exists:module_shipping_hangar',
+      'load-image:module_shipping_hangar|assets/phaser/modules/module_shipping_hangar.png',
+      'texture-exists:module_storage',
+      'load-image:module_storage|assets/phaser/modules/module_storage.png',
     ]);
   });
 
-  it('resizes the style spike background layers with the scene', () => {
+  it('lays out the layered lunar background stack with sky, stars, earth, and ground', () => {
     const scene = new MainBaseScene() as unknown as {
       textures: {
         exists(key: string): boolean;
@@ -212,8 +245,13 @@ describe('MainBaseScene visual placeholder', () => {
       events: {
         once(event: string, handler: () => void, context?: unknown): void;
       };
+      tweens: {
+        add(...args: unknown[]): unknown;
+      };
       add: {
         image(...args: unknown[]): {
+          setAlpha(): unknown;
+          setBlendMode(mode: string): unknown;
           setPosition(x: number, y: number): unknown;
           setDisplaySize(width: number, height: number): unknown;
           setDepth(): unknown;
@@ -242,20 +280,37 @@ describe('MainBaseScene visual placeholder', () => {
     const calls: string[] = [];
     const resizeHandlers: Array<(gameSize: { width: number; height: number }) => void> = [];
 
-    const background = {
-      clearTint: () => background,
-      setAlpha: () => background,
-      setDepth: () => background,
-      setPosition: (x: number, y: number) => {
-        calls.push(`background-position:${x}|${y}`);
-        return background;
-      },
-      setDisplaySize: (width: number, height: number) => {
-        calls.push(`background-display-size:${width}|${height}`);
-        return background;
-      },
-      setOrigin: () => background,
-      setTint: () => background
+    const createBackground = (key: string) => {
+      const background = {
+        clearTint: () => background,
+        setAlpha: (alpha?: number) => {
+          calls.push(`background-alpha:${key}|${alpha}`);
+          return background;
+        },
+        setBlendMode: (mode: string) => {
+          calls.push(`background-blend:${key}|${mode}`);
+          return background;
+        },
+        setDepth: (depth?: number) => {
+          calls.push(`background-depth:${key}|${depth}`);
+          return background;
+        },
+        setPosition: (x: number, y: number) => {
+          calls.push(`background-position:${key}|${x}|${y}`);
+          return background;
+        },
+        setDisplaySize: (width: number, height: number) => {
+          calls.push(`background-display-size:${key}|${width}|${height}`);
+          return background;
+        },
+        setOrigin: () => {
+          calls.push(`background-origin:${key}`);
+          return background;
+        },
+        setTint: () => background
+      };
+
+      return background;
     };
     const rectangle = {
       on: () => rectangle,
@@ -301,13 +356,14 @@ describe('MainBaseScene visual placeholder', () => {
     scene.events = {
       once: () => undefined
     };
+    scene.tweens = { add: () => undefined };
     scene.add = {
       image: (...args: unknown[]) => {
         calls.push(`image-add:${args.join('|')}`);
-        return background;
+        return createBackground(String(args[2]));
       },
       rectangle: () => rectangle,
-      text: () => text
+      text: () => text,
     };
 
     scene.preload();
@@ -319,16 +375,31 @@ describe('MainBaseScene visual placeholder', () => {
 
     expect(calls).toContain('texture-exists:bg_sky_base');
     expect(calls).toContain('load-image:bg_sky_base|assets/phaser/backgrounds/lunar/bg_sky_base.png');
+    expect(calls).toContain('texture-exists:bg_stars_far');
+    expect(calls).toContain('load-image:bg_stars_far|assets/phaser/backgrounds/lunar/bg_stars_far.png');
+    expect(calls).toContain('texture-exists:bg_earth');
+    expect(calls).toContain('load-image:bg_earth|assets/phaser/backgrounds/lunar/bg_earth.png');
+    expect(calls).toContain('texture-exists:bg_lunar_ground');
+    expect(calls).toContain('load-image:bg_lunar_ground|assets/phaser/backgrounds/lunar/bg_lunar_ground_removebg.png');
     expect(calls).toContain('image-add:0|0|bg_sky_base');
-    expect(calls).toContain('image-add:0|0|bg_platform_front');
-    expect(calls).toContain('background-position:960|540');
-    expect(calls).toContain('background-display-size:1920|1080');
+    expect(calls).toContain('image-add:0|0|bg_stars_far');
+    expect(calls).toContain('image-add:0|0|bg_earth');
+    expect(calls).toContain('image-add:0|0|bg_lunar_ground');
+    expect(calls).toContain('background-blend:bg_stars_far|SCREEN');
+    expect(calls).toContain('background-position:bg_sky_base|960|529.2');
+    expect(calls).toContain('background-display-size:bg_sky_base|1996.8000000000002|1123.2');
+    expect(calls).toContain('background-position:bg_earth|1593.6|205.2');
+    expect(calls).toContain('background-display-size:bg_earth|364.8|356.40000000000003');
+    expect(calls).toContain('background-position:bg_lunar_ground|960|918');
+    expect(calls).toContain('background-display-size:bg_lunar_ground|1996.8000000000002|561.6');
     expect(calls).toContain('scale-on:resize');
-    expect(calls).toContain('background-position:450|300');
-    expect(calls).toContain('background-display-size:900|600');
+    expect(calls).toContain('background-position:bg_sky_base|450|294');
+    expect(calls).toContain('background-display-size:bg_sky_base|936|624');
+    expect(calls).toContain('background-position:bg_lunar_ground|450|510');
+    expect(calls).toContain('background-display-size:bg_lunar_ground|936|312');
   });
 
-  it('skips reloading style spike assets when textures are already cached', () => {
+  it('skips reloading the layered lunar background assets when textures are already cached', () => {
     const scene = new MainBaseScene() as unknown as {
       textures: {
         exists(key: string): boolean;
@@ -359,7 +430,11 @@ describe('MainBaseScene visual placeholder', () => {
       'texture-exists:bg_stars_far',
       'texture-exists:bg_earth',
       'texture-exists:bg_lunar_ground',
-      'texture-exists:bg_platform_front'
+      'texture-exists:module_command_center',
+      'texture-exists:module_greenhouse_basic',
+      'texture-exists:module_processing',
+      'texture-exists:module_shipping_hangar',
+      'texture-exists:module_storage',
     ]);
   });
 
@@ -373,7 +448,11 @@ describe('MainBaseScene visual placeholder', () => {
       'bg_stars_far',
       'bg_earth',
       'bg_lunar_ground',
-      'bg_platform_front'
+      'module_command_center',
+      'module_greenhouse_basic',
+      'module_processing',
+      'module_shipping_hangar',
+      'module_storage',
     ]);
     expect(rectangles.map((rectangle) => rectangle.data['moduleId'])).toEqual([
       'module_command_center_basic_01',
@@ -391,14 +470,126 @@ describe('MainBaseScene visual placeholder', () => {
     ]);
     expect(rectangles.every((rectangle) => rectangle.interactive === 1)).toBe(true);
     expect(rectangles.map((rectangle) => rectangle.fills.at(-1))).toEqual([
-      '988970|0',
-      '988970|0',
-      '988970|0',
-      '988970|0',
-      '988970|0'
+      '1120295|0',
+      '1120295|0',
+      '1120295|0',
+      '1120295|0',
+      '1120295|0'
     ]);
-    expect(rectangles.every((rectangle) => rectangle.strokes.at(-1) === '1|3918280|0.14')).toBe(true);
+    expect(rectangles.every((rectangle) => rectangle.strokes.at(-1) === '1|8162204|0')).toBe(true);
     expect(labels.every((label) => label.visibility.at(-1) === false)).toBe(true);
+  });
+
+  it('clears the module sprite tint and glow in the default visual state after create', () => {
+    const { images, scene } = createModuleScene();
+
+    scene.create();
+
+    const moduleSprites = images.filter((image) => image.key.startsWith('module_'));
+
+    expect(moduleSprites.every((s) => s.tints.at(-1) === 'clear')).toBe(true);
+    expect(moduleSprites.every((s) => s.glows.at(-1) === 'glow:clear')).toBe(true);
+  });
+
+  it('keeps the module sprite untinted on pointerover', () => {
+    const { images, rectangles, scene } = createModuleScene();
+
+    scene.create();
+    rectangles[1]!.handlers['pointerover']!();
+
+    expect(getImageByKey(images, 'module_greenhouse_basic').tints.at(-1)).toBe('clear');
+  });
+
+  it('applies an amber tint to the module sprite when the highlightModule command is received', () => {
+    const { commands, images, scene } = createModuleScene();
+
+    scene.create();
+    commands.next({ type: 'highlightModule', moduleId: 'module_greenhouse_basic_01' });
+
+    expect(getImageByKey(images, 'module_greenhouse_basic').tints.at(-1)).toBe(String(0xf59e0b));
+  });
+
+  it('keeps glow cleared on the selected module sprite when the highlightModule command is received', () => {
+    const { commands, images, scene } = createModuleScene();
+
+    scene.create();
+    commands.next({ type: 'highlightModule', moduleId: 'module_greenhouse_basic_01' });
+
+    expect(getImageByKey(images, 'module_greenhouse_basic').glows.at(-1)).toBe('glow:clear');
+  });
+
+  it('does not apply a glow to non-selected module sprites when a module is highlighted', () => {
+    const { commands, images, scene } = createModuleScene();
+
+    scene.create();
+    commands.next({ type: 'highlightModule', moduleId: 'module_greenhouse_basic_01' });
+
+    expect(getImageByKey(images, 'module_storage').glows.at(-1)).toBe('glow:clear');
+  });
+
+  it('clears the selection glow from the module sprite when the clearHighlight command is received', () => {
+    const { commands, images, scene } = createModuleScene();
+
+    scene.create();
+    commands.next({ type: 'highlightModule', moduleId: 'module_greenhouse_basic_01' });
+    commands.next({ type: 'clearHighlight' });
+
+    expect(getImageByKey(images, 'module_greenhouse_basic').glows.at(-1)).toBe('glow:clear');
+  });
+
+  it('repositions a module when Angular sends an adjustModuleLayout command', () => {
+    const { commands, images, labels, scene } = createModuleScene();
+
+    scene.create();
+    commands.next({
+      type: 'adjustModuleLayout',
+      moduleId: 'module_greenhouse_basic_01',
+      patch: {
+        xRatio: 0.4,
+        yRatio: 0.82,
+        widthRatio: 0.2,
+        heightRatio: 0.13,
+        spriteWidthRatio: 0.37,
+        spriteHeightRatio: 0.27,
+      },
+    });
+
+    expect(getImageByKey(images, 'module_greenhouse_basic').positions.at(-1)).toBe('768|885.5999999999999');
+    expect(getImageByKey(images, 'module_greenhouse_basic').displaySizes.at(-1)).toBe('710.4|291.6');
+    expect(labels.find((label) => label.text === 'Greenhouse')?.positions.at(-1)).toBe('768|731.8');
+  });
+
+  it('tints the module sprite with the crop-ready color on cropReady command', () => {
+    const { commands, images, scene } = createModuleScene();
+
+    scene.create();
+    commands.next({ type: 'cropReady', moduleId: 'module_greenhouse_basic_01' });
+
+    expect(getImageByKey(images, 'module_greenhouse_basic').tints.at(-1)).toBe(String(0x4ade80));
+  });
+
+  it('mirrors objective pulse commands as a scene-level background tint only', () => {
+    const { commands, images, scene } = createModuleScene();
+
+    scene.create();
+    commands.next({ type: 'playObjectivePulse' });
+
+    expect(getImageByKey(images, 'bg_sky_base').tints.at(-1)).toBe(String(0xf59e0b));
+    expect(getImageByKey(images, 'module_command_center').tints.at(-1)).toBe('clear');
+
+    commands.next({ type: 'clearDemoPulse' });
+
+    expect(getImageByKey(images, 'bg_sky_base').tints.at(-1)).toBe('clear');
+  });
+
+  it('mirrors completion pulse commands as a scene-level background tint only', () => {
+    const { commands, images, scene } = createModuleScene();
+
+    scene.create();
+    commands.next({ type: 'playCompletionPulse' });
+
+    expect(getImageByKey(images, 'bg_sky_base').tints.at(-1)).toBe(String(0x22d3ee));
+    expect(getImageByKey(images, 'module_command_center').tints.at(-1)).toBe('clear');
   });
 
   it('emits typed bridge events from module hotspot pointer interactions', () => {
@@ -423,15 +614,15 @@ describe('MainBaseScene visual placeholder', () => {
     scene.create();
     commands.next({ type: 'highlightModule', moduleId: 'module_greenhouse_basic_01' });
 
-    expect(rectangles[1]!.strokes.at(-1)).toBe('2|59135|1');
-    expect(rectangles[4]!.strokes.at(-1)).toBe('1|3918280|0.14');
+    expect(rectangles[1]!.strokes.at(-1)).toBe('2|16096779|0');
+    expect(rectangles[4]!.strokes.at(-1)).toBe('1|8162204|0');
     expect(labels[1]!.visibility.at(-1)).toBe(true);
     expect(labels[4]!.visibility.at(-1)).toBe(false);
 
     commands.next({ type: 'clearHighlight' });
 
-    expect(rectangles[1]!.strokes.at(-1)).toBe('1|3918280|0.14');
-    expect(rectangles[4]!.strokes.at(-1)).toBe('1|3918280|0.14');
+    expect(rectangles[1]!.strokes.at(-1)).toBe('1|8162204|0');
+    expect(rectangles[4]!.strokes.at(-1)).toBe('1|8162204|0');
     expect(labels[1]!.visibility.at(-1)).toBe(false);
   });
 });
@@ -445,44 +636,41 @@ describe('MainBaseScene cropReady flash', () => {
     vi.useRealTimers();
   });
 
-  it('flashes the targeted module with a green stroke on cropReady and reverts to default after the flash duration', () => {
-    const { commands, rectangles, scene } = createModuleScene();
+  it('flashes the targeted module with a green sprite tint on cropReady and reverts to default after the flash duration', () => {
+    const { commands, images, scene } = createModuleScene();
 
     scene.create();
 
-    // Greenhouse is rectangles[1] (module_greenhouse_basic_01)
-    const greenhouse = rectangles[1]!;
+    const greenhouse = getImageByKey(images, 'module_greenhouse_basic');
 
     commands.next({ type: 'cropReady', moduleId: 'module_greenhouse_basic_01' });
 
-    // Flash stroke applied: width 2, green color (0x4ade80 = 4906624), alpha 1
-    expect(greenhouse.strokes.at(-1)).toBe('2|4906624|1');
+    expect(greenhouse.tints.at(-1)).toBe(String(0x4ade80));
 
     vi.advanceTimersByTime(1900);
 
-    // Reverted to default
-    expect(greenhouse.strokes.at(-1)).toBe('1|3918280|0.14');
+    expect(greenhouse.tints.at(-1)).toBe('clear');
   });
 
   it('does not affect unrelated modules on cropReady', () => {
-    const { commands, rectangles, scene } = createModuleScene();
+    const { commands, images, scene } = createModuleScene();
 
     scene.create();
 
-    const commandCenter = rectangles[0]!; // module_command_center_basic_01
-    const defaultStroke = commandCenter.strokes.at(-1);
+    const commandCenter = getImageByKey(images, 'module_command_center');
+    const defaultTint = commandCenter.tints.at(-1);
 
     commands.next({ type: 'cropReady', moduleId: 'module_greenhouse_basic_01' });
 
-    expect(commandCenter.strokes.at(-1)).toBe(defaultStroke);
+    expect(commandCenter.tints.at(-1)).toBe(defaultTint);
   });
 
   it('resets an in-progress flash timer when a second cropReady fires for the same module', () => {
-    const { commands, rectangles, scene } = createModuleScene();
+    const { commands, images, scene } = createModuleScene();
 
     scene.create();
 
-    const greenhouse = rectangles[1]!;
+    const greenhouse = getImageByKey(images, 'module_greenhouse_basic');
 
     commands.next({ type: 'cropReady', moduleId: 'module_greenhouse_basic_01' });
     vi.advanceTimersByTime(900);
@@ -491,12 +679,10 @@ describe('MainBaseScene cropReady flash', () => {
     commands.next({ type: 'cropReady', moduleId: 'module_greenhouse_basic_01' });
     vi.advanceTimersByTime(900);
 
-    // Still in flash state (1800ms have not elapsed since the second event)
-    expect(greenhouse.strokes.at(-1)).toBe('2|4906624|1');
+    expect(greenhouse.tints.at(-1)).toBe(String(0x4ade80));
 
     vi.advanceTimersByTime(1000);
 
-    // Now reverted
-    expect(greenhouse.strokes.at(-1)).toBe('1|3918280|0.14');
+    expect(greenhouse.tints.at(-1)).toBe('clear');
   });
 });

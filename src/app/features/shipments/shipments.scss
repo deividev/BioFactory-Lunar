@@ -1,4 +1,9 @@
+@use '../../../styles/mixins/panel';
+@use '../../../styles/mixins/button';
+
 .shipments {
+  @include panel.bf-panel-chrome(var(--bf-accent-warning));
+
   display: grid;
   align-content: start;
   gap: 0.85rem;
@@ -6,18 +11,31 @@
   padding: clamp(0.875rem, 2vw, 1.25rem);
   overflow: auto;
   color: var(--bf-text-primary);
-  background: color-mix(in srgb, var(--bf-surface-panel) 86%, transparent);
+}
+
+h2,
+p {
+  margin: 0;
+}
+
+h2 {
+  font-size: clamp(1.05rem, 1.5vw, 1.35rem);
+  letter-spacing: 0.04em;
 }
 
 .shipments__header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
+  gap: 0.5rem;
 }
 
-.shipments__title {
-  margin: 0;
-  font-size: clamp(1.05rem, 1.5vw, 1.35rem);
+.shipments__title-group {
+  @include panel.bf-panel-header();
+}
+
+.shipments__eyebrow {
+  @include panel.bf-panel-eyebrow();
 }
 
 .shipments__credits {
@@ -109,27 +127,18 @@
 }
 
 .shipments__btn {
+  @include button.bf-btn-action(var(--bf-accent-interactive), var(--bf-surface-canvas));
+
   padding: 0.25rem 0.6rem;
   font-size: 0.76rem;
-  font-weight: 600;
-  border: none;
-  border-radius: 3px;
-  cursor: pointer;
   white-space: nowrap;
 
-  &:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-
   &--buy {
-    background: var(--bf-accent-interactive);
-    color: var(--bf-surface-panel);
+    @include button.bf-btn-action(var(--bf-accent-interactive), var(--bf-surface-canvas));
   }
 
   &--receive {
-    background: var(--bf-accent-success);
-    color: var(--bf-surface-panel);
+    @include button.bf-btn-action(var(--bf-accent-success), var(--bf-surface-canvas));
   }
 }
 

@@ -1,9 +1,12 @@
+@use '../../../styles/mixins/panel';
+
 .alerts-panel {
+  @include panel.bf-strip-chrome(var(--bf-accent-warning));
+
   display: grid;
   gap: 0.55rem;
   padding: 0.75rem 1rem;
   border-top: 1px solid var(--bf-border-subtle);
-  background: color-mix(in srgb, var(--bf-surface-panel) 84%, transparent);
 }
 
 header,
@@ -42,12 +45,11 @@ ul {
 }
 
 li {
+  @include panel.bf-card-chrome(var(--bf-accent-info));
+
   gap: 0.45rem;
-  border: 1px solid color-mix(in srgb, var(--bf-border-subtle) 56%, transparent);
-  border-radius: 0.5rem;
   padding: 0.42rem 0.5rem;
   color: var(--bf-text-primary);
-  background: color-mix(in srgb, var(--bf-surface-raised) 26%, transparent);
 }
 
 li[data-tone='warning'] {

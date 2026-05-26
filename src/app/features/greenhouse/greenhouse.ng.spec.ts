@@ -42,7 +42,47 @@ describe('Greenhouse Angular component', () => {
     expect(text).toContain('Protein Leaf');
     expect(text).toContain('Aqua Sprout');
     expect(text).toContain('Luma Moss');
+    expect(text).toContain('Protein Leaf (0 seeds)');
     expect((fixture.nativeElement.querySelectorAll('select') as NodeListOf<HTMLSelectElement>).length).toBe(4);
+  });
+
+  it('shows seed stock and planting requirements for the selected crop', async () => {
+    const { fixture, gameState } = await renderGreenhouse();
+    gameState.updateInventory((inventory) => ({
+      ...inventory,
+      items: { ...inventory.items, seed_protein_leaf: 2 },
+    }));
+    fixture.detectChanges();
+
+    const select = fixture.nativeElement.querySelector('select') as HTMLSelectElement;
+    select.value = 'protein_leaf';
+    select.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    const text = textContent(fixture);
+    expect(text).toContain('Protein Leaf Seed');
+    expect(text).toContain('2 available');
+    expect(text).toContain('Time to harvest');
+    expect(text).toContain('1m 30s');
+    expect(text).toContain('Water');
+    expect(text).toContain('5 required');
+    expect(text).toContain('100 available');
+    expect(text).toContain('Ready to plant. Harvest in 1m 30s.');
+  });
+
+  it('shows missing seed stock when the selected crop cannot be planted yet', async () => {
+    const { fixture } = await renderGreenhouse();
+
+    const select = fixture.nativeElement.querySelector('select') as HTMLSelectElement;
+    select.value = 'aqua_sprout';
+    select.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    const text = textContent(fixture);
+    expect(text).toContain('Aqua Sprout Seed');
+    expect(text).toContain('0 available');
+    expect(text).toContain('Missing 1 seed');
+    expect(text).toContain('Missing seed stock or resources to plant this crop.');
   });
 
   it('plant button calls CropService.plantCrop with slot and selected crop, shows success feedback', async () => {
@@ -58,7 +98,8 @@ describe('Greenhouse Angular component', () => {
     fixture.detectChanges();
 
     expect(plantSpy).toHaveBeenCalledWith('crop_slot_01', 'protein_leaf');
-    expect(textContent(fixture)).toContain('Planted!');
+    expect(textContent(fixture)).toContain('Planted Protein Leaf.');
+    expect(select.value).toBe('');
   });
 
   it('shows error feedback when no crop is selected before clicking plant', async () => {

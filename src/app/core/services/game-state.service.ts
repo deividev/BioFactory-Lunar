@@ -4,6 +4,7 @@ import type {
   Alert,
   ClockState,
   ContractInstance,
+  DemoFlowState,
   GameState,
   GreenhouseState,
   InventoryState,
@@ -15,7 +16,7 @@ import type {
   UIState,
 } from '../models';
 import { CURRENT_SAVE_VERSION } from '../models';
-import { createInitialGameState } from '../state';
+import { createInitialDemoFlowState, createInitialGameState } from '../state';
 
 type DeepReadonly<T> = T extends (...args: never[]) => unknown
   ? T
@@ -57,6 +58,7 @@ export class GameStateService {
   readonly shipments: Signal<DeepReadonly<ShipmentInstance[]>> = computed(() => deepFreeze(cloneState(this.#state().shipments)));
   readonly alerts: Signal<DeepReadonly<Alert[]>> = computed(() => deepFreeze(cloneState(this.#state().alerts)));
   readonly tutorial: Signal<DeepReadonly<TutorialState>> = computed(() => deepFreeze(cloneState(this.#state().tutorial)));
+  readonly demo: Signal<DeepReadonly<DemoFlowState>> = computed(() => deepFreeze(cloneState(this.#state().demo)));
 
   getSnapshot(): GameState {
     return cloneState(this.#state());
@@ -85,17 +87,31 @@ export class GameStateService {
       research: state.research,
       events: state.events,
       alerts: state.alerts,
+      demo: state.demo,
       tutorial: state.tutorial,
       settings: state.settings,
     };
   }
 
   loadFromSave(saveData: SaveData): void {
+    const initialState = createInitialGameState();
+
     this.#state.set(
       cloneState({
         meta: saveData.meta,
         clock: saveData.clock,
-        resources: saveData.resources,
+        resources: {
+          ...initialState.resources,
+          ...saveData.resources,
+          values: {
+            ...initialState.resources.values,
+            ...saveData.resources.values,
+          },
+          maxValues: {
+            ...initialState.resources.maxValues,
+            ...saveData.resources.maxValues,
+          },
+        },
         inventory: saveData.inventory,
         greenhouse: saveData.greenhouse,
         machines: saveData.machines,
@@ -106,9 +122,10 @@ export class GameStateService {
         research: saveData.research,
         events: saveData.events,
         alerts: saveData.alerts,
+        demo: cloneState(saveData.demo ?? createInitialDemoFlowState()),
         tutorial: saveData.tutorial,
         settings: saveData.settings,
-        ui: createInitialGameState().ui,
+        ui: initialState.ui,
       }),
     );
   }
@@ -180,6 +197,13 @@ export class GameStateService {
     this.#state.update((state) => ({
       ...state,
       tutorial: cloneState(updater(cloneState(state.tutorial))),
+    }));
+  }
+
+  updateDemo(updater: (demo: DemoFlowState) => DemoFlowState): void {
+    this.#state.update((state) => ({
+      ...state,
+      demo: cloneState(updater(cloneState(state.demo))),
     }));
   }
 }

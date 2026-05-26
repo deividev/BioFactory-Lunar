@@ -3,17 +3,20 @@ import { describe, expect, it } from 'vitest';
 import {
   CONTRACT_DEFINITIONS,
   CROP_DEFINITIONS,
+  DEMO_FINALE_CONTRACT_DEFINITION_ID,
   ITEM_DEFINITIONS,
   MACHINE_DEFINITIONS,
   MODULE_DEFINITIONS,
   RECIPE_DEFINITIONS,
   RESOURCE_DEFINITIONS,
   SHIPMENT_CATALOG,
+  TUTORIAL_STEPS,
 } from './index';
 import { ModuleType, ResourceCategory } from '../enums';
 
 const idPattern = /^[a-z][a-z0-9_-]*$/;
-const requiredProductionResourceIds = ['water', 'energy', 'nutrients'] as const;
+const requiredCropResourceIds = ['water', 'energy', 'nutrients', 'oxygen'] as const;
+const requiredRecipeResourceIds = ['water', 'energy', 'nutrients'] as const;
 
 function idsOf(items: readonly { id: string }[]): string[] {
   return items.map((item) => item.id);
@@ -29,6 +32,7 @@ function expectUniqueIds(items: readonly { id: string }[]): void {
 function expectResourceCostsResolve(
   productions: readonly { id: string; resourceCosts?: readonly { resourceId: string; quantity: number }[] }[],
   resourceIds: ReadonlySet<string>,
+  requiredResourceIds: readonly string[],
 ): void {
   expect(
     productions.map((production) => ({
@@ -45,9 +49,9 @@ function expectResourceCostsResolve(
   for (const production of productions) {
     const productionCostIds = production.resourceCosts?.map((cost) => cost.resourceId) ?? [];
 
-    expect(production.resourceCosts?.length).toBe(requiredProductionResourceIds.length);
-    expect(new Set(productionCostIds).size).toBe(requiredProductionResourceIds.length);
-    expect(requiredProductionResourceIds.every((resourceId) => productionCostIds.includes(resourceId))).toBe(true);
+    expect(production.resourceCosts?.length).toBe(requiredResourceIds.length);
+    expect(new Set(productionCostIds).size).toBe(requiredResourceIds.length);
+    expect(requiredResourceIds.every((resourceId) => productionCostIds.includes(resourceId))).toBe(true);
     expect(production.resourceCosts?.every((cost) => resourceIds.has(cost.resourceId))).toBe(true);
     expect(production.resourceCosts?.every((cost) => cost.quantity > 0)).toBe(true);
   }
@@ -55,7 +59,7 @@ function expectResourceCostsResolve(
 
 describe('MVP static game data', () => {
   it('defines the required MVP resources and item IDs', () => {
-    expect(idsOf(RESOURCE_DEFINITIONS)).toEqual(['credits', 'energy', 'water', 'nutrients']);
+    expect(idsOf(RESOURCE_DEFINITIONS)).toEqual(['credits', 'energy', 'water', 'nutrients', 'oxygen']);
     expect(RESOURCE_DEFINITIONS.find((resource) => resource.id === 'credits')?.category).toBe(
       ResourceCategory.Currency,
     );
@@ -106,16 +110,36 @@ describe('MVP static game data', () => {
   });
 
   it('defines MVP contracts, shipment catalog items, and modules', () => {
-    expect(CONTRACT_DEFINITIONS).toHaveLength(6);
+    expect(CONTRACT_DEFINITIONS).toHaveLength(9);
+    expect(CONTRACT_DEFINITIONS.map((contract) => contract.id)).toEqual([
+      'contract_starter_biofood',
+      'contract_greenhouse_protein',
+      'contract_hydroponic_samples',
+      'contract_nutrient_mix',
+      'contract_orbital_meal_reserve',
+      'contract_luma_pigment',
+      'contract_mixed_bio_sample',
+      'contract_habitat_growth_booster',
+      DEMO_FINALE_CONTRACT_DEFINITION_ID,
+    ]);
     expect(idsOf(SHIPMENT_CATALOG)).toEqual([
       'shipment_seed_protein_leaf_pack',
       'shipment_seed_aqua_sprout_pack',
       'shipment_spore_luma_moss_pack',
       'shipment_water_supply',
       'shipment_nutrient_pack',
+      'shipment_oxygen_tank',
     ]);
     expect(SHIPMENT_CATALOG.find((shipment) => shipment.id === 'shipment_water_supply')?.resource).toEqual({
       resourceId: 'water',
+      quantity: 25,
+    });
+    expect(SHIPMENT_CATALOG.find((shipment) => shipment.id === 'shipment_nutrient_pack')?.resource).toEqual({
+      resourceId: 'nutrients',
+      quantity: 20,
+    });
+    expect(SHIPMENT_CATALOG.find((shipment) => shipment.id === 'shipment_oxygen_tank')?.resource).toEqual({
+      resourceId: 'oxygen',
       quantity: 25,
     });
     expect(idsOf(MODULE_DEFINITIONS)).toEqual([
@@ -132,6 +156,15 @@ describe('MVP static game data', () => {
       ModuleType.Shipping,
       ModuleType.Storage,
     ]);
+  });
+
+  it('keeps tutorial onboarding copy aligned with the guided demo ramp', () => {
+    expect(TUTORIAL_STEPS.find((step) => step.id === 'accept_first_contract')?.description).toContain('Starter Biofood Delivery');
+    expect(TUTORIAL_STEPS.find((step) => step.id === 'buy_seeds')?.description).toContain('Protein Leaf seed pack');
+    expect(TUTORIAL_STEPS.find((step) => step.id === 'buy_seeds')?.description).toContain('Shipments panel');
+    expect(TUTORIAL_STEPS.find((step) => step.id === 'receive_seeds')?.description).toContain('Shipments panel');
+    expect(TUTORIAL_STEPS.find((step) => step.id === 'process_product')?.description).toContain('Orbital Packager');
+    expect(TUTORIAL_STEPS.find((step) => step.id === 'deliver_contract')?.description).toContain('unlock the finale contract');
   });
 
   it('keeps catalog IDs unique and references resolvable', () => {
@@ -170,18 +203,18 @@ describe('MVP static game data', () => {
   it('keeps crop production resource costs tied to canonical resources', () => {
     const resourceIds = new Set(idsOf(RESOURCE_DEFINITIONS));
 
-    expectResourceCostsResolve(CROP_DEFINITIONS, resourceIds);
+    expectResourceCostsResolve(CROP_DEFINITIONS, resourceIds, requiredCropResourceIds);
     expect(CROP_DEFINITIONS.map((crop) => [crop.id, crop.resourceCosts?.map((cost) => cost.resourceId)])).toEqual([
-      ['protein_leaf', ['water', 'energy', 'nutrients']],
-      ['aqua_sprout', ['water', 'energy', 'nutrients']],
-      ['luma_moss', ['water', 'energy', 'nutrients']],
+      ['protein_leaf', ['water', 'energy', 'nutrients', 'oxygen']],
+      ['aqua_sprout', ['water', 'energy', 'nutrients', 'oxygen']],
+      ['luma_moss', ['water', 'energy', 'nutrients', 'oxygen']],
     ]);
   });
 
   it('keeps recipe production resource costs tied to canonical resources', () => {
     const resourceIds = new Set(idsOf(RESOURCE_DEFINITIONS));
 
-    expectResourceCostsResolve(RECIPE_DEFINITIONS, resourceIds);
+    expectResourceCostsResolve(RECIPE_DEFINITIONS, resourceIds, requiredRecipeResourceIds);
     expect(RECIPE_DEFINITIONS.map((recipe) => [recipe.id, recipe.resourceCosts?.map((cost) => cost.resourceId)])).toEqual([
       ['recipe_protein_leaf_to_biofood_pack', ['water', 'energy', 'nutrients']],
       ['recipe_aqua_sprout_to_nutrient_mix', ['water', 'energy', 'nutrients']],

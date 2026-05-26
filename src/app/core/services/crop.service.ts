@@ -1,6 +1,6 @@
-import { effect, Injectable } from '@angular/core';
+import { effect, Injectable, untracked } from '@angular/core';
 
-import { CROP_DEFINITIONS } from '../data';
+import { CROP_DEFINITIONS, TUTORIAL_STARTER_CROP_ID } from '../data';
 import { CropSlotState } from '../enums';
 import type { ActionResult, CropSlot } from '../models';
 import { AlertService } from './alert.service';
@@ -42,7 +42,7 @@ export class CropService {
     effect(() => {
       const tick = this.gameClock.lastTick();
       if (tick === undefined) return;
-      this.processTick(tick.deltaGameSeconds);
+      untracked(() => this.processTick(tick.deltaGameSeconds));
     });
   }
 
@@ -87,22 +87,29 @@ export class CropService {
       this.resources.consume(cost.resourceId, cost.quantity);
     }
 
+    const plantedAt = this.gameState.clock().elapsedSeconds;
+
     this.gameState.updateGreenhouse((gh) => ({
       ...gh,
       slots: gh.slots.map((s) =>
         s.id === slotId
-          ? { ...s, state: CropSlotState.Planted, cropId, remainingSeconds: cropDef.growthSeconds }
+          ? { ...s, state: CropSlotState.Planted, cropId, plantedAt, remainingSeconds: cropDef.growthSeconds }
           : s,
       ),
     }));
 
-    this.tutorial.completeStep('plant_crop');
+    if (cropId === TUTORIAL_STARTER_CROP_ID) {
+      this.tutorial.completeStep('plant_crop');
+    }
 
     return SUCCESS;
   }
 
   processTick(deltaGameSeconds: number): void {
     if (deltaGameSeconds <= 0) return;
+
+    const currentElapsedSeconds = this.gameState.clock().elapsedSeconds;
+    const previousElapsedSeconds = currentElapsedSeconds - deltaGameSeconds;
 
     const slots = this.gameState.greenhouse().slots;
     const hasPlantedSlots = slots.some((slot) => slot.state === CropSlotState.Planted);
@@ -120,14 +127,29 @@ export class CropService {
           return slot;
         }
 
-        const next = Math.max(0, slot.remainingSeconds - deltaGameSeconds);
+        const cropDef = slot.cropId !== undefined ? CROP_DEFINITION_BY_ID.get(slot.cropId) : undefined;
+
+        if (cropDef === undefined) {
+          return slot;
+        }
+
+        const plantedAt =
+          slot.plantedAt ??
+          (currentElapsedSeconds > 0
+            ? previousElapsedSeconds - (cropDef.growthSeconds - slot.remainingSeconds)
+            : undefined);
+
+        const next =
+          plantedAt !== undefined && currentElapsedSeconds > 0
+            ? Math.max(0, cropDef.growthSeconds - (currentElapsedSeconds - plantedAt))
+            : Math.max(0, slot.remainingSeconds - deltaGameSeconds);
 
         if (next === 0) {
           readySlotIds.push(slot.id);
-          return { ...slot, state: CropSlotState.Ready, remainingSeconds: 0 };
+          return { ...slot, state: CropSlotState.Ready, plantedAt, remainingSeconds: 0 };
         }
 
-        return { ...slot, remainingSeconds: next };
+        return { ...slot, plantedAt, remainingSeconds: next };
       }),
     }));
 
@@ -175,7 +197,9 @@ export class CropService {
       ),
     }));
 
-    this.tutorial.completeStep('harvest_crop');
+    if (slot.cropId === TUTORIAL_STARTER_CROP_ID) {
+      this.tutorial.completeStep('harvest_crop');
+    }
 
     return SUCCESS;
   }

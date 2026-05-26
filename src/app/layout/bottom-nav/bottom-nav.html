@@ -1,13 +1,37 @@
 <nav class="bottom-nav" aria-label="Main panel navigation">
-  @for (item of navItems; track item.panel) {
-    <button
-      type="button"
-      [attr.aria-current]="isActive(item.panel) ? 'page' : null"
-      [class.bottom-nav__item--active]="isActive(item.panel)"
-      (click)="selectPanel(item.panel)"
-    >
-      <img class="bottom-nav__icon" [src]="item.iconSrc" alt="" aria-hidden="true" />
-      <span>{{ item.label }}</span>
-    </button>
-  }
+  <div class="bottom-nav__nav-group" aria-label="Module navigation">
+    @for (item of navItems; track item.panel) {
+      <button
+        type="button"
+        class="bottom-nav__nav-button"
+        [attr.aria-current]="isActive(item.panel) ? 'page' : null"
+        [class.bottom-nav__item--active]="isActive(item.panel)"
+        (click)="selectPanel(item.panel)"
+      >
+        <img class="bottom-nav__icon" [src]="item.iconSrc" alt="" aria-hidden="true" />
+        <span>{{ item.label }}</span>
+      </button>
+    }
+  </div>
+
+  <section class="bottom-nav__sim-controls" aria-label="Simulation controls">
+    <div class="bottom-nav__clock-readout" aria-label="Current game time">
+      <span>{{ clock().dayLabel }}</span>
+      <strong>{{ clock().timeLabel }}</strong>
+      <span>{{ clock().speedLabel }}</span>
+    </div>
+
+    <div class="bottom-nav__control-group" aria-label="Clock controls">
+      <button type="button" class="bottom-nav__control-button" (click)="pauseClock()">Pause</button>
+      <button type="button" class="bottom-nav__control-button" (click)="resumeClock()">Resume</button>
+      <button type="button" class="bottom-nav__control-button" (click)="setClockSpeed(gameSpeed.X1)">x1</button>
+      <button type="button" class="bottom-nav__control-button" (click)="setClockSpeed(gameSpeed.X2)">x2</button>
+      <button type="button" class="bottom-nav__control-button" (click)="setClockSpeed(gameSpeed.X4)">x4</button>
+    </div>
+
+    <div class="bottom-nav__control-group" aria-label="Save controls">
+      <button type="button" class="bottom-nav__action-button" (click)="saveGame()">Save</button>
+      <button type="button" class="bottom-nav__action-button" (click)="loadGame()">Load</button>
+    </div>
+  </section>
 </nav>

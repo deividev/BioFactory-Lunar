@@ -70,6 +70,7 @@ describe('Processing Angular component', () => {
 
     expect(startBtns.length).toBeGreaterThan(0);
     startBtns.forEach((btn) => expect(btn.disabled).toBe(true));
+    expect(textContent(fixture)).toContain('Select a recipe to enable Start.');
   });
 
   it('start button stays disabled when recipe selected but inputs not in inventory', async () => {
@@ -81,6 +82,26 @@ describe('Processing Angular component', () => {
 
     const startBtn = queryButton(fixture, 'Start');
     expect(startBtn?.disabled).toBe(true);
+    expect(textContent(fixture)).toContain('Missing: Aqua Sprout x2.');
+  });
+
+  it('explains missing resources when a recipe is selected but resource costs are not affordable', async () => {
+    const { fixture, gameState } = await renderProcessing();
+
+    gameState.updateInventory((inv) => ({ ...inv, items: { ...inv.items, aqua_sprout: 2 } }));
+    gameState.updateResources((res) => ({
+      ...res,
+      values: { ...res.values, water: 1, energy: 4, nutrients: 0 },
+    }));
+
+    const select = fixture.nativeElement.querySelector('select') as HTMLSelectElement;
+    select.value = 'recipe_aqua_sprout_to_nutrient_mix';
+    select.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    const startBtn = queryButton(fixture, 'Start');
+    expect(startBtn?.disabled).toBe(true);
+    expect(textContent(fixture)).toContain('Missing: Water x2, Energy x5, Nutrients x1.');
   });
 
   it('start button is enabled when recipe selected and inputs/resources are affordable', async () => {
@@ -98,6 +119,7 @@ describe('Processing Angular component', () => {
 
     const startBtn = queryButton(fixture, 'Start');
     expect(startBtn?.disabled).toBe(false);
+    expect(textContent(fixture)).not.toContain('Missing:');
   });
 
   it('clicking start calls productionService.startRecipe and shows success feedback', async () => {
@@ -120,6 +142,33 @@ describe('Processing Angular component', () => {
 
     expect(spy).toHaveBeenCalledWith('machine_botanical_extractor_01', 'recipe_aqua_sprout_to_nutrient_mix');
     expect(textContent(fixture)).toContain('Started!');
+  });
+
+  it('switches the machine into running state and renders the progress bar after starting a recipe', async () => {
+    const { fixture, gameState } = await renderProcessing();
+
+    gameState.updateInventory((inv) => ({ ...inv, items: { ...inv.items, aqua_sprout: 2 } }));
+    gameState.updateResources((res) => ({
+      ...res,
+      values: { ...res.values, water: 2, energy: 5, nutrients: 1 },
+    }));
+
+    const select = fixture.nativeElement.querySelector('select') as HTMLSelectElement;
+    select.value = 'recipe_aqua_sprout_to_nutrient_mix';
+    select.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    queryButton(fixture, 'Start')?.click();
+    fixture.detectChanges();
+
+    const text = textContent(fixture);
+    expect(text).toContain('Started!');
+    expect(text).toContain('Aqua Sprout to Nutrient Mix');
+    expect(text).toContain('75s remaining');
+
+    const progressBar = fixture.nativeElement.querySelector('[role="progressbar"]') as HTMLElement | null;
+    expect(progressBar).not.toBeNull();
+    expect(progressBar?.getAttribute('aria-valuenow')).toBe('0');
   });
 
   it('shows error feedback when startRecipe returns failure', async () => {

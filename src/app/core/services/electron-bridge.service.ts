@@ -21,4 +21,12 @@ export class ElectronBridgeService {
   hasSave(): Promise<boolean> {
     return resolveElectronApi()!.hasSave();
   }
+
+  applyDevLayouts(overridesJson: string): Promise<void> {
+    return resolveElectronApi()!.applyDevLayouts(overridesJson);
+  }
+
+  openExternalUrl(url: string): Promise<void> {
+    return resolveElectronApi()!.openExternalUrl(url);
+  }
 }

@@ -30,6 +30,17 @@ export interface TutorialState {
   activeStepId?: string;
 }
 
+export interface DemoFlowState {
+  phase: 'menu' | 'guided_run' | 'completed';
+  objectiveContractInstanceId?: string;
+  guidanceMode: 'tutorial' | 'objective';
+  completedAt?: string;
+  optionalScopes: {
+    event: boolean;
+    robot: boolean;
+  };
+}
+
 export interface GameMetaState {
   createdAt: string;
   updatedAt: string;
@@ -49,6 +60,7 @@ export interface GameState {
   research: ResearchNodeInstance[];
   events: GameEventInstance[];
   alerts: Alert[];
+  demo: DemoFlowState;
   ui: UIState;
   settings: SettingsState;
   tutorial: TutorialState;
@@ -73,6 +85,7 @@ export interface SaveData {
   research: ResearchNodeInstance[];
   events: GameEventInstance[];
   alerts: Alert[];
+  demo?: DemoFlowState;
   tutorial: TutorialState;
   settings: SettingsState;
 }

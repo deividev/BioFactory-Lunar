@@ -1,0 +1,58 @@
+<section class="layout-dev-panel" aria-label="Module layout development panel">
+  <header class="layout-dev-panel__header">
+    <p class="layout-dev-panel__eyebrow">Dev Tools</p>
+    <h2>Module Layout</h2>
+  </header>
+
+  <label class="layout-dev-panel__field">
+    <span>Module</span>
+    <select
+      [value]="selectedModuleId()"
+      (change)="selectModule(($any($event.target).value))"
+      data-testid="layout-module-select"
+    >
+      @for (module of moduleOptions; track module.id) {
+        <option [value]="module.id">{{ module.label }}</option>
+      }
+    </select>
+  </label>
+
+  <div class="layout-dev-panel__controls">
+    @for (control of controls; track trackControl($index, control)) {
+      <label class="layout-dev-panel__control">
+        <span>{{ control.label }}</span>
+        <strong>{{ selectedLayout()[control.key].toFixed(3) }}</strong>
+        <input
+          type="range"
+          [min]="control.min"
+          [max]="control.max"
+          [step]="control.step"
+          [value]="selectedLayout()[control.key]"
+          (input)="updateRatio(control.key, $any($event.target).value)"
+          [attr.data-testid]="'layout-slider-' + control.key"
+        />
+      </label>
+    }
+  </div>
+
+  <div class="layout-dev-panel__actions">
+    <button type="button" (click)="resetSelected()" data-testid="layout-reset-selected">Reset selected</button>
+    <button type="button" (click)="resetAll()" data-testid="layout-reset-all">Reset all</button>
+    <button type="button" (click)="copyJsonForScript()" data-testid="layout-copy-json">Apply to source</button>
+    <button type="button" (click)="copyConfig()" data-testid="layout-copy-config">Export → source</button>
+  </div>
+
+  <p class="layout-dev-panel__status" data-testid="layout-copy-status">
+    @if (copiedState() === 'applied') {
+      Applied to source! Angular will hot-reload. Restart Electron to pick up changes.
+    } @else if (copiedState() === 'copied') {
+      Copied. Paste into scripts/module-layout-overrides.json, then run: pnpm layout:apply
+    } @else if (copiedState() === 'failed') {
+      Failed. Make sure the dev server is running (pnpm dev) or check the console.
+    } @else {
+      Adjust values, then click "Apply to source".
+    }
+  </p>
+
+  <pre class="layout-dev-panel__preview">{{ serializedConfig() }}</pre>
+</section>

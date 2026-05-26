@@ -43,31 +43,4 @@
     </section>
   </div>
 
-  <section class="hud-top__clock-card" aria-label="Game clock">
-    <h2 class="hud-top__section-title">Game clock</h2>
-    <div class="hud-top__clock-readout" aria-label="Current game time">
-      <span>{{ clock().dayLabel }}</span>
-      <strong>{{ clock().timeLabel }}</strong>
-      <span>{{ clock().speedLabel }}</span>
-    </div>
-    <div class="hud-top__clock-controls" aria-label="Clock controls">
-      <button type="button" (click)="pauseClock()">Pause</button>
-      <button type="button" (click)="resumeClock()">Resume</button>
-      <button type="button" (click)="setClockSpeed(gameSpeed.X1)">x1</button>
-      <button type="button" (click)="setClockSpeed(gameSpeed.X2)">x2</button>
-      <button type="button" (click)="setClockSpeed(gameSpeed.X4)">x4</button>
-    </div>
-    <div class="hud-top__save-controls" aria-label="Save controls">
-      <button type="button" (click)="saveGame()">Save</button>
-      <button type="button" (click)="loadGame()">Load</button>
-    </div>
-  </section>
-
-  <section class="hud-top__actions" aria-label="Resource actions">
-    <h2 class="hud-top__section-title">Resource actions</h2>
-    <button type="button" (click)="collectCredits()">Collect 25 credits</button>
-    <button type="button" (click)="spendCredits()">Spend 50 credits</button>
-    <button type="button" (click)="overfillWater()">Overfill water</button>
-    <p [attr.role]="feedbackRole()">{{ feedbackMessage() }}</p>
-  </section>
 </header>

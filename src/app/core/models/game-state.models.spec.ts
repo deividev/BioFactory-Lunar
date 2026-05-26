@@ -21,6 +21,7 @@ import type {
   ContractInstance,
   CropDefinition,
   CropSlot,
+  DemoFlowState,
   GameMetaState,
   GameState,
   GreenhouseState,
@@ -64,6 +65,8 @@ describe('game state model contracts', () => {
 
   it('types the dynamic runtime sections required by GameState', () => {
     expectTypeOf<ClockState>().toHaveProperty('speed').toEqualTypeOf<GameSpeed>();
+    expectTypeOf<DemoFlowState>().toHaveProperty('phase').toEqualTypeOf<'menu' | 'guided_run' | 'completed'>();
+    expectTypeOf<DemoFlowState>().toHaveProperty('guidanceMode').toEqualTypeOf<'tutorial' | 'objective'>();
     expectTypeOf<ResourceState>().toHaveProperty('values').toEqualTypeOf<Record<string, number>>();
     expectTypeOf<InventoryState>().toHaveProperty('items').toEqualTypeOf<Record<string, number>>();
     expectTypeOf<CropSlot>().toHaveProperty('state').toEqualTypeOf<CropSlotState>();
@@ -89,6 +92,7 @@ describe('game state model contracts', () => {
       modules: BaseModuleInstance[];
       robots: { id: string; state: RobotState }[];
       alerts: Alert[];
+      demo: DemoFlowState;
       ui: UIState;
       settings: SettingsState;
       tutorial: TutorialState;
@@ -110,6 +114,7 @@ describe('game state model contracts', () => {
       modules: BaseModuleInstance[];
       robots: { id: string; state: RobotState }[];
       alerts: Alert[];
+      demo?: DemoFlowState;
       settings: SettingsState;
       tutorial: TutorialState;
     }>();

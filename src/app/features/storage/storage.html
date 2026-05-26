@@ -1,6 +1,6 @@
 ﻿<aside class="storage" aria-label="Storage inventory">
   <div class="storage__header">
-    <p class="storage__eyebrow">Storage placeholder online</p>
+    <p class="storage__eyebrow">Storage</p>
     <h2>Inventory</h2>
     <p class="storage__capacity">
       Used capacity
@@ -34,6 +34,7 @@
     </ol>
   </section>
 
+  @if (devMode) {
   <section class="storage__actions" aria-label="Storage actions">
     <h3>Storage actions</h3>
     @for (action of actionButtons; track action.id) {
@@ -47,4 +48,5 @@
       <span>{{ feedbackMessage() }}</span>
     </p>
   </section>
+  }
 </aside>

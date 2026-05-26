@@ -11,6 +11,7 @@ describe('Electron main path resolution', () => {
 
     expect(mainPaths.preloadPath).toBe(path.join(workspaceRoot, 'dist-electron', 'electron', 'preload.js'));
     expect(mainPaths.angularBuildIndex).toBe(path.join(workspaceRoot, 'dist', 'biofactory-lunar', 'browser', 'index.html'));
+    expect(mainPaths.workspaceRoot).toBe(path.normalize(workspaceRoot));
     expect(mainPaths.angularBuildIndex).not.toContain(path.join('dist-electron', 'dist'));
   });
 });

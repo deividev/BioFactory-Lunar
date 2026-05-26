@@ -25,20 +25,26 @@ describe('Shipments panel', () => {
     const rows = el.querySelectorAll('.shipments__catalog-row');
     expect(rows.length).toBeGreaterThan(0);
     expect(el.textContent).toContain('Protein Leaf Seed Pack');
-    expect(el.textContent).toContain('30 cr');
+    expect(el.textContent).toContain('35 cr');
   });
 
   it('shows reward quantity label for item-based shipment', () => {
     const rewards = el.querySelectorAll<HTMLElement>('[data-testid="item-reward"]');
     expect(rewards.length).toBeGreaterThan(0);
-    // first catalog item: Protein Leaf Seed Pack → ×3 Protein Leaf Seed
-    expect(rewards[0].textContent?.trim()).toBe('×3 Protein Leaf Seed');
+    // first catalog item: Protein Leaf Seed Pack → ×4 Protein Leaf Seed
+    expect(rewards[0].textContent?.trim()).toBe('×4 Protein Leaf Seed');
   });
 
   it('shows reward quantity label for resource-based shipment (Water Supply)', () => {
     const rewards = el.querySelectorAll<HTMLElement>('[data-testid="item-reward"]');
     // Water Supply is the 4th catalog item (index 3) → ×25 Water
     expect(rewards[3].textContent?.trim()).toBe('×25 Water');
+  });
+
+  it('shows reward quantity label for the nutrient resource shipment', () => {
+    const rewards = el.querySelectorAll<HTMLElement>('[data-testid="item-reward"]');
+    // Basic Nutrient Pack is the 5th catalog item (index 4) → ×20 Nutrients
+    expect(rewards[4].textContent?.trim()).toBe('×20 Nutrients');
   });
 
   it('buy button is disabled when insufficient credits', () => {

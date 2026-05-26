@@ -132,8 +132,9 @@ export class GameClockService implements OnDestroy {
     const secondsWithinDay = Math.floor(clock.elapsedSeconds % SECONDS_PER_DAY);
     const hours = Math.floor(secondsWithinDay / 3_600);
     const minutes = Math.floor((secondsWithinDay % 3_600) / 60);
+    const seconds = secondsWithinDay % 60;
 
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   }
 
   speedLabel(speed = this.gameState.clock().speed): string {

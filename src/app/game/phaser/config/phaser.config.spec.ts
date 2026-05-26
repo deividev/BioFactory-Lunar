@@ -4,7 +4,7 @@ import { EMPTY } from 'rxjs';
 vi.mock('phaser', () => ({
   default: {
     AUTO: 'AUTO',
-    Scale: { RESIZE: 'RESIZE', CENTER_BOTH: 'CENTER_BOTH' },
+    Scale: { RESIZE: 'RESIZE', FIT: 'FIT', CENTER_BOTH: 'CENTER_BOTH' },
     Scene: class MockScene {
       constructor(readonly key?: string) {}
     },

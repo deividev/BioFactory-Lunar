@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 
 import { TUTORIAL_STEPS } from '../../core/data';
-import { SaveService, TutorialService, type SaveActionResult } from '../../core/services';
+import { DemoFlowService, SaveService, TutorialService, type SaveActionResult } from '../../core/services';
 
 @Component({
   selector: 'app-command-center',
@@ -10,16 +10,21 @@ import { SaveService, TutorialService, type SaveActionResult } from '../../core/
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CommandCenter {
+  private readonly demoFlow = inject(DemoFlowService);
   private readonly saveService = inject(SaveService);
   protected readonly tutorialService = inject(TutorialService);
 
   protected readonly saveStatus = signal<string>('');
   protected readonly hasSaveError = signal<boolean>(false);
+  protected readonly demoObjective = this.demoFlow.objectiveSummary;
 
-  protected readonly activeStep = computed(() => {
-    const activeId = this.tutorialService.tutorial().activeStepId;
-    if (!activeId) return undefined;
-    return TUTORIAL_STEPS.find((s) => s.id === activeId);
+  protected readonly steps = computed(() => {
+    const { completedStepIds, activeStepId } = this.tutorialService.tutorial();
+    return TUTORIAL_STEPS.map((step) => ({
+      ...step,
+      done: completedStepIds.includes(step.id),
+      active: step.id === activeStepId,
+    }));
   });
 
   protected readonly completedCount = computed(

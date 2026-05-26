@@ -18,11 +18,12 @@
             <select
               class="greenhouse__crop-select"
               [attr.aria-label]="'Select crop for ' + slot.id"
+              [value]="slot.selectedCropId ?? ''"
               (change)="selectCrop(slot.id, $any($event.target).value)"
             >
               <option value="">— choose crop —</option>
-              @for (crop of cropCatalog; track crop.id) {
-                <option [value]="crop.id">{{ crop.name }}</option>
+              @for (crop of cropOptions(); track crop.id) {
+                <option [value]="crop.id">{{ crop.name }} ({{ crop.seedStock }} seeds)</option>
               }
             </select>
             <button
@@ -35,6 +36,39 @@
               Plant
             </button>
           </div>
+
+          @if (slot.selectedCrop; as selectedCrop) {
+            <section class="greenhouse__selection-details" [attr.data-state]="selectedCrop.canPlant ? 'ready' : 'missing'">
+              <p class="greenhouse__seed-stock">
+                <span>{{ selectedCrop.seedItemName }}</span>
+                <strong>{{ selectedCrop.seedStock }} available</strong>
+                @if (!selectedCrop.isSeedAvailable) {
+                  <span class="greenhouse__missing-copy">Missing {{ selectedCrop.seedMissing }} seed</span>
+                }
+              </p>
+
+              <ul class="greenhouse__requirements" aria-label="Planting requirements">
+                <li class="greenhouse__requirement greenhouse__requirement--timing">
+                  <span>Time to harvest</span>
+                  <strong>{{ selectedCrop.growthLabel }}</strong>
+                </li>
+                @for (requirement of selectedCrop.requirements; track requirement.name) {
+                  <li class="greenhouse__requirement" [class.greenhouse__requirement--missing]="!requirement.isMet">
+                    <span>{{ requirement.name }}</span>
+                    <span>{{ requirement.required }} required · {{ requirement.available }} available</span>
+                  </li>
+                }
+              </ul>
+
+              <p class="greenhouse__selection-hint">
+                @if (selectedCrop.canPlant) {
+                  Ready to plant. Harvest in {{ selectedCrop.growthLabel }}.
+                } @else {
+                  Missing seed stock or resources to plant this crop. Harvest in {{ selectedCrop.growthLabel }} once planted.
+                }
+              </p>
+            </section>
+          }
         }
 
         @if (slot.state === CropSlotState.Planted) {

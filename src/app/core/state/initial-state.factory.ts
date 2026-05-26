@@ -1,9 +1,10 @@
 import { ContractState, CropSlotState, GameSpeed, MachineState, ModuleState, PanelType } from '../enums';
-import { CONTRACT_DEFINITIONS, MACHINE_DEFINITIONS, MODULE_DEFINITIONS } from '../data';
+import { CONTRACT_DEFINITIONS, DEMO_OPTIONAL_SCOPES, MACHINE_DEFINITIONS, MODULE_DEFINITIONS } from '../data';
 import type {
   BaseModuleInstance,
   ClockState,
   ContractInstance,
+  DemoFlowState,
   GameState,
   GreenhouseState,
   InventoryState,
@@ -38,20 +39,20 @@ export function createInitialResourceState(): ResourceState {
       energy: 100,
       water: 100,
       nutrients: 20,
+      oxygen: 100,
     },
     maxValues: {
       energy: 100,
       water: 100,
       nutrients: 100,
+      oxygen: 100,
     },
   };
 }
 
 export function createInitialInventoryState(): InventoryState {
   return {
-    items: {
-      seed_protein_leaf: 2,
-    },
+    items: {},
     capacity: 100,
   };
 }
@@ -107,6 +108,14 @@ export function createInitialTutorialState(): TutorialState {
   };
 }
 
+export function createInitialDemoFlowState(): DemoFlowState {
+  return {
+    phase: 'menu',
+    guidanceMode: 'tutorial',
+    optionalScopes: { ...DEMO_OPTIONAL_SCOPES },
+  };
+}
+
 export function createInitialGameState(): GameState {
   return {
     clock: createInitialClockState(),
@@ -121,6 +130,7 @@ export function createInitialGameState(): GameState {
     research: [],
     events: [],
     alerts: [],
+    demo: createInitialDemoFlowState(),
     ui: {
       activePanel: PanelType.CommandCenter,
     },

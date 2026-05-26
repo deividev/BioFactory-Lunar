@@ -1,6 +1,6 @@
-import { effect, Injectable } from '@angular/core';
+import { effect, Injectable, untracked } from '@angular/core';
 
-import { MACHINE_DEFINITIONS, RECIPE_DEFINITIONS } from '../data';
+import { MACHINE_DEFINITIONS, RECIPE_DEFINITIONS, TUTORIAL_STARTER_RECIPE_ID } from '../data';
 import { MachineState } from '../enums';
 import type { ActionResult, ItemAmount } from '../models';
 import { AlertService } from './alert.service';
@@ -41,7 +41,7 @@ export class ProductionService {
     effect(() => {
       const tick = this.gameClock.lastTick();
       if (tick === undefined) return;
-      this.processTick(tick.deltaGameSeconds);
+      untracked(() => this.processTick(tick.deltaGameSeconds));
     });
   }
 
@@ -110,7 +110,9 @@ export class ProductionService {
       ),
     );
 
-    this.tutorial.completeStep('process_product');
+    if (recipeId === TUTORIAL_STARTER_RECIPE_ID) {
+      this.tutorial.completeStep('process_product');
+    }
 
     return SUCCESS;
   }
