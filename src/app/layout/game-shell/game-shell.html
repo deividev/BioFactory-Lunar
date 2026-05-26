@@ -1,47 +1,108 @@
 ﻿<section class="game-shell" aria-label="Biofactory Lunar game shell">
-  <app-hud-top />
+  @if (viewPhase() === 'guided_run') {
+    <app-hud-top />
 
-  <main class="game-shell__body" aria-label="State-backed operations">
-    <aside class="game-shell__sidebar" aria-label="Angular state panels">
-      <section class="active-panel" aria-label="Active module panel">
-        <p class="active-panel__eyebrow">Active module panel</p>
-        <h2>{{ activePanelLabel() }}</h2>
-        <p>
-          Selected module
-          <strong>{{ selectedModuleId() }}</strong>
-        </p>
-      </section>
-
-      <section class="game-shell__panel-host" aria-label="Active state panel">
-        @switch (activePanel()) {
-          @case (panelType.Greenhouse) {
-            <app-greenhouse />
-          }
-          @case (panelType.Processing) {
-            <app-processing />
-          }
-          @case (panelType.Contracts) {
-            <app-contracts />
-          }
-          @case (panelType.Shipping) {
-            <app-shipments />
-          }
-          @case (panelType.Storage) {
-            <app-storage />
-          }
-          @default {
-            <app-command-center />
-          }
+    <main class="game-shell__body" aria-label="State-backed operations">
+      <aside class="game-shell__sidebar" aria-label="Angular state panels">
+        @if (devMode) {
+          <section class="active-panel" aria-label="Active module panel">
+            <h2>{{ activePanelLabel() }}</h2>
+            @if (selectedModuleId()) {
+              <p class="active-panel__module-id">{{ selectedModuleId() }}</p>
+            }
+          </section>
         }
+
+        <section class="game-shell__panel-host" aria-label="Active state panel">
+          @switch (activePanel()) {
+            @case (panelType.Greenhouse) {
+              <app-greenhouse />
+            }
+            @case (panelType.Processing) {
+              <app-processing />
+            }
+            @case (panelType.Contracts) {
+              <app-contracts />
+            }
+            @case (panelType.Shipping) {
+              <app-shipments />
+            }
+            @case (panelType.Storage) {
+              <app-storage />
+            }
+            @default {
+              <app-command-center />
+            }
+          }
+        </section>
+
+        <app-alerts-panel />
+      </aside>
+
+      <section class="stage" aria-label="Visual layer placeholder">
+        <app-phaser-game />
       </section>
 
-      <app-alerts-panel />
-    </aside>
+      @if (devMode) {
+        <div class="game-shell__dev-tools" data-testid="dev-tools-overlay">
+          <button
+            type="button"
+            class="game-shell__dev-tools-toggle"
+            [attr.aria-expanded]="devToolsVisible()"
+            (click)="toggleDevTools()"
+            data-testid="dev-tools-toggle"
+          >
+            {{ devToolsVisible() ? 'Hide Dev Tools' : 'Show Dev Tools' }}
+          </button>
 
-    <section class="stage" aria-label="Visual layer placeholder">
-      <app-phaser-game />
+          @if (devToolsVisible()) {
+            <app-module-layout-dev-panel class="game-shell__dev-panel" />
+          }
+        </div>
+      }
+    </main>
+
+    <app-bottom-nav />
+  } @else if (viewPhase() === 'completed') {
+    <section class="demo-screen demo-screen--completed" aria-label="Demo completion screen">
+      <div class="demo-screen__content">
+        <p class="demo-screen__eyebrow">{{ demoCompletionCopy.eyebrow }}</p>
+        <h1>{{ demoCompletionCopy.title }}</h1>
+        <p>{{ demoCompletionCopy.description }}</p>
+
+        <section class="demo-screen__status-card" [attr.data-state]="demoObjective().status">
+          <p class="demo-screen__status-badge">{{ demoObjective().badge }}</p>
+          <h2>{{ demoObjective().objectiveName }}</h2>
+          <p>{{ demoObjective().description }}</p>
+        </section>
+
+        <div class="demo-screen__actions">
+          <button type="button" class="demo-screen__primary" (click)="openSteamWishlist()">{{ steamWishlistLabel }}</button>
+          <button type="button" class="demo-screen__secondary" (click)="continueDemo()">Continue Demo</button>
+          <button type="button" class="demo-screen__secondary" (click)="returnToMenu()">Return to Menu</button>
+        </div>
+      </div>
     </section>
-  </main>
+  } @else {
+    <section class="demo-screen" aria-label="Demo entry menu">
+      <div class="demo-screen__content">
+        <p class="demo-screen__eyebrow">{{ demoMenuCopy.eyebrow }}</p>
+        <h1>{{ demoMenuCopy.title }}</h1>
+        <p>{{ demoMenuCopy.description }}</p>
 
-  <app-bottom-nav />
+        <section class="demo-screen__status-card" [attr.data-state]="demoObjective().status">
+          <p class="demo-screen__status-badge">{{ demoObjective().badge }}</p>
+          <h2>{{ demoObjective().objectiveName }}</h2>
+          <p>{{ demoObjective().description }}</p>
+        </section>
+
+        <div class="demo-screen__actions">
+          <button type="button" class="demo-screen__primary" (click)="startDemo()">Start Demo</button>
+          @if (hasContinueOption()) {
+            <button type="button" class="demo-screen__secondary" (click)="continueDemo()">Continue Demo</button>
+          }
+        </div>
+      </div>
+    </section>
+  }
 </section>

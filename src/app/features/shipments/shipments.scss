@@ -13,15 +13,29 @@
   color: var(--bf-text-primary);
 }
 
-.shipments__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+h2,
+p {
+  margin: 0;
 }
 
-.shipments__title {
-  margin: 0;
+h2 {
   font-size: clamp(1.05rem, 1.5vw, 1.35rem);
+  letter-spacing: 0.04em;
+}
+
+.shipments__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.shipments__title-group {
+  @include panel.bf-panel-header();
+}
+
+.shipments__eyebrow {
+  @include panel.bf-panel-eyebrow();
 }
 
 .shipments__credits {

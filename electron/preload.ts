@@ -12,7 +12,13 @@ const electronApi: ElectronApi = {
     const result = await ipcRenderer.invoke('load-game');
     return result === null ? null : String(result);
   },
-  hasSave: async () => Boolean(await ipcRenderer.invoke('has-save'))
+  hasSave: async () => Boolean(await ipcRenderer.invoke('has-save')),
+  applyDevLayouts: async (overridesJson: string) => {
+    await ipcRenderer.invoke('apply-dev-layouts', overridesJson);
+  },
+  openExternalUrl: async (url: string) => {
+    await ipcRenderer.invoke('open-external-url', url);
+  },
 };
 
 contextBridge.exposeInMainWorld('electronAPI', electronApi);

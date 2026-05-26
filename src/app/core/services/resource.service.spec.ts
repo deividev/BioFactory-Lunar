@@ -23,6 +23,7 @@ describe('ResourceService', () => {
       energy: 100,
       water: 100,
       nutrients: 20,
+      oxygen: 100,
     });
     expect(service.getAmount('credits')).toBe(200);
     expect(service.getAmount('water')).toBe(100);
@@ -48,6 +49,7 @@ describe('ResourceService', () => {
       energy: 100,
       water: 85,
       nutrients: 20,
+      oxygen: 100,
     });
 
     expect(service.add('credits', 50)).toEqual({ success: true });
@@ -56,6 +58,7 @@ describe('ResourceService', () => {
       energy: 100,
       water: 85,
       nutrients: 20,
+      oxygen: 100,
     });
   });
 
@@ -72,15 +75,15 @@ describe('ResourceService', () => {
     const before = snapshotResources();
     const invalidCosts: ResourceAmount[] = [{ resourceId: 'credits', quantity: Number.NaN }];
 
-    expect(service.add('oxygen', 1)).toEqual({
+    expect(service.add('helium', 1)).toEqual({
       success: false,
       code: 'unknown_resource',
-      message: 'Unknown resource: oxygen',
+      message: 'Unknown resource: helium',
     });
-    expect(service.consume('oxygen', 1)).toEqual({
+    expect(service.consume('helium', 1)).toEqual({
       success: false,
       code: 'unknown_resource',
-      message: 'Unknown resource: oxygen',
+      message: 'Unknown resource: helium',
     });
     expect(service.add('credits', 0)).toEqual({
       success: false,
@@ -92,10 +95,10 @@ describe('ResourceService', () => {
       code: 'invalid_quantity',
       message: 'Quantity must be a positive finite number.',
     });
-    expect(service.getAmount('oxygen')).toBe(0);
-    expect(service.has('oxygen', 1)).toBe(false);
+    expect(service.getAmount('helium')).toBe(0);
+    expect(service.has('helium', 1)).toBe(false);
     expect(service.has('credits', -1)).toBe(false);
-    expect(service.canAfford([{ resourceId: 'oxygen', quantity: 1 }])).toBe(false);
+    expect(service.canAfford([{ resourceId: 'helium', quantity: 1 }])).toBe(false);
     expect(service.canAfford(invalidCosts)).toBe(false);
     expect(snapshotResources()).toEqual(before);
   });
@@ -107,6 +110,11 @@ describe('ResourceService', () => {
       success: false,
       code: 'resource_cap_exceeded',
       message: 'Adding 1 water would exceed the cap of 100.',
+    });
+    expect(service.add('oxygen', 1)).toEqual({
+      success: false,
+      code: 'resource_cap_exceeded',
+      message: 'Adding 1 oxygen would exceed the cap of 100.',
     });
     expect(snapshotResources()).toEqual(beforeCapOverflow);
 

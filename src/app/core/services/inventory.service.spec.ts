@@ -18,9 +18,12 @@ describe('InventoryService', () => {
   }
 
   it('reads item quantities, capacity, and requirements from game state with mutation-safe item views', () => {
-    expect(service.items()).toEqual({
-      seed_protein_leaf: 2,
-    });
+    gameState.updateInventory((inventory) => ({
+      ...inventory,
+      items: { seed_protein_leaf: 2 },
+    }));
+
+    expect(service.items()).toEqual({ seed_protein_leaf: 2 });
     expect(service.getQuantity('seed_protein_leaf')).toBe(2);
     expect(service.getQuantity('biofood_pack')).toBe(0);
     expect(service.getQuantity('unknown_item')).toBe(0);
@@ -49,21 +52,25 @@ describe('InventoryService', () => {
 
     expect(result).toEqual({ success: true });
     expect(snapshotItems()).toEqual({
-      seed_protein_leaf: 2,
       biofood_pack: 3,
     });
-    expect(service.usedCapacity()).toBe(5);
-    expect(service.remainingCapacity()).toBe(95);
+    expect(service.usedCapacity()).toBe(3);
+    expect(service.remainingCapacity()).toBe(97);
 
     expect(service.addItem('seed_protein_leaf', 4)).toEqual({ success: true });
     expect(snapshotItems()).toEqual({
-      seed_protein_leaf: 6,
       biofood_pack: 3,
+      seed_protein_leaf: 4,
     });
-    expect(service.usedCapacity()).toBe(9);
+    expect(service.usedCapacity()).toBe(7);
   });
 
   it('consumes known items and removes the stored key when quantity reaches zero', () => {
+    gameState.updateInventory((inventory) => ({
+      ...inventory,
+      items: { seed_protein_leaf: 2 },
+    }));
+
     expect(service.consumeItem('seed_protein_leaf', 1)).toEqual({ success: true });
 
     expect(snapshotItems()).toEqual({
@@ -111,15 +118,20 @@ describe('InventoryService', () => {
   it('rejects capacity overflow and insufficient quantities without changing state', () => {
     const beforeCapacityOverflow = snapshotItems();
 
-    expect(service.addItem('biofood_pack', 99)).toEqual({
+    expect(service.addItem('biofood_pack', 101)).toEqual({
       success: false,
       code: 'inventory_capacity_exceeded',
-      message: 'Adding 99 biofood_pack would exceed inventory capacity of 100.',
+      message: 'Adding 101 biofood_pack would exceed inventory capacity of 100.',
     });
     expect(snapshotItems()).toEqual(beforeCapacityOverflow);
-    expect(service.usedCapacity()).toBe(2);
+    expect(service.usedCapacity()).toBe(0);
 
     const beforeInsufficient = snapshotItems();
+
+    gameState.updateInventory((inventory) => ({
+      ...inventory,
+      items: { seed_protein_leaf: 2 },
+    }));
 
     expect(service.consumeItem('seed_protein_leaf', 3)).toEqual({
       success: false,
@@ -131,6 +143,6 @@ describe('InventoryService', () => {
       code: 'insufficient_item',
       message: 'Not enough biofood_pack: requires 1, available 0.',
     });
-    expect(snapshotItems()).toEqual(beforeInsufficient);
+    expect(snapshotItems()).toEqual({ seed_protein_leaf: 2 });
   });
 });

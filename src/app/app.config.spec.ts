@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 vi.mock('phaser', () => ({
   default: {
     AUTO: 'AUTO',
-    Scale: { FIT: 'FIT', CENTER_BOTH: 'CENTER_BOTH' },
+    Scale: { FIT: 'FIT', RESIZE: 'RESIZE', CENTER_BOTH: 'CENTER_BOTH' },
     Game: class MockGame {},
     Scene: class MockScene {}
   }

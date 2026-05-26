@@ -4,41 +4,46 @@ export interface TutorialStepDefinition {
   readonly description: string;
 }
 
+export const TUTORIAL_STARTER_CONTRACT_INSTANCE_ID = 'contract_contract_starter_biofood_01' as const;
+export const TUTORIAL_STARTER_SHIPMENT_CATALOG_ID = 'shipment_seed_protein_leaf_pack' as const;
+export const TUTORIAL_STARTER_CROP_ID = 'protein_leaf' as const;
+export const TUTORIAL_STARTER_RECIPE_ID = 'recipe_protein_leaf_to_biofood_pack' as const;
+
 export const TUTORIAL_STEPS: readonly TutorialStepDefinition[] = [
   {
     id: 'accept_first_contract',
     label: 'Accept a Contract',
-    description: 'Open the Contracts panel and accept an available contract.',
+    description: 'Open the Contracts panel and accept Starter Biofood Delivery to lock in the first payout.',
   },
   {
     id: 'buy_seeds',
     label: 'Buy Seeds',
-    description: 'Open the Supply panel and order a seed shipment.',
+    description: 'Open the Shipments panel and order a Protein Leaf seed pack for the first greenhouse run.',
   },
   {
     id: 'receive_seeds',
     label: 'Receive Seeds',
-    description: 'Wait for your seed shipment to arrive, then collect it.',
+    description: 'Wait for the seed shipment to arrive, then collect it from the Shipments panel.',
   },
   {
     id: 'plant_crop',
     label: 'Plant a Crop',
-    description: 'Open the Greenhouse panel and plant a seed in an empty slot.',
+    description: 'Open the Greenhouse panel and plant Protein Leaf seeds in an empty grow slot.',
   },
   {
     id: 'harvest_crop',
     label: 'Harvest Your Crop',
-    description: 'Wait for your crop to finish growing, then harvest it.',
+    description: 'Wait for the crop to finish growing, then harvest the Protein Leaf yield.',
   },
   {
     id: 'process_product',
     label: 'Process a Product',
-    description: 'Open the Processing panel and start a production recipe.',
+    description: 'Open the Processing panel and run Protein Leaf to Biofood Pack in the Orbital Packager.',
   },
   {
     id: 'deliver_contract',
     label: 'Deliver the Contract',
-    description: 'Return to the Contracts panel and deliver your active contract.',
+    description: 'Return to the Contracts panel and deliver the starter contract to unlock the finale contract.',
   },
 ] as const;
 

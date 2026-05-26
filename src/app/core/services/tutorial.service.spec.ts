@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TUTORIAL_STEPS } from '../data';
 import { GameStateService } from './game-state.service';
@@ -28,7 +28,7 @@ describe('TutorialService', () => {
   // ── completeStep ──────────────────────────────────────────────────────────
 
   it('completeStep adds the step to completedStepIds', () => {
-    service.completeStep('accept_first_contract');
+    expect(service.completeStep('accept_first_contract')).toBe(true);
     expect(service.tutorial().completedStepIds).toContain('accept_first_contract');
   });
 
@@ -90,6 +90,13 @@ describe('TutorialService', () => {
     expect(service.isComplete()).toBe(true);
   });
 
+  it('completeStep ignores out-of-order steps and keeps the current active step', () => {
+    expect(service.completeStep('buy_seeds')).toBe(false);
+
+    expect(service.tutorial().completedStepIds).toEqual([]);
+    expect(service.tutorial().activeStepId).toBe('accept_first_contract');
+  });
+
   // ── idempotency ───────────────────────────────────────────────────────────
 
   it('completeStep is idempotent — calling it twice does not duplicate the step', () => {
@@ -110,13 +117,13 @@ describe('TutorialService', () => {
 
   // ── unknown step ──────────────────────────────────────────────────────────
 
-  it('completeStep with an unknown step id adds it to completedStepIds but does not change activeStepId', () => {
+  it('completeStep with an unknown step id is a no-op', () => {
     const activeBefore = service.tutorial().activeStepId;
 
-    service.completeStep('unknown_step_id');
+    expect(service.completeStep('unknown_step_id')).toBe(false);
 
-    expect(service.tutorial().completedStepIds).toContain('unknown_step_id');
-    expect(service.tutorial().activeStepId).toBeUndefined();
+    expect(service.tutorial().completedStepIds).toEqual([]);
+    expect(service.tutorial().activeStepId).toBe(activeBefore);
   });
 
   // ── isolation ─────────────────────────────────────────────────────────────
@@ -140,5 +147,34 @@ describe('TutorialService', () => {
 
     expect(gameState.resources()).toEqual(resourcesBefore);
     expect(gameState.inventory()).toEqual(inventoryBefore);
+  });
+
+  it('syncs demo flow progress after a successful tutorial step completion', () => {
+    const demoFlow = { syncProgressFromState: vi.fn() } as const;
+    const tutorialService = new TutorialService(gameState, demoFlow as never);
+
+    expect(tutorialService.completeStep('accept_first_contract')).toBe(true);
+
+    expect(demoFlow.syncProgressFromState).toHaveBeenCalledOnce();
+  });
+
+  it('does not sync demo flow progress when tutorial completion is ignored', () => {
+    const demoFlow = { syncProgressFromState: vi.fn() } as const;
+    const tutorialService = new TutorialService(gameState, demoFlow as never);
+
+    expect(tutorialService.completeStep('buy_seeds')).toBe(false);
+
+    expect(demoFlow.syncProgressFromState).not.toHaveBeenCalled();
+  });
+
+  it('completes an unknown active step by treating it as terminal progress', () => {
+    gameState.updateTutorial(() => ({
+      completedStepIds: [],
+      activeStepId: 'custom_terminal_step',
+    }));
+
+    expect(service.completeStep('custom_terminal_step')).toBe(true);
+    expect(service.tutorial().completedStepIds).toContain('custom_terminal_step');
+    expect(service.tutorial().activeStepId).toBeUndefined();
   });
 });

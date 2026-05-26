@@ -12,6 +12,9 @@ import { TutorialService } from './tutorial.service';
 import { PhaserBridgeService, type AngularToPhaserEvent } from '../../game/bridge/phaser-bridge.service';
 
 let lastEffectFn: (() => void) | undefined;
+const { untrackedSpy } = vi.hoisted(() => ({
+  untrackedSpy: vi.fn((fn: () => void) => fn()),
+}));
 
 vi.mock('@angular/core', async (importOriginal) => {
   const mod = await importOriginal<typeof import('@angular/core')>();
@@ -20,6 +23,7 @@ vi.mock('@angular/core', async (importOriginal) => {
     effect: vi.fn((fn: () => void) => {
       lastEffectFn = fn;
     }),
+    untracked: untrackedSpy,
   };
 });
 
@@ -42,7 +46,12 @@ describe('CropService', () => {
 
   beforeEach(() => {
     lastEffectFn = undefined;
+    untrackedSpy.mockClear();
     gameState = new GameStateService();
+    gameState.updateInventory((inventoryState) => ({
+      ...inventoryState,
+      items: { seed_protein_leaf: 2 },
+    }));
     inventory = new InventoryService(gameState);
     resources = new ResourceService(gameState);
     alerts = new AlertService(gameState);
@@ -56,7 +65,6 @@ describe('CropService', () => {
   // ── plantCrop ──────────────────────────────────────────────────────────────
 
   it('plants a crop: deducts seed and resources, sets slot to Planted with remainingSeconds', () => {
-    // Initial inventory has 2x seed_protein_leaf; initial resources: water=100, energy=100, nutrients=20
     service.plantCrop('crop_slot_01', 'protein_leaf');
 
     const snapshot = gameState.getSnapshot();
@@ -64,14 +72,14 @@ describe('CropService', () => {
 
     expect(slot.state).toBe(CropSlotState.Planted);
     expect(slot.cropId).toBe('protein_leaf');
+    expect(slot.plantedAt).toBe(0);
     expect(slot.remainingSeconds).toBe(90);
 
-    // Seed deducted (was 2, now 1)
     expect(snapshot.inventory.items['seed_protein_leaf']).toBe(1);
-    // Resources deducted: water -5, energy -1, nutrients -1
     expect(snapshot.resources.values['water']).toBe(95);
     expect(snapshot.resources.values['energy']).toBe(99);
     expect(snapshot.resources.values['nutrients']).toBe(19);
+    expect(snapshot.resources.values['oxygen']).toBe(99);
   });
 
   it('returns failure and does not mutate state when slot is not Empty', () => {
@@ -126,6 +134,16 @@ describe('CropService', () => {
     const slot = gameState.getSnapshot().greenhouse.slots.find((s) => s.id === 'crop_slot_01')!;
     expect(slot.state).toBe(CropSlotState.Planted);
     expect(slot.remainingSeconds).toBe(60);
+  });
+
+  it('stores the current elapsed game time when planting starts', () => {
+    gameState.updateClock((clock) => ({ ...clock, elapsedSeconds: 42 }));
+
+    service.plantCrop('crop_slot_01', 'protein_leaf');
+
+    const slot = gameState.getSnapshot().greenhouse.slots.find((s) => s.id === 'crop_slot_01')!;
+    expect(slot.plantedAt).toBe(42);
+    expect(slot.remainingSeconds).toBe(90);
   });
 
   it('clamps remainingSeconds at 0 and transitions to Ready when tick exceeds remaining', () => {
@@ -282,6 +300,18 @@ describe('CropService', () => {
     expect(stepSpy).toHaveBeenCalledWith('plant_crop');
   });
 
+  it('does not advance tutorial when planting a non-starter crop succeeds', () => {
+    gameState.updateInventory((inventoryState) => ({
+      ...inventoryState,
+      items: { ...inventoryState.items, seed_aqua_sprout: 2 },
+    }));
+    const stepSpy = vi.spyOn(tutorial, 'completeStep');
+
+    service.plantCrop('crop_slot_01', 'aqua_sprout');
+
+    expect(stepSpy).not.toHaveBeenCalled();
+  });
+
   it('does not advance tutorial when plantCrop fails', () => {
     const stepSpy = vi.spyOn(tutorial, 'completeStep');
 
@@ -300,6 +330,20 @@ describe('CropService', () => {
     expect(stepSpy).toHaveBeenCalledWith('harvest_crop');
   });
 
+  it('does not advance tutorial when harvesting a non-starter crop succeeds', () => {
+    gameState.updateInventory((inventoryState) => ({
+      ...inventoryState,
+      items: { ...inventoryState.items, seed_aqua_sprout: 2 },
+    }));
+    service.plantCrop('crop_slot_01', 'aqua_sprout');
+    service.processTick(120); // → Ready
+    const stepSpy = vi.spyOn(tutorial, 'completeStep');
+
+    service.harvestCrop('crop_slot_01');
+
+    expect(stepSpy).not.toHaveBeenCalled();
+  });
+
   it('does not advance tutorial when harvestCrop fails', () => {
     const stepSpy = vi.spyOn(tutorial, 'completeStep');
 
@@ -315,11 +359,87 @@ describe('CropService', () => {
 
     expect(lastEffectFn).toBeDefined();
 
+    gameState.updateClock((clock) => ({ ...clock, elapsedSeconds: 45 }));
     mockLastTick.set(makeTick(45));
     lastEffectFn!();
 
     const slot = gameState.getSnapshot().greenhouse.slots.find((s) => s.id === 'crop_slot_01')!;
     expect(slot.remainingSeconds).toBe(45);
+  });
+
+  it('wraps tick processing in untracked so greenhouse updates do not retrigger the effect', () => {
+    service.plantCrop('crop_slot_01', 'protein_leaf');
+
+    expect(lastEffectFn).toBeDefined();
+
+    mockLastTick.set(makeTick(10));
+    lastEffectFn!();
+
+    expect(untrackedSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses the plantedAt anchor so a fresh crop does not become ready before its growth time passes', () => {
+    service.plantCrop('crop_slot_01', 'protein_leaf');
+
+    expect(lastEffectFn).toBeDefined();
+
+    gameState.updateClock((clock) => ({ ...clock, elapsedSeconds: 1 }));
+    mockLastTick.set(makeTick(1));
+    lastEffectFn!();
+
+    const slot = gameState.getSnapshot().greenhouse.slots.find((s) => s.id === 'crop_slot_01')!;
+    expect(slot.state).toBe(CropSlotState.Planted);
+    expect(slot.remainingSeconds).toBe(89);
+  });
+
+  it('falls back to remainingSeconds countdown when a planted slot has no plantedAt anchor at elapsed time zero', () => {
+    gameState.updateGreenhouse((gh) => ({
+      ...gh,
+      slots: gh.slots.map((slot) =>
+        slot.id === 'crop_slot_01'
+          ? {
+              ...slot,
+              state: CropSlotState.Planted,
+              cropId: 'protein_leaf',
+              plantedAt: undefined,
+              remainingSeconds: 40,
+            }
+          : slot,
+      ),
+    }));
+
+    gameState.updateClock((clock) => ({ ...clock, elapsedSeconds: 0 }));
+
+    service.processTick(10);
+
+    const slot = gameState.getSnapshot().greenhouse.slots.find((s) => s.id === 'crop_slot_01')!;
+    expect(slot.plantedAt).toBeUndefined();
+    expect(slot.remainingSeconds).toBe(30);
+    expect(slot.state).toBe(CropSlotState.Planted);
+  });
+
+  it('leaves a planted slot unchanged when it has no crop id during tick processing', () => {
+    gameState.updateGreenhouse((gh) => ({
+      ...gh,
+      slots: gh.slots.map((slot) =>
+        slot.id === 'crop_slot_01'
+          ? {
+              ...slot,
+              state: CropSlotState.Planted,
+              cropId: undefined,
+              plantedAt: 0,
+              remainingSeconds: 40,
+            }
+          : slot,
+      ),
+    }));
+
+    service.processTick(10);
+
+    const slot = gameState.getSnapshot().greenhouse.slots.find((s) => s.id === 'crop_slot_01')!;
+    expect(slot.cropId).toBeUndefined();
+    expect(slot.remainingSeconds).toBe(40);
+    expect(slot.state).toBe(CropSlotState.Planted);
   });
 
   it('does not call processTick when lastTick is undefined', () => {

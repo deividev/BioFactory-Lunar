@@ -21,11 +21,12 @@
             <select
               class="processing__recipe-select"
               [attr.aria-label]="'Select recipe for ' + vm.name"
+              [value]="vm.selectedRecipeId ?? ''"
               (change)="selectRecipe(vm.id, $any($event.target).value)"
             >
               <option value="">— choose recipe —</option>
               @for (recipe of vm.compatibleRecipes; track recipe.id) {
-                <option [value]="recipe.id">{{ recipe.name }}</option>
+                <option [value]="recipe.id">{{ recipe.name }} — {{ recipe.durationSeconds }}s</option>
               }
             </select>
             <button
@@ -38,6 +39,10 @@
               Start
             </button>
           </div>
+
+          @if (vm.startHint) {
+            <p class="processing__start-hint" role="status">{{ vm.startHint }}</p>
+          }
         }
 
         @if (vm.state === MachineState.Running) {

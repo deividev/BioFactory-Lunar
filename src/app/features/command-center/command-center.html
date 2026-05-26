@@ -1,6 +1,7 @@
 <section class="command-center" aria-label="Command Center panel">
   <header class="command-center__header">
-    <h2 class="command-center__title">Command Center</h2>
+    <p class="command-center__eyebrow">Command Center</p>
+    <h2>Base Operations</h2>
   </header>
 
   <section class="command-center__tutorial" aria-label="Tutorial progress">
@@ -9,16 +10,68 @@
       {{ completedCount() }} / {{ totalSteps }} steps completed
     </p>
 
+    <ul class="command-center__steps" aria-label="Mission steps">
+      @for (step of steps(); track step.id) {
+        <li
+          class="command-center__step-item"
+          [attr.data-done]="step.done"
+          [attr.data-active]="step.active"
+          [attr.data-testid]="step.active ? 'active-step' : null"
+        >
+          <span class="command-center__step-icon" aria-hidden="true">
+            {{ step.done ? '✓' : step.active ? '▶' : '○' }}
+          </span>
+          <div class="command-center__step-content">
+            <p class="command-center__step-label">{{ step.label }}</p>
+            @if (step.active) {
+              <p class="command-center__step-desc">{{ step.description }}</p>
+            }
+          </div>
+        </li>
+      }
+    </ul>
+
     @if (tutorialService.isComplete()) {
       <p class="command-center__tutorial-complete" data-testid="tutorial-complete">
-        MVP loop complete. All steps done.
+        Onboarding complete. Finale contract unlocked.
       </p>
-    } @else {
-      <div class="command-center__step" data-testid="active-step">
-        <p class="command-center__step-label">{{ activeStep()?.label }}</p>
-        <p class="command-center__step-desc">{{ activeStep()?.description }}</p>
-      </div>
     }
+  </section>
+
+  <section class="command-center__objective" aria-label="Demo objective">
+    <div class="command-center__objective-header">
+      <div>
+        <h3 class="command-center__tutorial-heading">Demo Objective</h3>
+        <p class="command-center__objective-name">{{ demoObjective().objectiveName }}</p>
+      </div>
+
+      <span
+        class="command-center__status"
+        [attr.data-state]="demoObjective().status"
+        data-testid="objective-status"
+      >
+        {{ demoObjective().badge }}
+      </span>
+    </div>
+
+    <p class="command-center__objective-desc">{{ demoObjective().description }}</p>
+    <p class="command-center__objective-hint">
+      <span>Next:</span>
+      {{ demoObjective().hint }}
+    </p>
+
+    <ul class="command-center__objective-progress" aria-label="Finale cargo requirements">
+      @for (requirement of demoObjective().requirements; track requirement.itemId) {
+        <li
+          class="command-center__objective-progress-item"
+          [attr.data-complete]="requirement.complete"
+          data-testid="objective-requirement"
+        >
+          <span>{{ requirement.label }}</span>
+          <span>{{ requirement.available }}/{{ requirement.required }}</span>
+        </li>
+      }
+    </ul>
   </section>
 
   <section class="command-center__actions" aria-label="Base actions">

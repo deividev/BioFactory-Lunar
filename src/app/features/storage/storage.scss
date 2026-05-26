@@ -65,7 +65,10 @@ button {
   gap: 0.55rem;
 }
 
-.storage__eyebrow,
+.storage__eyebrow {
+  @include panel.bf-panel-eyebrow();
+}
+
 .storage__capacity,
 .storage__actions p {
   color: var(--bf-accent-info);

@@ -104,4 +104,38 @@ describe('ModuleSelectionService', () => {
     ]);
     expect(gameState.getSnapshot().ui).toEqual({ activePanel: PanelType.CommandCenter });
   });
+
+  it('returns the expected panel for known and unknown modules', () => {
+    const { service } = createHarness();
+
+    expect(service.getPanelForModule('module_command_center_basic_01')).toBe(PanelType.CommandCenter);
+    expect(service.getPanelForModule('module_unknown_01')).toBeUndefined();
+  });
+
+  it('returns the module id that owns a given panel when present', () => {
+    const { service } = createHarness();
+
+    expect(service.getModuleIdForPanel(PanelType.Greenhouse)).toBe('module_greenhouse_basic_01');
+  });
+
+  it('returns undefined when no module maps to the requested panel', () => {
+    const state = createInitialGameState();
+    const bridge = new PhaserBridgeService();
+    const gameState = {
+      getSnapshot: () => ({
+        ...state,
+        modules: [
+          {
+            ...state.modules[0]!,
+            id: 'module_unknown_definition_01',
+            definitionId: 'unknown_definition',
+          },
+        ],
+      }),
+      updateUi: vi.fn(),
+    } as unknown as GameStateService;
+    const service = new ModuleSelectionService(gameState, bridge);
+
+    expect(service.getModuleIdForPanel(PanelType.Greenhouse)).toBeUndefined();
+  });
 });

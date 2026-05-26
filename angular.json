@@ -73,7 +73,10 @@
                             "src/app/features/storage/storage.ts",
                             "src/app/features/shipments/shipments.ts",
                             "src/app/game/phaser/phaser-game.ts",
-                            "src/app/features/command-center/command-center.ts"
+                            "src/app/features/command-center/command-center.ts",
+                            "src/app/features/dev/module-layout-dev-panel/module-layout-dev-panel.ts",
+                            "src/app/core/config/demo-links.config.ts",
+                            "src/app/core/data/demo-session.data.ts"
                         ],
                         "coverageExclude": [
                             "**/*.ng.spec.ts",

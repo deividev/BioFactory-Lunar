@@ -16,7 +16,7 @@ export interface CropSlot {
   id: string;
   state: CropSlotState;
   cropId?: string;
-  plantedAt?: string;
+  plantedAt?: number;
   remainingSeconds?: number;
 }
 

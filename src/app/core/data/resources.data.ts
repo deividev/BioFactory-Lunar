@@ -29,6 +29,13 @@ export const RESOURCE_DEFINITIONS: readonly ResourceDefinition[] = [
     description: 'Growth medium additive used by early crops.',
     maxDefault: 100,
   },
+  {
+    id: 'oxygen',
+    name: 'Oxygen',
+    category: ResourceCategory.Utility,
+    description: 'Pressurized breathable reserve used to stabilize greenhouse planting cycles.',
+    maxDefault: 100,
+  },
 ] as const;
 
 export const ITEM_DEFINITIONS: readonly ItemDefinition[] = [

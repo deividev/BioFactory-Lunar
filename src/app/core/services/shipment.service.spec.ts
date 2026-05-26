@@ -6,10 +6,15 @@ import type { ShipmentCatalogItem, ShipmentInstance } from '../models';
 import { AlertService } from './alert.service';
 import { type GameClockTick } from './game-clock.service';
 import { GameStateService } from './game-state.service';
+import { InventoryService } from './inventory.service';
+import { ResourceService } from './resource.service';
 import { ShipmentService } from './shipment.service';
 import { TutorialService } from './tutorial.service';
 
 let lastEffectFn: (() => void) | undefined;
+const { untrackedSpy } = vi.hoisted(() => ({
+  untrackedSpy: vi.fn((fn: () => void) => fn()),
+}));
 
 vi.mock('@angular/core', async (importOriginal) => {
   const mod = await importOriginal<typeof import('@angular/core')>();
@@ -18,6 +23,7 @@ vi.mock('@angular/core', async (importOriginal) => {
     effect: vi.fn((fn: () => void) => {
       lastEffectFn = fn;
     }),
+    untracked: untrackedSpy,
   };
 });
 
@@ -36,20 +42,20 @@ vi.mock('../data/economy.data', async (importOriginal) => {
       {
         id: 'shipment_test_alt_cost',
         name: 'Alt Cost Test',
-        cost: { resourceId: 'oxygen', quantity: 5 },
+        cost: { resourceId: 'helium', quantity: 5 },
         durationSeconds: 10,
       } satisfies ShipmentCatalogItem,
       {
         id: 'shipment_test_free_oxygen',
         name: 'Free Oxygen Test',
-        cost: { resourceId: 'oxygen', quantity: 0 },
+        cost: { resourceId: 'helium', quantity: 0 },
         durationSeconds: 10,
       } satisfies ShipmentCatalogItem,
       {
         id: 'shipment_test_new_resource_payload',
         name: 'New Resource Payload Test',
         cost: { resourceId: 'credits', quantity: 5 },
-        resource: { resourceId: 'oxygen', quantity: 10 },
+        resource: { resourceId: 'helium', quantity: 10 },
         durationSeconds: 10,
       } satisfies ShipmentCatalogItem,
     ],
@@ -59,18 +65,23 @@ vi.mock('../data/economy.data', async (importOriginal) => {
 describe('ShipmentService', () => {
   let service: ShipmentService;
   let gameState: GameStateService;
+  let inventory: InventoryService;
+  let resources: ResourceService;
   let alerts: AlertService;
   let tutorialService: TutorialService;
   let mockLastTick: ReturnType<typeof signal<GameClockTick | undefined>>;
 
   beforeEach(() => {
     lastEffectFn = undefined;
+    untrackedSpy.mockClear();
     gameState = new GameStateService();
+    inventory = new InventoryService(gameState);
+    resources = new ResourceService(gameState);
     alerts = new AlertService(gameState);
     tutorialService = new TutorialService(gameState);
     mockLastTick = signal<GameClockTick | undefined>(undefined);
     const mockGameClock = { lastTick: mockLastTick.asReadonly() };
-    service = new ShipmentService(gameState, mockGameClock as never, alerts, tutorialService);
+    service = new ShipmentService(gameState, mockGameClock as never, inventory, resources, alerts, tutorialService);
   });
 
   function makeTick(deltaGameSeconds: number): GameClockTick {
@@ -84,7 +95,7 @@ describe('ShipmentService', () => {
     service.buyShipment('shipment_seed_protein_leaf_pack');
 
     const snapshot = gameState.getSnapshot();
-    expect(snapshot.resources.values['credits']).toBe(170); // 200 - 30
+    expect(snapshot.resources.values['credits']).toBe(165); // 200 - 35
     expect(snapshot.shipments).toHaveLength(1);
     const shipment = snapshot.shipments[0]!;
     expect(shipment.catalogItemId).toBe('shipment_seed_protein_leaf_pack');
@@ -106,7 +117,7 @@ describe('ShipmentService', () => {
   });
 
   it('succeeds when credits exactly equal the cost (boundary inclusive)', () => {
-    gameState.updateResources((r) => ({ ...r, values: { ...r.values, credits: 30 } }));
+    gameState.updateResources((r) => ({ ...r, values: { ...r.values, credits: 35 } }));
 
     service.buyShipment('shipment_seed_protein_leaf_pack');
 
@@ -188,12 +199,13 @@ describe('ShipmentService', () => {
 
     service.receiveShipment('ship_item_01');
 
-    expect(gameState.getSnapshot().inventory.items['seed_protein_leaf']).toBe(5); // 2 + 3
+    expect(gameState.getSnapshot().inventory.items['seed_protein_leaf']).toBe(4);
     expect(gameState.getSnapshot().shipments).toHaveLength(0);
     expect(successSpy).toHaveBeenCalledWith('Protein Leaf Seed Pack received!');
   });
 
   it('adds resource payload to resources, removes shipment, and calls addSuccess on delivery', () => {
+    gameState.updateResources((r) => ({ ...r, values: { ...r.values, water: 75 } }));
     const delivered: ShipmentInstance = {
       id: 'ship_water_01',
       catalogItemId: 'shipment_water_supply',
@@ -205,9 +217,63 @@ describe('ShipmentService', () => {
 
     service.receiveShipment('ship_water_01');
 
-    expect(gameState.getSnapshot().resources.values['water']).toBe(125); // 100 + 25
+    expect(gameState.getSnapshot().resources.values['water']).toBe(100); // 75 + 25
     expect(gameState.getSnapshot().shipments).toHaveLength(0);
     expect(successSpy).toHaveBeenCalledWith('Water Supply received!');
+  });
+
+  it('adds nutrient resource payload to resources for the nutrient shipment', () => {
+    const delivered: ShipmentInstance = {
+      id: 'ship_nutrient_01',
+      catalogItemId: 'shipment_nutrient_pack',
+      state: ShipmentState.Delivered,
+      remainingSeconds: 0,
+    };
+    gameState.updateShipments((list) => [...list, delivered]);
+
+    service.receiveShipment('ship_nutrient_01');
+
+    expect(gameState.getSnapshot().resources.values['nutrients']).toBe(40); // 20 + 20
+    expect(gameState.getSnapshot().inventory.items['nutrient_mix']).toBeUndefined();
+    expect(gameState.getSnapshot().shipments).toHaveLength(0);
+  });
+
+  it('keeps a delivered item shipment pending when inventory capacity would be exceeded', () => {
+    gameState.updateInventory((inv) => ({
+      ...inv,
+      items: { ...inv.items, filler: inv.capacity - 1 },
+    }));
+    const delivered: ShipmentInstance = {
+      id: 'ship_full_inventory_01',
+      catalogItemId: 'shipment_seed_protein_leaf_pack',
+      state: ShipmentState.Delivered,
+      remainingSeconds: 0,
+    };
+    gameState.updateShipments((list) => [...list, delivered]);
+    const warnSpy = vi.spyOn(alerts, 'addWarning');
+
+    service.receiveShipment('ship_full_inventory_01');
+
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('would exceed inventory capacity'));
+    expect(gameState.getSnapshot().shipments).toHaveLength(1);
+    expect(gameState.getSnapshot().inventory.items['seed_protein_leaf']).toBeUndefined();
+  });
+
+  it('keeps a delivered resource shipment pending when receiving it would exceed the resource cap', () => {
+    const delivered: ShipmentInstance = {
+      id: 'ship_capped_water_01',
+      catalogItemId: 'shipment_water_supply',
+      state: ShipmentState.Delivered,
+      remainingSeconds: 0,
+    };
+    gameState.updateShipments((list) => [...list, delivered]);
+    const warnSpy = vi.spyOn(alerts, 'addWarning');
+
+    service.receiveShipment('ship_capped_water_01');
+
+    expect(warnSpy).toHaveBeenCalledWith('Adding 25 water would exceed the cap of 100.');
+    expect(gameState.getSnapshot().shipments).toHaveLength(1);
+    expect(gameState.getSnapshot().resources.values['water']).toBe(100);
   });
 
   it('does not change state or fire alerts for an InTransit shipment', () => {
@@ -273,19 +339,31 @@ describe('ShipmentService', () => {
     expect(spy).toHaveBeenCalledWith(7);
   });
 
+  it('wraps tick processing in untracked so shipment state updates do not retrigger the same tick', () => {
+    gameState.updateShipments(() => [
+      { id: 'ship_untracked_01', catalogItemId: 'shipment_seed_protein_leaf_pack', state: ShipmentState.InTransit, remainingSeconds: 30 },
+    ]);
+    mockLastTick.set(makeTick(5));
+
+    lastEffectFn!();
+
+    expect(untrackedSpy).toHaveBeenCalledTimes(1);
+    expect(gameState.getSnapshot().shipments[0]?.remainingSeconds).toBe(25);
+  });
+
   // ── Null-coalescing and defensive-guard coverage ───────────────────────────
 
   it('treats undefined resource balance as zero when checking affordability', () => {
-    // 'oxygen' is not in the initial resource state; balance check ?? fallback fires
+    // 'helium' is not in the initial resource state; balance check ?? fallback fires
     const warnSpy = vi.spyOn(alerts, 'addWarning');
-    service.buyShipment('shipment_test_alt_cost'); // costs 5 oxygen; undefined ?? 0 = 0 < 5
+    service.buyShipment('shipment_test_alt_cost'); // costs 5 helium; undefined ?? 0 = 0 < 5
     expect(warnSpy).toHaveBeenCalledWith('Not enough credits to order this shipment.');
   });
 
   it('treats undefined resource value as zero when deducting after a zero-cost purchase', () => {
-    // 'oxygen' is not in the initial state; zero cost passes the check; deduction ?? 0 fires
-    service.buyShipment('shipment_test_free_oxygen'); // costs 0 oxygen; 0 >= 0 → purchase OK
-    expect(gameState.getSnapshot().resources.values['oxygen']).toBe(0); // (undefined ?? 0) - 0 = 0
+    // 'helium' is not in the initial state; zero cost passes the check; deduction ?? 0 fires
+    service.buyShipment('shipment_test_free_oxygen'); // costs 0 helium; 0 >= 0 → purchase OK
+    expect(gameState.getSnapshot().resources.values['helium']).toBe(0); // (undefined ?? 0) - 0 = 0
     expect(gameState.getSnapshot().shipments).toHaveLength(1);
   });
 
@@ -293,26 +371,30 @@ describe('ShipmentService', () => {
     // seed_aqua_sprout is not in the initial inventory; inventory ?? 0 fires
     const delivered: ShipmentInstance = {
       id: 'ship_aqua_01',
-      catalogItemId: 'shipment_seed_aqua_sprout_pack', // item: seed_aqua_sprout x3
+      catalogItemId: 'shipment_seed_aqua_sprout_pack', // item: seed_aqua_sprout x4
       state: ShipmentState.Delivered,
       remainingSeconds: 0,
     };
     gameState.updateShipments((list) => [...list, delivered]);
     service.receiveShipment('ship_aqua_01');
-    expect(gameState.getSnapshot().inventory.items['seed_aqua_sprout']).toBe(3); // (undefined ?? 0) + 3
+    expect(gameState.getSnapshot().inventory.items['seed_aqua_sprout']).toBe(4); // (undefined ?? 0) + 4
   });
 
-  it('treats undefined resource quantity as zero when receiving a resource payload for a new resource', () => {
-    // 'oxygen' is not in the initial resource state; resource ?? 0 fires
+  it('keeps a delivered shipment pending when its resource payload is unknown', () => {
     const delivered: ShipmentInstance = {
       id: 'ship_ox_01',
-      catalogItemId: 'shipment_test_new_resource_payload', // resource: oxygen x10
+      catalogItemId: 'shipment_test_new_resource_payload', // resource: helium x10
       state: ShipmentState.Delivered,
       remainingSeconds: 0,
     };
     gameState.updateShipments((list) => [...list, delivered]);
+    const warnSpy = vi.spyOn(alerts, 'addWarning');
+
     service.receiveShipment('ship_ox_01');
-    expect(gameState.getSnapshot().resources.values['oxygen']).toBe(10); // (undefined ?? 0) + 10
+
+    expect(warnSpy).toHaveBeenCalledWith('Unknown resource: helium');
+    expect(gameState.getSnapshot().resources.values['helium']).toBeUndefined();
+    expect(gameState.getSnapshot().shipments).toHaveLength(1);
   });
 
   it('exits receiveShipment early if catalog item is not found for a delivered shipment', () => {
@@ -338,6 +420,14 @@ describe('ShipmentService', () => {
     service.buyShipment('shipment_seed_protein_leaf_pack');
 
     expect(spy).toHaveBeenCalledWith('buy_seeds');
+  });
+
+  it('does not advance tutorial when buying a non-starter shipment succeeds', () => {
+    const spy = vi.spyOn(tutorialService, 'completeStep');
+
+    service.buyShipment('shipment_oxygen_tank');
+
+    expect(spy).not.toHaveBeenCalled();
   });
 
   it('does not advance tutorial on a failed buyShipment (insufficient credits)', () => {
@@ -370,6 +460,25 @@ describe('ShipmentService', () => {
     service.receiveShipment('ship_recv_01');
 
     expect(spy).toHaveBeenCalledWith('receive_seeds');
+  });
+
+  it('does not advance tutorial when receiving a non-starter shipment succeeds', () => {
+    const delivered: ShipmentInstance = {
+      id: 'ship_recv_oxygen_01',
+      catalogItemId: 'shipment_oxygen_tank',
+      state: ShipmentState.Delivered,
+      remainingSeconds: 0,
+    };
+    gameState.updateResources((resourcesState) => ({
+      ...resourcesState,
+      values: { ...resourcesState.values, oxygen: 50 },
+    }));
+    gameState.updateShipments((list) => [...list, delivered]);
+    const spy = vi.spyOn(tutorialService, 'completeStep');
+
+    service.receiveShipment('ship_recv_oxygen_01');
+
+    expect(spy).not.toHaveBeenCalled();
   });
 
   it('does not advance tutorial when receiveShipment is called for an InTransit shipment', () => {

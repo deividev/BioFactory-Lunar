@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { DEMO_FINALE_CONTRACT_INSTANCE_ID } from '../../core/data';
 import { ContractState } from '../../core/enums';
 import { ContractService } from '../../core/services/contract.service';
 import { GameStateService } from '../../core/services/game-state.service';
@@ -38,7 +39,29 @@ describe('Contracts panel', () => {
 
   it('shows an Accept button for each available contract', () => {
     const buttons = el.querySelectorAll<HTMLButtonElement>('[data-testid="accept-btn"]');
-    expect(buttons.length).toBe(6);
+    expect(buttons.length).toBe(8);
+  });
+
+  it('hides the finale contract while the tutorial is still active', () => {
+    const finaleButton = el.querySelector<HTMLButtonElement>(
+      `[data-testid="accept-btn"][data-contract-id="${DEMO_FINALE_CONTRACT_INSTANCE_ID}"]`,
+    );
+
+    expect(finaleButton).toBeNull();
+  });
+
+  it('shows the finale contract after the tutorial is complete', () => {
+    gameState.updateTutorial((tutorial) => ({
+      ...tutorial,
+      activeStepId: undefined,
+    }));
+    fixture.detectChanges();
+
+    const finaleButton = el.querySelector<HTMLButtonElement>(
+      `[data-testid="accept-btn"][data-contract-id="${DEMO_FINALE_CONTRACT_INSTANCE_ID}"]`,
+    );
+
+    expect(finaleButton).not.toBeNull();
   });
 
   it('Accept button click calls contractService.acceptContract with the instance ID', () => {

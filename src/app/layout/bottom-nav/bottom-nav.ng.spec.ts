@@ -133,7 +133,7 @@ describe('BottomNav Angular component', () => {
     expect(fixture.nativeElement.textContent ?? '').toContain('Speed x1');
   });
 
-  it('starts and stops runtime clock ticking with the footer lifecycle', async () => {
+  it('keeps runtime bootstrap ownership out of the footer lifecycle', async () => {
     await TestBed.configureTestingModule({
       imports: [BottomNav],
     }).compileComponents();
@@ -150,15 +150,13 @@ describe('BottomNav Angular component', () => {
     fixture.detectChanges();
     await new Promise<void>((resolve) => setTimeout(resolve, 0));
 
-    expect(restoreSpy).toHaveBeenCalledOnce();
-    expect(startSpy).toHaveBeenCalledOnce();
-    expect(autosaveStartSpy).toHaveBeenCalledOnce();
-    expect(restoreSpy.mock.invocationCallOrder[0]).toBeLessThan(startSpy.mock.invocationCallOrder[0]!);
-    expect(startSpy.mock.invocationCallOrder[0]).toBeLessThan(autosaveStartSpy.mock.invocationCallOrder[0]!);
+    expect(restoreSpy).not.toHaveBeenCalled();
+    expect(startSpy).not.toHaveBeenCalled();
+    expect(autosaveStartSpy).not.toHaveBeenCalled();
 
     fixture.destroy();
 
-    expect(stopSpy).toHaveBeenCalledOnce();
-    expect(autosaveStopSpy).toHaveBeenCalledOnce();
+    expect(stopSpy).not.toHaveBeenCalled();
+    expect(autosaveStopSpy).not.toHaveBeenCalled();
   });
 });

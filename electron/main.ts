@@ -1,11 +1,12 @@
 ﻿import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
-const { app, BrowserWindow, ipcMain } = require('electron') as typeof import('electron');
+const { app, BrowserWindow, ipcMain, shell } = require('electron') as typeof import('electron');
 import { resolveElectronMainPaths } from './main-paths.js';
 import { createElectronRuntimePolicy } from './runtime-policy.js';
 import { createMainWindowOptions } from './window-options.js';
 import { createSaveHandlers } from './save-handlers.js';
+import { applyModuleLayoutOverrides } from './dev-layout-patcher.js';
 
 type MainBrowserWindow = InstanceType<typeof BrowserWindow>;
 
@@ -38,6 +39,16 @@ async function loadRenderer(window: MainBrowserWindow): Promise<void> {
   await window.loadFile(mainPaths.angularBuildIndex);
 }
 
+function resolveAllowedExternalUrl(rawUrl: string): string {
+  const parsedUrl = new URL(rawUrl);
+
+  if (parsedUrl.protocol !== 'https:' || parsedUrl.hostname !== 'store.steampowered.com') {
+    throw new Error(`Blocked external URL: ${rawUrl}`);
+  }
+
+  return parsedUrl.toString();
+}
+
 function registerIpcHandlers(): void {
   ipcMain.handle('get-app-version', () => app.getVersion());
 
@@ -50,6 +61,12 @@ function registerIpcHandlers(): void {
   ipcMain.handle('save-game', (_event, payload: string) => saveHandlers.saveGame(payload));
   ipcMain.handle('load-game', () => saveHandlers.loadGame());
   ipcMain.handle('has-save', () => saveHandlers.hasSave());
+  ipcMain.handle('apply-dev-layouts', (_event, overridesJson: string) => {
+    applyModuleLayoutOverrides(mainPaths.workspaceRoot, overridesJson);
+  });
+  ipcMain.handle('open-external-url', async (_event, rawUrl: string) => {
+    await shell.openExternal(resolveAllowedExternalUrl(rawUrl));
+  });
 }
 
 async function createWindow(): Promise<void> {

@@ -43,11 +43,4 @@
     </section>
   </div>
 
-  <section class="hud-top__actions" aria-label="Resource actions">
-    <h2 class="hud-top__section-title">Resource actions</h2>
-    <button type="button" (click)="collectCredits()">Collect 25 credits</button>
-    <button type="button" (click)="spendCredits()">Spend 50 credits</button>
-    <button type="button" (click)="overfillWater()">Overfill water</button>
-    <p [attr.role]="feedbackRole()">{{ feedbackMessage() }}</p>
-  </section>
 </header>

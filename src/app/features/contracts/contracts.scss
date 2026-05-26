@@ -13,15 +13,22 @@
   color: var(--bf-text-primary);
 }
 
-.contracts__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+h2,
+p {
+  margin: 0;
 }
 
-.contracts__title {
-  margin: 0;
+h2 {
   font-size: clamp(1.05rem, 1.5vw, 1.35rem);
+  letter-spacing: 0.04em;
+}
+
+.contracts__header {
+  @include panel.bf-panel-header();
+}
+
+.contracts__eyebrow {
+  @include panel.bf-panel-eyebrow();
 }
 
 .contracts__section {

@@ -51,6 +51,10 @@ export class ModuleSelectionService {
 
     return panelForModule(module);
   }
+
+  getModuleIdForPanel(panel: PanelType): string | undefined {
+    return this.gameState.getSnapshot().modules.find((m) => panelForModule(m) === panel)?.id;
+  }
 }
 
 function panelForModule(module: BaseModuleInstance): PanelType | undefined {

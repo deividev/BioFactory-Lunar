@@ -1,0 +1,89 @@
+@use '../../../../styles/mixins/panel';
+@use '../../../../styles/mixins/button';
+
+.layout-dev-panel {
+  @include panel.bf-card-chrome(var(--bf-accent-warning));
+
+  display: grid;
+  gap: 0.7rem;
+  width: min(22rem, calc(100% - 1rem));
+  max-height: calc(100% - 1rem);
+  padding: 0.85rem;
+  overflow: auto;
+  color: var(--bf-text-primary);
+  background: color-mix(in srgb, var(--bf-surface-panel) 94%, transparent);
+  backdrop-filter: blur(12px);
+}
+
+.layout-dev-panel__header,
+.layout-dev-panel__field,
+.layout-dev-panel__control {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.layout-dev-panel__eyebrow {
+  margin: 0;
+  color: var(--bf-accent-warning);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.layout-dev-panel h2,
+.layout-dev-panel p,
+.layout-dev-panel pre {
+  margin: 0;
+}
+
+.layout-dev-panel select,
+.layout-dev-panel input[type='range'] {
+  width: 100%;
+}
+
+.layout-dev-panel select {
+  min-height: 2.1rem;
+  border: 1px solid var(--bf-border-subtle);
+  background: color-mix(in srgb, var(--bf-surface-canvas) 82%, transparent);
+  color: var(--bf-text-primary);
+}
+
+.layout-dev-panel__controls {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.layout-dev-panel__control strong {
+  justify-self: end;
+  color: var(--bf-accent-info);
+  font-size: 0.8rem;
+}
+
+.layout-dev-panel__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.layout-dev-panel__actions button {
+  @include button.bf-btn-action(var(--bf-accent-warning), var(--bf-surface-canvas));
+
+  padding: 0.45rem 0.7rem;
+}
+
+.layout-dev-panel__status {
+  color: var(--bf-text-muted);
+  font-size: 0.78rem;
+}
+
+.layout-dev-panel__preview {
+  padding: 0.65rem;
+  border: 1px solid color-mix(in srgb, var(--bf-border-subtle) 56%, transparent);
+  background: color-mix(in srgb, var(--bf-surface-canvas) 90%, transparent);
+  color: var(--bf-accent-info);
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+  font-size: 0.7rem;
+  line-height: 1.4;
+  white-space: pre-wrap;
+}

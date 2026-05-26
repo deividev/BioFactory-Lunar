@@ -50,3 +50,20 @@
     inset 0 1px 0 color-mix(in srgb, #{$accent} 26%, transparent),
     0 0.65rem 1.5rem color-mix(in srgb, var(--bf-surface-canvas) 54%, transparent);
 }
+
+// bf-panel-eyebrow — shared module-name label style used in panel headers.
+// Renders an uppercase, accent-colored, small-caps-style tag above the h2.
+@mixin bf-panel-eyebrow() {
+  margin: 0;
+  color: var(--bf-accent-info);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+// bf-panel-header — shared header layout: stacks eyebrow above h2.
+@mixin bf-panel-header() {
+  display: grid;
+  gap: 0.2rem;
+}

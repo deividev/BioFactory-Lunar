@@ -108,6 +108,14 @@ describe('ContractService', () => {
       expect(stepSpy).toHaveBeenCalledWith('accept_first_contract');
     });
 
+    it('does not advance the tutorial when accepting a non-starter contract succeeds', () => {
+      const stepSpy = vi.spyOn(tutorial, 'completeStep');
+
+      service.acceptContract(GREENHOUSE_PROTEIN_ID);
+
+      expect(stepSpy).not.toHaveBeenCalled();
+    });
+
     it('does not advance the tutorial when accepting fails', () => {
       const stepSpy = vi.spyOn(tutorial, 'completeStep');
 
@@ -239,7 +247,7 @@ describe('ContractService', () => {
       expect(result.success).toBe(true);
       expect(inventory.getQuantity('biofood_pack')).toBe(0);
       expect(inventory.getQuantity('nutrient_mix')).toBe(0);
-      expect(resources.getAmount('credits')).toBe(creditsBefore + 150);
+      expect(resources.getAmount('credits')).toBe(creditsBefore + 155);
     });
 
     it('does not mutate other contracts when completing one', () => {
@@ -297,6 +305,19 @@ describe('ContractService', () => {
       service.deliverContract(STARTER_BIOFOOD_ID);
 
       expect(stepSpy).toHaveBeenCalledWith('deliver_contract');
+    });
+
+    it('does not advance the tutorial when a non-starter contract is delivered successfully', () => {
+      service.acceptContract(GREENHOUSE_PROTEIN_ID);
+      gameState.updateInventory((inv) => ({
+        ...inv,
+        items: { ...inv.items, protein_leaf: 2 },
+      }));
+      const stepSpy = vi.spyOn(tutorial, 'completeStep');
+
+      service.deliverContract(GREENHOUSE_PROTEIN_ID);
+
+      expect(stepSpy).not.toHaveBeenCalled();
     });
 
     it('does not advance the tutorial when delivery fails', () => {

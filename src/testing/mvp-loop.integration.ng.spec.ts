@@ -79,6 +79,21 @@ describe('MVP loop integration', () => {
     expect(tutorial.tutorial().activeStepId).toBe('buy_seeds');
   });
 
+  it('ignores out-of-order but otherwise valid onboarding actions', () => {
+    const { shipmentService, cropService, gameState, tutorial } = getServices();
+
+    shipmentService.buyShipment(SHIPMENT_CATALOG_ID);
+    gameState.updateInventory((inventory) => ({
+      ...inventory,
+      items: { ...inventory.items, seed_protein_leaf: 2 },
+    }));
+    const plantResult = cropService.plantCrop(CROP_SLOT_ID, CROP_ID);
+
+    expect(plantResult.success).toBe(true);
+    expect(tutorial.tutorial().completedStepIds).toEqual([]);
+    expect(tutorial.tutorial().activeStepId).toBe('accept_first_contract');
+  });
+
   // ── step 2: buy seeds ─────────────────────────────────────────────────────
 
   it('step 2 — buying a seed shipment completes buy_seeds', () => {

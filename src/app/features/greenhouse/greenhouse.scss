@@ -24,16 +24,11 @@ h2 {
 }
 
 .greenhouse__eyebrow {
-  color: var(--bf-accent-info);
-  font-size: 0.76rem;
-  font-weight: 700;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
+  @include panel.bf-panel-eyebrow();
 }
 
 .greenhouse__header {
-  display: grid;
-  gap: 0.2rem;
+  @include panel.bf-panel-header();
 }
 
 .greenhouse__slots {
@@ -84,6 +79,71 @@ h2 {
   color: var(--bf-text-primary);
   font-size: 0.82rem;
   background: color-mix(in srgb, var(--bf-surface-canvas) 60%, transparent);
+}
+
+.greenhouse__selection-details {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid color-mix(in srgb, var(--bf-border-subtle) 58%, transparent);
+  border-radius: 0.45rem;
+  background: color-mix(in srgb, var(--bf-surface-canvas) 34%, transparent);
+}
+
+.greenhouse__selection-details[data-state='ready'] {
+  border-color: color-mix(in srgb, var(--bf-accent-success) 36%, transparent);
+}
+
+.greenhouse__selection-details[data-state='missing'] {
+  border-color: color-mix(in srgb, var(--bf-accent-warning) 38%, transparent);
+}
+
+.greenhouse__seed-stock,
+.greenhouse__selection-hint {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.76rem;
+}
+
+.greenhouse__seed-stock strong {
+  color: var(--bf-text-primary);
+}
+
+.greenhouse__missing-copy {
+  color: var(--bf-accent-warning);
+}
+
+.greenhouse__requirements {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0;
+  list-style: none;
+}
+
+.greenhouse__requirement {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  color: var(--bf-text-muted);
+  font-size: 0.74rem;
+}
+
+.greenhouse__requirement--timing {
+  color: var(--bf-text-primary);
+}
+
+.greenhouse__requirement--timing strong {
+  color: var(--bf-accent-info);
+}
+
+.greenhouse__requirement--missing {
+  color: var(--bf-accent-warning);
+}
+
+.greenhouse__selection-hint {
+  color: var(--bf-text-muted);
 }
 
 .greenhouse__growing,
@@ -151,7 +211,6 @@ h2 {
   height: 1rem;
   object-fit: contain;
 }
-
 
 li strong {
   color: var(--bf-accent-success);

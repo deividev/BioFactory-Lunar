@@ -1,4 +1,4 @@
-﻿import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+﻿import { ChangeDetectionStrategy, Component, computed, inject, isDevMode, signal } from '@angular/core';
 
 import { ACTION_ICON_PATHS, ITEM_DEFINITIONS, ITEM_ICON_PATHS, STATE_ICON_PATHS } from '../../core/data';
 import { InventoryService, type InventoryActionResult } from '../../core/services';
@@ -32,6 +32,8 @@ interface StorageWorkflowStep {
 export class Storage {
   private readonly inventoryService = inject(InventoryService);
 
+  protected readonly devMode = isDevMode();
+
   protected readonly actionButtons: readonly StorageActionButton[] = [
     { id: 'addProteinSeeds', label: 'Add 3 protein seeds', iconSrc: ACTION_ICON_PATHS.buy },
     { id: 'consumeProteinSeed', label: 'Consume 1 protein seed', iconSrc: ACTION_ICON_PATHS.plant },
@@ -39,7 +41,7 @@ export class Storage {
   ];
 
   protected readonly workflowSteps: readonly StorageWorkflowStep[] = [
-    { label: 'Supply', iconSrc: ACTION_ICON_PATHS.shipments },
+    { label: 'Shipments', iconSrc: ACTION_ICON_PATHS.shipments },
     { label: 'Plant', iconSrc: ACTION_ICON_PATHS.plant },
     { label: 'Harvest', iconSrc: ACTION_ICON_PATHS.harvest },
     { label: 'Process', iconSrc: ACTION_ICON_PATHS.process },

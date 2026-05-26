@@ -41,12 +41,14 @@ describe('Storage Angular component', () => {
     const { fixture } = await renderStorage();
     const text = textContent(fixture);
 
-    expect(text).toContain('Storage placeholder online');
+    expect(text).not.toContain('Storage placeholder online');
+    expect(text).toContain('Storage');
     expect(text).toContain('Inventory');
     expect(text).toContain('Used capacity');
-    expect(text).toContain('2 / 100');
+    expect(text).toContain('Shipments');
+    expect(text).toContain('0 / 100');
     expect(text).toContain('Protein Leaf Seed');
-    expect(text).toContain('2');
+    expect(text).toContain('0');
     expect(text).toContain('Biofood Pack');
     expect(text).toContain('0');
     expect(iconSources(fixture, '.storage__item-icon')).toEqual([
@@ -82,20 +84,22 @@ describe('Storage Angular component', () => {
     clickButton(fixture, 'Add 3 protein seeds');
 
     expect(addSpy).toHaveBeenCalledWith('seed_protein_leaf', 3);
-    expect(inventoryService.getQuantity('seed_protein_leaf')).toBe(5);
-    expect(textContent(fixture)).toContain('5 / 100');
+    expect(inventoryService.getQuantity('seed_protein_leaf')).toBe(3);
+    expect(textContent(fixture)).toContain('3 / 100');
     expect(textContent(fixture)).toContain('Add 3 protein seeds applied.');
 
     clickButton(fixture, 'Consume 1 protein seed');
 
     expect(consumeSpy).toHaveBeenCalledWith('seed_protein_leaf', 1);
-    expect(inventoryService.getQuantity('seed_protein_leaf')).toBe(4);
-    expect(textContent(fixture)).toContain('4 / 100');
+    expect(inventoryService.getQuantity('seed_protein_leaf')).toBe(2);
+    expect(textContent(fixture)).toContain('2 / 100');
     expect(textContent(fixture)).toContain('Consume 1 protein seed applied.');
   });
 
   it('preserves inventory state and exposes feedback after rejected storage actions', async () => {
     const { fixture, inventoryService } = await renderStorage();
+    inventoryService.addItem('seed_protein_leaf', 2);
+    fixture.detectChanges();
 
     clickButton(fixture, 'Overfill storage');
 
