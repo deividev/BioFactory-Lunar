@@ -2,13 +2,17 @@ import { describe, expect, it } from 'vitest';
 
 import {
   CONTRACT_DEFINITIONS,
+  COLONY_SUPPORT_UPGRADES,
+  COLONY_SUPPORT_EMERGENCY_ACTION,
   CROP_DEFINITIONS,
   DEMO_FINALE_CONTRACT_DEFINITION_ID,
+  getDemoUnlockRequirementTarget,
   ITEM_DEFINITIONS,
   MACHINE_DEFINITIONS,
   MODULE_DEFINITIONS,
   RECIPE_DEFINITIONS,
   RESOURCE_DEFINITIONS,
+  STORAGE_UPGRADES,
   SHIPMENT_CATALOG,
   TUTORIAL_STEPS,
 } from './index';
@@ -110,9 +114,10 @@ describe('MVP static game data', () => {
   });
 
   it('defines MVP contracts, shipment catalog items, and modules', () => {
-    expect(CONTRACT_DEFINITIONS).toHaveLength(9);
+    expect(CONTRACT_DEFINITIONS).toHaveLength(10);
     expect(CONTRACT_DEFINITIONS.map((contract) => contract.id)).toEqual([
       'contract_starter_biofood',
+      'contract_open_protein_buyback',
       'contract_greenhouse_protein',
       'contract_hydroponic_samples',
       'contract_nutrient_mix',
@@ -156,15 +161,26 @@ describe('MVP static game data', () => {
       ModuleType.Shipping,
       ModuleType.Storage,
     ]);
+    expect(COLONY_SUPPORT_UPGRADES.map((upgrade) => upgrade.id)).toEqual([
+      'solar_array_i',
+      'solar_array_ii',
+      'water_recycler_i',
+      'water_recycler_ii',
+      'oxygen_recycler_i',
+      'oxygen_recycler_ii',
+    ]);
+    expect(COLONY_SUPPORT_EMERGENCY_ACTION.id).toBe('emergency_reserve');
+    expect(STORAGE_UPGRADES.map((upgrade) => upgrade.id)).toEqual(['storage_bay_ii', 'storage_bay_iii']);
   });
 
   it('keeps tutorial onboarding copy aligned with the guided demo ramp', () => {
-    expect(TUTORIAL_STEPS.find((step) => step.id === 'accept_first_contract')?.description).toContain('Starter Biofood Delivery');
+    expect(TUTORIAL_STEPS.find((step) => step.id === 'accept_first_contract')?.description).toContain('Starter Protein Delivery');
     expect(TUTORIAL_STEPS.find((step) => step.id === 'buy_seeds')?.description).toContain('Protein Leaf seed pack');
     expect(TUTORIAL_STEPS.find((step) => step.id === 'buy_seeds')?.description).toContain('Shipments panel');
     expect(TUTORIAL_STEPS.find((step) => step.id === 'receive_seeds')?.description).toContain('Shipments panel');
+    expect(TUTORIAL_STEPS.find((step) => step.id === 'deliver_contract')?.description).toContain('2 Protein Leaf');
     expect(TUTORIAL_STEPS.find((step) => step.id === 'process_product')?.description).toContain('Orbital Packager');
-    expect(TUTORIAL_STEPS.find((step) => step.id === 'deliver_contract')?.description).toContain('unlock the finale contract');
+    expect(TUTORIAL_STEPS.find((step) => step.id === 'process_product')?.description).toContain('unlock the finale contract');
   });
 
   it('keeps catalog IDs unique and references resolvable', () => {
@@ -177,6 +193,8 @@ describe('MVP static game data', () => {
       CONTRACT_DEFINITIONS,
       SHIPMENT_CATALOG,
       MODULE_DEFINITIONS,
+      COLONY_SUPPORT_UPGRADES,
+      STORAGE_UPGRADES,
     ].forEach(expectUniqueIds);
 
     const resourceIds = new Set(idsOf(RESOURCE_DEFINITIONS));
@@ -198,6 +216,38 @@ describe('MVP static game data', () => {
     expect(MODULE_DEFINITIONS.every((module) => module.buildCost.every((cost) => resourceIds.has(cost.resourceId)))).toBe(
       true,
     );
+    expect(COLONY_SUPPORT_UPGRADES.every((upgrade) => upgrade.cost.every((cost) => resourceIds.has(cost.resourceId)))).toBe(true);
+    expect(COLONY_SUPPORT_UPGRADES.every((upgrade) => upgrade.boosts.every((boost) => resourceIds.has(boost.resourceId)))).toBe(true);
+    expect(STORAGE_UPGRADES.every((upgrade) => upgrade.cost.every((cost) => resourceIds.has(cost.resourceId)))).toBe(true);
+    expect(COLONY_SUPPORT_EMERGENCY_ACTION.cost.every((cost) => resourceIds.has(cost.resourceId))).toBe(true);
+    expect(COLONY_SUPPORT_EMERGENCY_ACTION.restores.every((restore) => resourceIds.has(restore.resourceId))).toBe(true);
+  });
+
+  it('keeps demo unlock requirements tied to real contract instances and infrastructure upgrades', () => {
+    const contractInstanceIds = new Set(CONTRACT_DEFINITIONS.map((contract) => `contract_${contract.id}_01`));
+    const infrastructureUpgradeIds = new Set([
+      ...COLONY_SUPPORT_UPGRADES.map((upgrade) => upgrade.id),
+      ...STORAGE_UPGRADES.map((upgrade) => upgrade.id),
+    ]);
+    const requirementIds = [
+      ...CONTRACT_DEFINITIONS.flatMap((contract) => contract.unlockRequirementIds ?? []),
+      ...SHIPMENT_CATALOG.flatMap((shipment) => shipment.unlockRequirementIds ?? []),
+      ...CROP_DEFINITIONS.flatMap((crop) => crop.unlockRequirementIds ?? []),
+      ...RECIPE_DEFINITIONS.flatMap((recipe) => recipe.unlockRequirementIds ?? []),
+    ];
+
+    expect(requirementIds).not.toHaveLength(0);
+    expect(requirementIds.every((requirementId) => {
+      const target = getDemoUnlockRequirementTarget(requirementId);
+
+      if (target === null) {
+        return false;
+      }
+
+      return target.type === 'contract'
+        ? contractInstanceIds.has(target.id)
+        : infrastructureUpgradeIds.has(target.id);
+    })).toBe(true);
   });
 
   it('keeps crop production resource costs tied to canonical resources', () => {

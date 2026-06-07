@@ -71,7 +71,7 @@ describe('SaveService', () => {
 
     expect(result.success).toBe(true);
     if (result.success) expect(result.data.resources.values['credits']).toBe(480);
-    expect(gameState.getSnapshot().resources.values).toEqual({ credits: 480, energy: 100, water: 75, nutrients: 20, oxygen: 100 });
+    expect(gameState.getSnapshot().resources.values).toEqual({ credits: 480, energy: 55, water: 75, nutrients: 35, oxygen: 45 });
     expect(gameState.getSnapshot().inventory.items).toEqual({ biofood_pack: 4 });
     expect(gameState.getSnapshot().clock).toEqual({ elapsedSeconds: 300, day: 3, speed: GameSpeed.X2 });
     expect(lastAlert()).toMatchObject({ type: AlertType.Success, message: 'Game loaded.' });
@@ -87,7 +87,7 @@ describe('SaveService', () => {
     const result = await service.restoreLatestGame();
 
     expect(result).toMatchObject({ success: true });
-    expect(gameState.getSnapshot().resources.values).toEqual({ credits: 480, energy: 100, water: 75, nutrients: 20, oxygen: 100 });
+    expect(gameState.getSnapshot().resources.values).toEqual({ credits: 480, energy: 55, water: 75, nutrients: 35, oxygen: 45 });
     expect(gameState.getSnapshot().inventory.items).toEqual({ biofood_pack: 4 });
     expect(gameState.getSnapshot().alerts).toHaveLength(0);
     expect(gameState.getSnapshot().demo.phase).toBe('menu');
@@ -121,23 +121,60 @@ describe('SaveService', () => {
 
     expect(result).toMatchObject({ success: true });
     expect(gameState.getSnapshot().resources.values).toEqual({
-      credits: 200,
-      energy: 100,
+      credits: 150,
+      energy: 55,
       water: 60,
-      nutrients: 20,
-      oxygen: 100,
+      nutrients: 35,
+      oxygen: 45,
     });
     expect(gameState.getSnapshot().resources.maxValues).toEqual({
-      energy: 100,
-      water: 100,
+      energy: 120,
+      water: 124,
       nutrients: 100,
-      oxygen: 100,
+      oxygen: 116,
+    });
+  });
+
+  it('preserves infrastructure upgrades across save and restore while tolerating legacy saves without that branch', async () => {
+    gameState.updateInfrastructure((infrastructure) => ({
+      ...infrastructure,
+      colonySupportUpgradeIds: ['water_recycler_i'],
+      storageUpgradeIds: ['storage_bay_ii'],
+    }));
+    gameState.updateInventory((inventory) => ({
+      ...inventory,
+      capacity: 20,
+    }));
+
+    await service.saveGame('2026-05-26T20:05:00.000Z');
+    gameState.reset();
+
+    const result = await service.loadGame();
+
+    expect(result).toMatchObject({ success: true });
+    expect(gameState.getSnapshot().infrastructure).toEqual({
+      colonySupportUpgradeIds: ['water_recycler_i'],
+      storageUpgradeIds: ['storage_bay_ii'],
+    });
+    expect(gameState.getSnapshot().inventory.capacity).toBe(20);
+
+    const legacySave = JSON.parse(storage.getItem(DEFAULT_SAVE_STORAGE_KEY)!) as Record<string, unknown>;
+    delete legacySave['infrastructure'];
+    storage.setItem(DEFAULT_SAVE_STORAGE_KEY, JSON.stringify(legacySave));
+    gameState.reset();
+
+    const legacyResult = await service.loadGame();
+
+    expect(legacyResult).toMatchObject({ success: true });
+    expect(gameState.getSnapshot().infrastructure).toEqual({
+      colonySupportUpgradeIds: ['solar_array_i', 'water_recycler_i', 'oxygen_recycler_i'],
+      storageUpgradeIds: [],
     });
   });
 
   it('preserves finale objective and tutorial continuity across save and restore', async () => {
     gameState.updateTutorial(() => ({
-      completedStepIds: ['accept_first_contract', 'buy_seeds', 'receive_seeds', 'plant_crop', 'harvest_crop', 'process_product', 'deliver_contract'],
+      completedStepIds: ['accept_first_contract', 'buy_seeds', 'receive_seeds', 'plant_crop', 'harvest_crop', 'deliver_contract', 'process_product'],
       activeStepId: undefined,
     }));
     gameState.updateDemo((demo) => ({
@@ -169,7 +206,7 @@ describe('SaveService', () => {
 
     expect(result).toMatchObject({ success: true });
     expect(gameState.getSnapshot().tutorial).toEqual({
-      completedStepIds: ['accept_first_contract', 'buy_seeds', 'receive_seeds', 'plant_crop', 'harvest_crop', 'process_product', 'deliver_contract'],
+      completedStepIds: ['accept_first_contract', 'buy_seeds', 'receive_seeds', 'plant_crop', 'harvest_crop', 'deliver_contract', 'process_product'],
       activeStepId: undefined,
     });
     expect(gameState.getSnapshot().demo).toEqual({

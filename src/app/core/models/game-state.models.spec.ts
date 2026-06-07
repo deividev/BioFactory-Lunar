@@ -25,6 +25,7 @@ import type {
   GameMetaState,
   GameState,
   GreenhouseState,
+  InfrastructureState,
   InventoryState,
   ItemAmount,
   MachineDefinition,
@@ -69,6 +70,7 @@ describe('game state model contracts', () => {
     expectTypeOf<DemoFlowState>().toHaveProperty('guidanceMode').toEqualTypeOf<'tutorial' | 'objective'>();
     expectTypeOf<ResourceState>().toHaveProperty('values').toEqualTypeOf<Record<string, number>>();
     expectTypeOf<InventoryState>().toHaveProperty('items').toEqualTypeOf<Record<string, number>>();
+    expectTypeOf<InfrastructureState>().toHaveProperty('colonySupportUpgradeIds').toEqualTypeOf<string[]>();
     expectTypeOf<CropSlot>().toHaveProperty('state').toEqualTypeOf<CropSlotState>();
     expectTypeOf<GreenhouseState>().toHaveProperty('slots').toEqualTypeOf<CropSlot[]>();
     expectTypeOf<MachineInstance>().toHaveProperty('state').toEqualTypeOf<MachineState>();
@@ -85,6 +87,7 @@ describe('game state model contracts', () => {
       clock: ClockState;
       resources: ResourceState;
       inventory: InventoryState;
+      infrastructure: InfrastructureState;
       greenhouse: GreenhouseState;
       machines: MachineInstance[];
       contracts: ContractInstance[];
@@ -107,6 +110,7 @@ describe('game state model contracts', () => {
       clock: ClockState;
       resources: ResourceState;
       inventory: InventoryState;
+      infrastructure?: InfrastructureState;
       greenhouse: GreenhouseState;
       machines: MachineInstance[];
       contracts: ContractInstance[];

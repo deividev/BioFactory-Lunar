@@ -7,6 +7,7 @@ import {
   createInitialDemoFlowState,
   createInitialGameState,
   createInitialGreenhouseState,
+  createInitialInfrastructureState,
   createInitialInventoryState,
   createInitialMachineInstances,
   createInitialModuleInstances,
@@ -16,20 +17,20 @@ import {
 } from './index';
 
 describe('initial state factories', () => {
-  it('creates the initial resource state from MVP defaults', () => {
+  it('creates the initial resource state from expanded demo defaults', () => {
     expect(createInitialResourceState()).toEqual({
       values: {
-        credits: 200,
-        energy: 100,
-        water: 100,
-        nutrients: 20,
-        oxygen: 100,
+        credits: 150,
+        energy: 55,
+        water: 60,
+        nutrients: 35,
+        oxygen: 45,
       },
       maxValues: {
-        energy: 100,
-        water: 100,
+        energy: 120,
+        water: 124,
         nutrients: 100,
-        oxygen: 100,
+        oxygen: 116,
       },
     });
   });
@@ -37,7 +38,7 @@ describe('initial state factories', () => {
   it('creates the empty starter inventory and greenhouse state', () => {
     expect(createInitialInventoryState()).toEqual({
       items: {},
-      capacity: 100,
+      capacity: 12,
     });
 
     expect(createInitialGreenhouseState().slots).toEqual([
@@ -49,12 +50,18 @@ describe('initial state factories', () => {
   });
 
   it('creates machine, contract, module, settings, and tutorial defaults', () => {
+    expect(createInitialInfrastructureState()).toEqual({
+      colonySupportUpgradeIds: ['solar_array_i', 'water_recycler_i', 'oxygen_recycler_i'],
+      storageUpgradeIds: [],
+    });
+
     expect(createInitialMachineInstances()).toEqual([
       { id: 'machine_botanical_extractor_01', definitionId: 'botanical_extractor', state: MachineState.Idle },
       { id: 'machine_orbital_packager_01', definitionId: 'orbital_packager', state: MachineState.Idle },
     ]);
 
     expect(createInitialContractInstances().map((contract) => contract.state)).toEqual([
+      ContractState.Available,
       ContractState.Available,
       ContractState.Available,
       ContractState.Available,
@@ -151,7 +158,7 @@ describe('initial state factories', () => {
     first.tutorial.completedStepIds.push('mutated');
     first.demo.phase = 'completed';
 
-    expect(second.resources.values['credits']).toBe(200);
+    expect(second.resources.values['credits']).toBe(150);
     expect(second.inventory.items['seed_protein_leaf']).toBeUndefined();
     expect(second.greenhouse.slots[0].state).toBe(CropSlotState.Empty);
     expect(second.machines[0].state).toBe(MachineState.Idle);
