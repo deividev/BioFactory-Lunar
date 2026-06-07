@@ -69,7 +69,7 @@ function createModuleScene(): {
   const scene = new MainBaseScene(bridge) as any;
 
   scene.textures = { exists: () => true };
-  scene.load = { image: () => undefined };
+  scene.load = { image: () => undefined, on: () => undefined };
   scene.scale = { width: 1920, height: 1080, on: () => undefined };
   scene.events = { once: () => undefined };
   scene.tweens = { add: () => undefined };
@@ -188,6 +188,7 @@ describe('MainBaseScene visual placeholder', () => {
       };
       load: {
         image(key: string, path: string): void;
+        on(event: string, handler: (file: { key: string }) => void): void;
       };
       preload(): void;
     };
@@ -200,6 +201,7 @@ describe('MainBaseScene visual placeholder', () => {
       }
     };
     scene.load = {
+      on: () => undefined,
       image: (key: string, path: string) => {
         calls.push(`load-image:${key}|${path}`);
       }
@@ -236,6 +238,7 @@ describe('MainBaseScene visual placeholder', () => {
       };
       load: {
         image(key: string, path: string): void;
+        on(event: string, handler: (file: { key: string }) => void): void;
       };
       scale: {
         width: number;
@@ -272,6 +275,17 @@ describe('MainBaseScene visual placeholder', () => {
           setDepth(): { setOrigin(): { setPosition(): unknown } };
           setOrigin(): { setDepth(): unknown };
           setPosition(): unknown;
+        };
+      };
+      make: {
+        graphics(config: unknown, addToScene: boolean): {
+          fillCircle(x: number, y: number, radius: number): unknown;
+          fillEllipse(x: number, y: number, width: number, height: number): unknown;
+          fillGradientStyle(...args: unknown[]): unknown;
+          fillRect(x: number, y: number, width: number, height: number): unknown;
+          fillStyle(color: number, alpha?: number): unknown;
+          generateTexture(key: string, width: number, height: number): unknown;
+          destroy(): unknown;
         };
       };
       preload(): void;
@@ -338,9 +352,25 @@ describe('MainBaseScene visual placeholder', () => {
       }
     };
     scene.load = {
+      on: () => undefined,
       image: (key: string, path: string) => {
         calls.push(`load-image:${key}|${path}`);
       }
+    };
+    scene.make = {
+      graphics: () => {
+        const graphics = {
+          fillCircle: () => graphics,
+          fillEllipse: () => graphics,
+          fillGradientStyle: () => graphics,
+          fillRect: () => graphics,
+          fillStyle: () => graphics,
+          generateTexture: () => graphics,
+          destroy: () => graphics,
+        };
+
+        return graphics;
+      },
     };
 
     scene.scale = {
@@ -406,6 +436,7 @@ describe('MainBaseScene visual placeholder', () => {
       };
       load: {
         image(key: string, path: string): void;
+        on(event: string, handler: (file: { key: string }) => void): void;
       };
       preload(): void;
     };
@@ -418,6 +449,7 @@ describe('MainBaseScene visual placeholder', () => {
       }
     };
     scene.load = {
+      on: () => undefined,
       image: (key: string, path: string) => {
         calls.push(`load-image:${key}|${path}`);
       }

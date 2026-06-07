@@ -141,6 +141,7 @@ export class MainBaseScene extends Phaser.Scene {
   private readonly cropReadyFlashingModuleIds = new Set<string>();
   private readonly cropReadyFlashTimers = new Map<string, ReturnType<typeof setTimeout>>();
   private demoPulseState: DemoPulseState = 'none';
+  private readonly failedTextureKeys = new Set<string>();
   private hoveredModuleId?: string;
   private readonly layoutOverrides = new Map<string, ModuleLayoutPatch>();
   private selectedModuleId?: string;
@@ -151,6 +152,9 @@ export class MainBaseScene extends Phaser.Scene {
   }
 
   preload(): void {
+    this.load.on('loaderror', (file: Phaser.Loader.File) => {
+      this.failedTextureKeys.add(file.key);
+    });
     const moduleAssets: PhaserAssetConfig[] = MVP_MODULE_HOTSPOTS.map((config) => ({
       key: spriteKeyFromPath(config.spritePath),
       path: config.spritePath,
@@ -159,6 +163,7 @@ export class MainBaseScene extends Phaser.Scene {
   }
 
   create(): void {
+    this.generateProceduralFallbackTextures();
     this.createBackgroundLayers();
     this.animateStarsLayer();
     this.createModuleHotspots();
@@ -443,4 +448,52 @@ export class MainBaseScene extends Phaser.Scene {
     this.cropReadyFlashTimers.clear();
     this.cropReadyFlashingModuleIds.clear();
   }
+
+  private generateProceduralFallbackTextures(): void {
+    const W = 800;
+    const H = 600;
+
+    for (const layer of LUNAR_BACKGROUND_LAYERS) {
+      if (!this.failedTextureKeys.has(layer.key) && this.textures.exists(layer.key)) {
+        continue;
+      }
+
+      const g = this.make.graphics({ x: 0, y: 0 }, false);
+
+      if (layer.key === 'bg_sky_base') {
+        g.fillGradientStyle(0x020b15, 0x020b15, 0x050b13, 0x050b13, 1);
+        g.fillRect(0, 0, W, H);
+      } else if (layer.key === 'bg_stars_far') {
+        g.fillStyle(0x000000, 0);
+        g.fillRect(0, 0, W, H);
+        for (let i = 0; i < 220; i++) {
+          const sx = Math.floor(Math.random() * W);
+          const sy = Math.floor(Math.random() * H);
+          const sr = Math.random() * 1.5 + 0.5;
+          const sa = 0.4 + Math.random() * 0.6;
+          g.fillStyle(0xffffff, sa);
+          g.fillCircle(sx, sy, sr);
+        }
+      } else if (layer.key === 'bg_earth') {
+        g.fillStyle(0x000000, 0);
+        g.fillRect(0, 0, W, H);
+        g.fillStyle(0x1a5276, 1);
+        g.fillCircle(100, 100, 75);
+        g.fillStyle(0x27ae60, 0.65);
+        g.fillEllipse(80, 90, 55, 38);
+        g.fillStyle(0xffffff, 0.15);
+        g.fillCircle(100, 100, 75);
+      } else if (layer.key === 'bg_lunar_ground') {
+        g.fillStyle(0x1a2332, 1);
+        g.fillRect(0, 0, W, H);
+      } else {
+        g.fillStyle(0x050b13, 1);
+        g.fillRect(0, 0, W, H);
+      }
+
+      g.generateTexture(layer.key, W, H);
+      g.destroy();
+    }
+  }
+
 }

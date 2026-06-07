@@ -29,7 +29,7 @@ export const MVP_MODULE_HOTSPOTS: readonly ModuleHotspotConfig[] = [
   {
     id: 'module_command_center_basic_01',
     label: 'Command Center',
-    xRatio: 0.495,
+    xRatio: 0.5,
     yRatio: 0.77,
     widthRatio: 0.15,
     heightRatio: 0.1,
@@ -40,7 +40,7 @@ export const MVP_MODULE_HOTSPOTS: readonly ModuleHotspotConfig[] = [
   {
     id: 'module_greenhouse_basic_01',
     label: 'Greenhouse',
-    xRatio: 0.245,
+    xRatio: 0.26,
     yRatio: 0.775,
     widthRatio: 0.18,
     heightRatio: 0.11,
@@ -62,7 +62,7 @@ export const MVP_MODULE_HOTSPOTS: readonly ModuleHotspotConfig[] = [
   {
     id: 'module_shipping_hangar_basic_01',
     label: 'Shipping',
-    xRatio: 0.755,
+    xRatio: 0.78,
     yRatio: 0.775,
     widthRatio: 0.18,
     heightRatio: 0.12,
