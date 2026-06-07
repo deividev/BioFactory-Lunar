@@ -60,6 +60,7 @@ button {
 .storage__header,
 .storage__items,
 .storage__workflow,
+.storage__upgrades,
 .storage__actions {
   display: grid;
   gap: 0.55rem;
@@ -123,6 +124,35 @@ button {
   gap: 0.4rem;
 }
 
+.storage__upgrade-list {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.storage__upgrade-card {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid color-mix(in srgb, var(--bf-border-subtle) 54%, transparent);
+  border-radius: 0.45rem;
+  padding: 0.55rem 0.65rem;
+  background: color-mix(in srgb, var(--bf-surface-raised) 24%, transparent);
+}
+
+.storage__upgrade-card[data-installed='true'] {
+  border-color: color-mix(in srgb, var(--bf-accent-success) 44%, transparent);
+}
+
+.storage__upgrade-card p {
+  font-size: 0.76rem;
+  color: var(--bf-text-muted);
+}
+
+.storage__upgrade-meta {
+  color: var(--bf-accent-info);
+}
+
 .storage__workflow li {
   min-width: 0;
   border: 1px solid color-mix(in srgb, var(--bf-border-subtle) 50%, transparent);
@@ -156,5 +186,10 @@ button {
     max-height: 18rem;
     border-right: 0;
     border-bottom: 1px solid var(--bf-border-subtle);
+  }
+
+  .storage__upgrade-card {
+    flex-direction: column;
+    align-items: stretch;
   }
 }

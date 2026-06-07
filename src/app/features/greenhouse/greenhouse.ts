@@ -84,11 +84,14 @@ export class Greenhouse {
   protected readonly feedbackIconSrc = computed(() =>
     this.hasFeedbackError() ? this.feedbackErrorIconSrc : this.feedbackSuccessIconSrc,
   );
+  protected readonly availableCropCatalog = computed(() =>
+    CROP_DEFINITIONS.filter((crop) => this.cropService.isCropUnlocked(crop.id)),
+  );
   protected readonly cropOptions = computed<readonly CropOptionViewModel[]>(() => {
     const items = this.inventory.items();
     const balances = this.resources.balances();
 
-    return CROP_DEFINITIONS.map((crop) => {
+    return this.availableCropCatalog().map((crop) => {
       const seedStock = items[crop.seedItemId] ?? 0;
       const requirements = crop.resourceCosts.map((cost) => {
         const available = balances[cost.resourceId] ?? 0;

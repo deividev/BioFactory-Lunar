@@ -1,7 +1,7 @@
 ﻿import { ChangeDetectionStrategy, Component, computed, inject, isDevMode, signal } from '@angular/core';
 
-import { ACTION_ICON_PATHS, ITEM_DEFINITIONS, ITEM_ICON_PATHS, STATE_ICON_PATHS } from '../../core/data';
-import { InventoryService, type InventoryActionResult } from '../../core/services';
+import { ACTION_ICON_PATHS, ITEM_DEFINITIONS, ITEM_ICON_PATHS, STATE_ICON_PATHS, STORAGE_UPGRADES } from '../../core/data';
+import { InfrastructureService, InventoryService, type InfrastructureActionResult, type InventoryActionResult } from '../../core/services';
 
 interface StorageItemRow {
   readonly id: string;
@@ -30,6 +30,7 @@ interface StorageWorkflowStep {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Storage {
+  private readonly infrastructureService = inject(InfrastructureService);
   private readonly inventoryService = inject(InventoryService);
 
   protected readonly devMode = isDevMode();
@@ -60,6 +61,13 @@ export class Storage {
 
   protected readonly usedCapacity = this.inventoryService.usedCapacity;
   protected readonly totalCapacity = computed(() => this.inventoryService.usedCapacity() + this.inventoryService.remainingCapacity());
+  protected readonly storageUpgrades = computed(() =>
+    STORAGE_UPGRADES.map((upgrade) => ({
+      ...upgrade,
+      purchased: this.infrastructureService.isStorageUpgradePurchased(upgrade.id),
+      canBuy: this.infrastructureService.canBuyStorageUpgrade(upgrade.id),
+    })),
+  );
   protected readonly feedbackMessage = signal('Storage controls ready.');
   protected readonly hasFeedbackError = signal(false);
   protected readonly feedbackRole = computed(() => (this.hasFeedbackError() ? 'alert' : 'status'));
@@ -79,10 +87,25 @@ export class Storage {
     this.applyInventoryAction('Overfill storage', this.inventoryService.addItem('biofood_pack', 99));
   }
 
+  protected buyStorageUpgrade(upgradeId: string, label: string): void {
+    this.applyInfrastructureAction(label, this.infrastructureService.buyStorageUpgrade(upgradeId));
+  }
+
   private applyInventoryAction(label: string, result: InventoryActionResult): void {
     if (result.success) {
       this.hasFeedbackError.set(false);
       this.feedbackMessage.set(`${label} applied.`);
+      return;
+    }
+
+    this.hasFeedbackError.set(true);
+    this.feedbackMessage.set(result.message);
+  }
+
+  private applyInfrastructureAction(label: string, result: InfrastructureActionResult): void {
+    if (result.success) {
+      this.hasFeedbackError.set(false);
+      this.feedbackMessage.set(`${label} installed.`);
       return;
     }
 

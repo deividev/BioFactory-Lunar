@@ -13,7 +13,22 @@
       <ul class="contracts__list">
         @for (contract of availableContracts(); track contract.id) {
           <li class="contracts__row">
-            <span class="contracts__name">{{ contract.name }}</span>
+            <div class="contracts__copy">
+              <span class="contracts__name">{{ contract.name }}</span>
+              @if (contract.description) {
+                <p class="contracts__description">{{ contract.description }}</p>
+              }
+              @if (contract.requirementsSummary) {
+                <p class="contracts__requirements">Deliver: {{ contract.requirementsSummary }}</p>
+              }
+              @if (contract.sourceHints.length > 0) {
+                <ul class="contracts__sources" aria-label="Production hints">
+                  @for (hint of contract.sourceHints; track hint) {
+                    <li class="contracts__source-hint">{{ hint }}</li>
+                  }
+                </ul>
+              }
+            </div>
             <span class="contracts__reward">+{{ contract.rewardCredits }} cr</span>
             <button
               class="contracts__btn contracts__btn--accept"
@@ -36,7 +51,19 @@
         @for (contract of activeContracts(); track contract.id) {
           <li class="contracts__row contracts__row--active">
             <div class="contracts__row-header">
-              <span class="contracts__name">{{ contract.name }}</span>
+              <div class="contracts__copy">
+                <span class="contracts__name">{{ contract.name }}</span>
+                @if (contract.description) {
+                  <p class="contracts__description">{{ contract.description }}</p>
+                }
+                @if (contract.sourceHints.length > 0) {
+                  <ul class="contracts__sources" aria-label="Production hints">
+                    @for (hint of contract.sourceHints; track hint) {
+                      <li class="contracts__source-hint">{{ hint }}</li>
+                    }
+                  </ul>
+                }
+              </div>
               <span class="contracts__reward">+{{ contract.rewardCredits }} cr</span>
             </div>
             <ul class="contracts__progress" aria-label="Required items">

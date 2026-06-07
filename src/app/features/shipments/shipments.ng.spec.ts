@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ShipmentState } from '../../core/enums';
+import { ContractState, ShipmentState } from '../../core/enums';
 import { GameStateService } from '../../core/services/game-state.service';
 import { ShipmentService } from '../../core/services/shipment.service';
 import { Shipments } from './shipments';
@@ -21,30 +21,46 @@ describe('Shipments panel', () => {
     fixture.detectChanges();
   });
 
+  function rewardFor(itemId: string): string | undefined {
+    return el
+      .querySelector<HTMLElement>(`[data-testid="catalog-row"][data-item-id="${itemId}"] [data-testid="item-reward"]`)
+      ?.textContent
+      ?.trim();
+  }
+
   it('renders each catalog item name and cost', () => {
     const rows = el.querySelectorAll('.shipments__catalog-row');
     expect(rows.length).toBeGreaterThan(0);
     expect(el.textContent).toContain('Protein Leaf Seed Pack');
+    expect(el.textContent).not.toContain('Aqua Sprout Seed Pack');
+    expect(el.textContent).not.toContain('Luma Moss Spore Pack');
     expect(el.textContent).toContain('35 cr');
   });
 
   it('shows reward quantity label for item-based shipment', () => {
-    const rewards = el.querySelectorAll<HTMLElement>('[data-testid="item-reward"]');
-    expect(rewards.length).toBeGreaterThan(0);
-    // first catalog item: Protein Leaf Seed Pack → ×4 Protein Leaf Seed
-    expect(rewards[0].textContent?.trim()).toBe('×4 Protein Leaf Seed');
+    expect(rewardFor('shipment_seed_protein_leaf_pack')).toBe('×4 Protein Leaf Seed');
   });
 
   it('shows reward quantity label for resource-based shipment (Water Supply)', () => {
-    const rewards = el.querySelectorAll<HTMLElement>('[data-testid="item-reward"]');
-    // Water Supply is the 4th catalog item (index 3) → ×25 Water
-    expect(rewards[3].textContent?.trim()).toBe('×25 Water');
+    expect(rewardFor('shipment_water_supply')).toBe('×25 Water');
   });
 
   it('shows reward quantity label for the nutrient resource shipment', () => {
-    const rewards = el.querySelectorAll<HTMLElement>('[data-testid="item-reward"]');
-    // Basic Nutrient Pack is the 5th catalog item (index 4) → ×20 Nutrients
-    expect(rewards[4].textContent?.trim()).toBe('×20 Nutrients');
+    expect(rewardFor('shipment_nutrient_pack')).toBe('×20 Nutrients');
+  });
+
+  it('reveals the aqua sprout shipment after the starter contract is completed', () => {
+    gameState.updateContracts((contracts) =>
+      contracts.map((contract) =>
+        contract.id === 'contract_contract_starter_biofood_01'
+          ? { ...contract, state: ContractState.Completed }
+          : contract,
+      ),
+    );
+
+    fixture.detectChanges();
+
+    expect(el.textContent).toContain('Aqua Sprout Seed Pack');
   });
 
   it('buy button is disabled when insufficient credits', () => {

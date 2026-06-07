@@ -3,7 +3,7 @@ import { DEMO_STEAM_WISHLIST_LABEL, DEMO_STEAM_WISHLIST_URL } from '../../core/c
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DEMO_COMPLETION_COPY, DEMO_MENU_COPY } from '../../core/data';
 import { PanelType } from '../../core/enums';
-import { DemoFlowService, ElectronBridgeService, GameStateService, ModuleSelectionService, type DemoObjectiveStatus, type DemoViewPhase } from '../../core/services';
+import { ColonySupportRuntimeService, DemoFlowService, ElectronBridgeService, GameStateService, ModuleSelectionService, type DemoObjectiveStatus, type DemoViewPhase } from '../../core/services';
 import { CommandCenter } from '../../features/command-center/command-center';
 import { Contracts } from '../../features/contracts/contracts';
 import { ModuleLayoutDevPanel } from '../../features/dev/module-layout-dev-panel/module-layout-dev-panel';
@@ -71,6 +71,7 @@ export class GameShell {
   protected readonly devToolsVisible = signal(true);
 
   private readonly gameState = inject(GameStateService);
+  private readonly colonySupportRuntime = inject(ColonySupportRuntimeService);
   private readonly demoFlow = inject(DemoFlowService);
   private readonly electronBridge = inject(ElectronBridgeService);
   private readonly moduleSelection = inject(ModuleSelectionService);
@@ -88,6 +89,8 @@ export class GameShell {
   protected readonly steamWishlistUrl = DEMO_STEAM_WISHLIST_URL;
 
   constructor() {
+    void this.colonySupportRuntime;
+
     this.phaserBridge.phaserEvents$
       .pipe(takeUntilDestroyed())
       .subscribe((event) => {

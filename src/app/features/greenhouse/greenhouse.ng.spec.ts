@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 
-import { CropSlotState } from '../../core/enums';
+import { ContractState, CropSlotState } from '../../core/enums';
 import { CropService, GameStateService } from '../../core/services';
 import { Greenhouse } from './greenhouse';
 
@@ -16,6 +16,16 @@ describe('Greenhouse Angular component', () => {
     fixture.detectChanges();
 
     return { fixture, gameState, cropService };
+  }
+
+  function unlockAquaSprout(gameState: GameStateService): void {
+    gameState.updateContracts((contracts) =>
+      contracts.map((contract) =>
+        contract.id === 'contract_contract_starter_biofood_01'
+          ? { ...contract, state: ContractState.Completed }
+          : contract,
+      ),
+    );
   }
 
   function textContent(fixture: ReturnType<typeof TestBed.createComponent<Greenhouse>>): string {
@@ -40,10 +50,18 @@ describe('Greenhouse Angular component', () => {
     expect(text).toContain('crop_slot_03');
     expect(text).toContain('crop_slot_04');
     expect(text).toContain('Protein Leaf');
-    expect(text).toContain('Aqua Sprout');
-    expect(text).toContain('Luma Moss');
     expect(text).toContain('Protein Leaf (0 seeds)');
+    expect(text).not.toContain('Aqua Sprout');
+    expect(text).not.toContain('Luma Moss');
     expect((fixture.nativeElement.querySelectorAll('select') as NodeListOf<HTMLSelectElement>).length).toBe(4);
+  });
+
+  it('reveals aqua sprout after the starter contract is completed', async () => {
+    const { fixture, gameState } = await renderGreenhouse();
+    unlockAquaSprout(gameState);
+    fixture.detectChanges();
+
+    expect(textContent(fixture)).toContain('Aqua Sprout');
   });
 
   it('shows seed stock and planting requirements for the selected crop', async () => {
@@ -66,12 +84,14 @@ describe('Greenhouse Angular component', () => {
     expect(text).toContain('1m 30s');
     expect(text).toContain('Water');
     expect(text).toContain('5 required');
-    expect(text).toContain('100 available');
+    expect(text).toContain('60 available');
     expect(text).toContain('Ready to plant. Harvest in 1m 30s.');
   });
 
   it('shows missing seed stock when the selected crop cannot be planted yet', async () => {
-    const { fixture } = await renderGreenhouse();
+    const { fixture, gameState } = await renderGreenhouse();
+    unlockAquaSprout(gameState);
+    fixture.detectChanges();
 
     const select = fixture.nativeElement.querySelector('select') as HTMLSelectElement;
     select.value = 'aqua_sprout';

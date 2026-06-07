@@ -50,6 +50,13 @@ export class Processing {
   protected readonly selectedRecipeByMachine = signal<Record<string, string>>({});
   protected readonly feedbackMessage = signal('');
   protected readonly hasFeedbackError = signal(false);
+  protected readonly unlockedRecipeIds = computed(() =>
+    new Set(
+      RECIPE_DEFINITIONS
+        .filter((recipe) => this.productionService.isRecipeUnlocked(recipe.id))
+        .map((recipe) => recipe.id),
+    ),
+  );
 
   protected readonly machineViewModels = computed<readonly MachineViewModel[]>(() => {
     const machines = this.gameState.machines();
@@ -61,11 +68,13 @@ export class Processing {
       const machineDef = MACHINE_DEF_BY_ID.get(machine.definitionId);
       const name = machineDef?.name ?? machine.definitionId;
 
-      const compatibleRecipes: RecipeViewModel[] = (machineDef?.acceptedRecipeIds ?? []).map((recipeId) => ({
-        id: recipeId,
-        name: RECIPE_DEF_BY_ID.get(recipeId)?.name ?? recipeId,
-        durationSeconds: RECIPE_DEF_BY_ID.get(recipeId)?.durationSeconds ?? 0,
-      }));
+      const compatibleRecipes: RecipeViewModel[] = (machineDef?.acceptedRecipeIds ?? [])
+        .filter((recipeId) => this.unlockedRecipeIds().has(recipeId))
+        .map((recipeId) => ({
+          id: recipeId,
+          name: RECIPE_DEF_BY_ID.get(recipeId)?.name ?? recipeId,
+          durationSeconds: RECIPE_DEF_BY_ID.get(recipeId)?.durationSeconds ?? 0,
+        }));
 
       const selectedRecipeId = selections[machine.id];
       const selectedRecipeDef = selectedRecipeId !== undefined ? RECIPE_DEF_BY_ID.get(selectedRecipeId) : undefined;
@@ -85,7 +94,9 @@ export class Processing {
       let startHint: string | undefined;
 
       if (machine.state === MachineState.Idle) {
-        if (selectedRecipeDef === undefined) {
+        if (compatibleRecipes.length === 0) {
+          startHint = 'No recipes unlocked for this machine yet.';
+        } else if (selectedRecipeDef === undefined) {
           startHint = 'Select a recipe to enable Start.';
         } else if (!canStart) {
           const missingParts = [

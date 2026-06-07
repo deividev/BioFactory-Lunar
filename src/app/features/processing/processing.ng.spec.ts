@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 
-import { MachineState } from '../../core/enums';
+import { ContractState, MachineState } from '../../core/enums';
 import { GameStateService, ProductionService } from '../../core/services';
 import { Processing } from './processing';
 
@@ -16,6 +16,16 @@ describe('Processing Angular component', () => {
     fixture.detectChanges();
 
     return { fixture, gameState, productionService };
+  }
+
+  function unlockAquaRecipe(gameState: GameStateService): void {
+    gameState.updateContracts((contracts) =>
+      contracts.map((contract) =>
+        contract.id === 'contract_contract_starter_biofood_01'
+          ? { ...contract, state: ContractState.Completed }
+          : contract,
+      ),
+    );
   }
 
   function textContent(fixture: ReturnType<typeof TestBed.createComponent<Processing>>): string {
@@ -48,11 +58,21 @@ describe('Processing Angular component', () => {
   });
 
   it('botanical extractor select lists its two compatible recipes', async () => {
-    const { fixture } = await renderProcessing();
+    const { fixture, gameState } = await renderProcessing();
+    unlockAquaRecipe(gameState);
+    fixture.detectChanges();
+
     const text = textContent(fixture);
 
     expect(text).toContain('Aqua Sprout to Nutrient Mix');
-    expect(text).toContain('Luma Moss to Glow Pigment');
+    expect(text).not.toContain('Luma Moss to Glow Pigment');
+  });
+
+  it('shows a locked hint when a machine has no unlocked recipes yet', async () => {
+    const { fixture } = await renderProcessing();
+    const text = textContent(fixture);
+
+    expect(text).toContain('No recipes unlocked for this machine yet.');
   });
 
   it('orbital packager select lists its compatible recipe', async () => {
@@ -74,7 +94,9 @@ describe('Processing Angular component', () => {
   });
 
   it('start button stays disabled when recipe selected but inputs not in inventory', async () => {
-    const { fixture } = await renderProcessing();
+    const { fixture, gameState } = await renderProcessing();
+    unlockAquaRecipe(gameState);
+    fixture.detectChanges();
     const select = fixture.nativeElement.querySelector('select') as HTMLSelectElement;
     select.value = 'recipe_aqua_sprout_to_nutrient_mix';
     select.dispatchEvent(new Event('change'));
@@ -87,12 +109,14 @@ describe('Processing Angular component', () => {
 
   it('explains missing resources when a recipe is selected but resource costs are not affordable', async () => {
     const { fixture, gameState } = await renderProcessing();
+    unlockAquaRecipe(gameState);
 
     gameState.updateInventory((inv) => ({ ...inv, items: { ...inv.items, aqua_sprout: 2 } }));
     gameState.updateResources((res) => ({
       ...res,
       values: { ...res.values, water: 1, energy: 4, nutrients: 0 },
     }));
+    fixture.detectChanges();
 
     const select = fixture.nativeElement.querySelector('select') as HTMLSelectElement;
     select.value = 'recipe_aqua_sprout_to_nutrient_mix';
@@ -106,11 +130,13 @@ describe('Processing Angular component', () => {
 
   it('start button is enabled when recipe selected and inputs/resources are affordable', async () => {
     const { fixture, gameState } = await renderProcessing();
+    unlockAquaRecipe(gameState);
     gameState.updateInventory((inv) => ({ ...inv, items: { ...inv.items, aqua_sprout: 2 } }));
     gameState.updateResources((res) => ({
       ...res,
       values: { ...res.values, water: 2, energy: 5, nutrients: 1 },
     }));
+    fixture.detectChanges();
 
     const select = fixture.nativeElement.querySelector('select') as HTMLSelectElement;
     select.value = 'recipe_aqua_sprout_to_nutrient_mix';
@@ -125,12 +151,14 @@ describe('Processing Angular component', () => {
   it('clicking start calls productionService.startRecipe and shows success feedback', async () => {
     const { fixture, gameState, productionService } = await renderProcessing();
     const spy = vi.spyOn(productionService, 'startRecipe').mockReturnValue({ success: true });
+    unlockAquaRecipe(gameState);
 
     gameState.updateInventory((inv) => ({ ...inv, items: { ...inv.items, aqua_sprout: 2 } }));
     gameState.updateResources((res) => ({
       ...res,
       values: { ...res.values, water: 2, energy: 5, nutrients: 1 },
     }));
+    fixture.detectChanges();
 
     const select = fixture.nativeElement.querySelector('select') as HTMLSelectElement;
     select.value = 'recipe_aqua_sprout_to_nutrient_mix';
@@ -146,12 +174,14 @@ describe('Processing Angular component', () => {
 
   it('switches the machine into running state and renders the progress bar after starting a recipe', async () => {
     const { fixture, gameState } = await renderProcessing();
+    unlockAquaRecipe(gameState);
 
     gameState.updateInventory((inv) => ({ ...inv, items: { ...inv.items, aqua_sprout: 2 } }));
     gameState.updateResources((res) => ({
       ...res,
       values: { ...res.values, water: 2, energy: 5, nutrients: 1 },
     }));
+    fixture.detectChanges();
 
     const select = fixture.nativeElement.querySelector('select') as HTMLSelectElement;
     select.value = 'recipe_aqua_sprout_to_nutrient_mix';
@@ -178,12 +208,14 @@ describe('Processing Angular component', () => {
       code: 'insufficient_inputs',
       message: 'Not enough aqua_sprout.',
     });
+    unlockAquaRecipe(gameState);
 
     gameState.updateInventory((inv) => ({ ...inv, items: { ...inv.items, aqua_sprout: 2 } }));
     gameState.updateResources((res) => ({
       ...res,
       values: { ...res.values, water: 2, energy: 5, nutrients: 1 },
     }));
+    fixture.detectChanges();
 
     const select = fixture.nativeElement.querySelector('select') as HTMLSelectElement;
     select.value = 'recipe_aqua_sprout_to_nutrient_mix';

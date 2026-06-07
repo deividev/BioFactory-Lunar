@@ -37,15 +37,17 @@ describe('HudTop Angular component', () => {
     expect(fixture.nativeElement.querySelectorAll('.hud-top__resource-card')).toHaveLength(5);
     expect(fixture.nativeElement.querySelectorAll('.hud-top__system-card')).toHaveLength(3);
     expect(text).toContain('Credits');
-    expect(text).toContain('200');
+    expect(text).toContain('150');
     expect(text).toContain('Energy');
-    expect(text).toContain('100 / 100');
+    expect(text).toContain('55 / 100');
     expect(text).toContain('Water');
+    expect(text).toContain('60 / 100');
     expect(text).toContain('Nutrients');
-    expect(text).toContain('20 / 100');
+    expect(text).toContain('35 / 100');
     expect(text).toContain('Oxygen');
-    expect(text).toContain('100 / 100');
+    expect(text).toContain('45 / 100');
     expect(text).toContain('Storage');
+    expect(text).toContain('0 / 12');
     expect(text).toContain('Contracts');
     expect(text).toContain('available');
     expect(text).toContain('Shipments');
@@ -108,7 +110,7 @@ describe('HudTop Angular component', () => {
 
     fixture.detectChanges();
 
-    expect(visibleText(fixture)).toContain('8 available');
+    expect(visibleText(fixture)).toContain('9 available');
 
     gameState.updateTutorial((tutorial) => ({
       ...tutorial,
@@ -116,7 +118,7 @@ describe('HudTop Angular component', () => {
     }));
     fixture.detectChanges();
 
-    expect(visibleText(fixture)).toContain('9 available');
+    expect(visibleText(fixture)).toContain('10 available');
   });
 
   it('does not expose resource debug action buttons in the demo HUD', async () => {

@@ -74,6 +74,133 @@
     </ul>
   </section>
 
+  <section class="command-center__unlocks" aria-label="Next unlocks">
+    <div class="command-center__unlocks-header">
+      <div>
+        <h3 class="command-center__tutorial-heading">Next Unlocks</h3>
+        <p class="command-center__objective-desc">
+          Keep the next progression beats visible while the demo stays research-free.
+        </p>
+      </div>
+    </div>
+
+    @if (recommendedUnlock(); as unlock) {
+      <article class="command-center__unlock-focus" data-testid="recommended-unlock">
+        <div class="command-center__unlock-header-row">
+          <span class="command-center__unlock-panel">Recommended next move · {{ unlock.panelLabel }}</span>
+          <span class="command-center__unlock-badge" [attr.data-state]="unlock.actionState">
+            {{ unlock.actionBadge }}
+          </span>
+        </div>
+        <p class="command-center__unlock-requirement">{{ unlock.requirementLabel }}</p>
+        <p class="command-center__unlock-summary">Unlocks: {{ unlock.unlocksSummary }}</p>
+        <p class="command-center__unlock-action"><span>Do now:</span> {{ unlock.actionLabel }}</p>
+      </article>
+    }
+
+    @if (secondaryUnlocks().length > 0) {
+      <p class="command-center__unlock-subtitle">Coming up after that</p>
+
+      <ul class="command-center__unlock-list">
+        @for (unlock of secondaryUnlocks(); track unlock.id) {
+        <li class="command-center__unlock-card" data-testid="unlock-preview">
+          <div class="command-center__unlock-header-row">
+            <span class="command-center__unlock-panel">{{ unlock.panelLabel }}</span>
+            <span class="command-center__unlock-badge" [attr.data-state]="unlock.actionState">
+              {{ unlock.actionBadge }}
+            </span>
+          </div>
+          <p class="command-center__unlock-requirement">{{ unlock.requirementLabel }}</p>
+          <p class="command-center__unlock-summary">Unlocks: {{ unlock.unlocksSummary }}</p>
+          <p class="command-center__unlock-action"><span>Do now:</span> {{ unlock.actionLabel }}</p>
+        </li>
+        }
+      </ul>
+    }
+  </section>
+
+  <section class="command-center__support" aria-label="Colony support controls">
+    <div class="command-center__support-header">
+      <div>
+        <h3 class="command-center__tutorial-heading">Colony Support</h3>
+        <p class="command-center__objective-desc">
+          Keep the expanded demo alive by stabilizing utilities before the next contract wave.
+        </p>
+      </div>
+    </div>
+
+    <ul class="command-center__support-utilities" aria-label="Colony support utilities">
+      @for (utility of utilityRows(); track utility.id) {
+        <li class="command-center__support-utility">
+          <span>{{ utility.label }}</span>
+          <strong>{{ utility.amount }} / {{ utility.cap }}</strong>
+        </li>
+      }
+    </ul>
+
+    <div class="command-center__support-grid">
+      @for (track of colonySupportTracks(); track track.id) {
+        <article class="command-center__support-card" data-installed="true">
+          <div class="command-center__support-copy">
+            <h4>{{ track.label }} Support</h4>
+            <p>{{ track.currentUpgrade.name }} active · {{ track.currentLevelLabel }}</p>
+            <p class="command-center__support-meta">
+              Current: {{ track.currentPassiveSummary }}
+            </p>
+            <p class="command-center__support-meta">Current buffer: {{ track.currentCapSummary }}</p>
+            @if (track.nextUpgrade) {
+              <p class="command-center__support-meta">
+                Next: {{ track.nextUpgrade.name }} · {{ track.nextLevelLabel }} · {{ track.nextUpgradeCost }} credits
+              </p>
+              <p class="command-center__support-meta">{{ track.nextUpgradeDeltaSummary }}</p>
+            } @else {
+              <p class="command-center__support-meta">Max level reached.</p>
+            }
+          </div>
+
+          <button
+            type="button"
+            class="command-center__btn"
+            [attr.data-testid]="'support-upgrade-' + track.id"
+            [disabled]="!track.nextUpgrade || !track.canUpgrade"
+            (click)="track.nextUpgrade && buyColonySupportUpgrade(track.nextUpgrade.id, track.nextUpgrade.name)"
+          >
+            {{ track.nextUpgrade ? 'Upgrade' : 'Maxed' }}
+          </button>
+        </article>
+      }
+
+      <article class="command-center__support-card command-center__support-card--emergency">
+        <div class="command-center__support-copy">
+          <h4>{{ emergencyAction.name }}</h4>
+          <p>{{ emergencyAction.description }}</p>
+          <p class="command-center__support-meta">
+            {{ emergencyAction.cost[0]?.quantity }} credits · +6 energy · +8 water · +6 oxygen
+          </p>
+        </div>
+
+        <button
+          type="button"
+          class="command-center__btn"
+          data-testid="emergency-reserve-btn"
+          [disabled]="!canRunEmergencyReserve()"
+          (click)="runEmergencyReserve()"
+        >
+          Trigger reserve
+        </button>
+      </article>
+    </div>
+
+    <p
+      class="command-center__support-status"
+      [class.command-center__support-status--error]="hasSupportError()"
+      [attr.role]="hasSupportError() ? 'alert' : 'status'"
+      data-testid="support-status"
+    >
+      {{ supportStatus() }}
+    </p>
+  </section>
+
   <section class="command-center__actions" aria-label="Base actions">
     <button
       type="button"
