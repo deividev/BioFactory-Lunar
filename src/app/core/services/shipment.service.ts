@@ -1,8 +1,13 @@
 import { effect, Injectable, untracked } from '@angular/core';
 
-import { ITEM_DEFINITIONS, RESOURCE_DEFINITIONS, TUTORIAL_STARTER_SHIPMENT_CATALOG_ID } from '../data';
+import {
+  areDemoUnlockRequirementsMet,
+  ITEM_DEFINITIONS,
+  RESOURCE_DEFINITIONS,
+  TUTORIAL_STARTER_SHIPMENT_CATALOG_ID,
+} from '../data';
 import { SHIPMENT_CATALOG } from '../data/economy.data';
-import { ShipmentState } from '../enums';
+import { ContractState, ShipmentState } from '../enums';
 import { InventoryService } from './inventory.service';
 import { ResourceService } from './resource.service';
 import { AlertService } from './alert.service';
@@ -32,10 +37,21 @@ export class ShipmentService {
     });
   }
 
+  isShipmentUnlocked(catalogItemId: string): boolean {
+    const item = SHIPMENT_CATALOG.find((catalogItem) => catalogItem.id === catalogItemId);
+
+    return item !== undefined && areDemoUnlockRequirementsMet(item.unlockRequirementIds, this.getUnlockContext());
+  }
+
   buyShipment(catalogItemId: string): void {
     const item = SHIPMENT_CATALOG.find((c) => c.id === catalogItemId);
     if (!item) {
       this.alerts.addWarning('Shipment not found.');
+      return;
+    }
+
+    if (!this.isShipmentUnlocked(catalogItemId)) {
+      this.alerts.addWarning('This shipment is not unlocked yet.');
       return;
     }
 
@@ -149,5 +165,17 @@ export class ShipmentService {
     }
 
     return undefined;
+  }
+
+  private getUnlockContext() {
+    return {
+      completedContractIds: this.gameState.contracts()
+        .filter((contract) => contract.state === ContractState.Completed)
+        .map((contract) => contract.id),
+      infrastructureUpgradeIds: [
+        ...this.gameState.infrastructure().colonySupportUpgradeIds,
+        ...this.gameState.infrastructure().storageUpgradeIds,
+      ],
+    };
   }
 }

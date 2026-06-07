@@ -10,6 +10,7 @@ export interface CropDefinition {
   resourceCosts: ResourceAmount[];
   baseYield: ItemAmount;
   qualityTier: QualityTier;
+  unlockRequirementIds?: string[];
 }
 
 export interface CropSlot {

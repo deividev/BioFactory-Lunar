@@ -1,6 +1,10 @@
 import { Injectable } from '@angular/core';
 
-import { CONTRACT_DEFINITIONS, TUTORIAL_STARTER_CONTRACT_INSTANCE_ID } from '../data';
+import {
+  areDemoUnlockRequirementsMet,
+  CONTRACT_DEFINITIONS,
+  TUTORIAL_STARTER_CONTRACT_INSTANCE_ID,
+} from '../data';
 import { ContractState } from '../enums';
 import type { ActionResult, ContractInstance } from '../models';
 import { AlertService } from './alert.service';
@@ -9,7 +13,7 @@ import { InventoryService } from './inventory.service';
 import { ResourceService } from './resource.service';
 import { TutorialService } from './tutorial.service';
 
-export type ContractActionFailureCode = 'unknown_contract' | 'invalid_state' | 'insufficient_items';
+export type ContractActionFailureCode = 'unknown_contract' | 'invalid_state' | 'insufficient_items' | 'locked_contract';
 
 export type ContractActionResult = ActionResult<ContractActionFailureCode>;
 
@@ -45,6 +49,13 @@ export class ContractService {
     if (!instance) {
       return { success: false, code: 'unknown_contract', message: `Contract not found: ${instanceId}` };
     }
+    if (!this.isContractUnlocked(instanceId)) {
+      return {
+        success: false,
+        code: 'locked_contract',
+        message: `Contract ${instanceId} is not unlocked yet.`,
+      };
+    }
     if (instance.state !== ContractState.Available) {
       return {
         success: false,
@@ -63,6 +74,13 @@ export class ContractService {
     }
 
     return { success: true };
+  }
+
+  isContractUnlocked(instanceId: string): boolean {
+    const instance = this.findInstance(instanceId);
+    const definition = instance ? CONTRACT_DEFINITION_BY_ID.get(instance.definitionId) : undefined;
+
+    return definition !== undefined && areDemoUnlockRequirementsMet(definition.unlockRequirementIds, this.getUnlockContext());
   }
 
   deliverContract(instanceId: string): ContractActionResult {
@@ -101,7 +119,16 @@ export class ContractService {
     }
 
     this.gameState.updateContracts((contracts) =>
-      contracts.map((c) => (c.id === instanceId ? { ...c, state: ContractState.Completed } : c)),
+      contracts.map((c) => {
+        if (c.id !== instanceId) {
+          return c;
+        }
+
+        return {
+          ...c,
+          state: definition.repeatable ? ContractState.Available : ContractState.Completed,
+        };
+      }),
     );
 
     this.alerts.addSuccess('Contract delivered!');
@@ -145,5 +172,17 @@ export class ContractService {
 
   private findInstance(instanceId: string): ContractInstance | undefined {
     return this.gameState.contracts().find((c) => c.id === instanceId);
+  }
+
+  private getUnlockContext() {
+    return {
+      completedContractIds: this.gameState.contracts()
+        .filter((contract) => contract.state === ContractState.Completed)
+        .map((contract) => contract.id),
+      infrastructureUpgradeIds: [
+        ...this.gameState.infrastructure().colonySupportUpgradeIds,
+        ...this.gameState.infrastructure().storageUpgradeIds,
+      ],
+    };
   }
 }

@@ -122,7 +122,7 @@ describe('DemoFlowService', () => {
     service.startNewDemo();
 
     expect(service.viewPhase()).toBe('guided_run');
-    expect(gameState.getSnapshot().resources.values['credits']).toBe(200);
+    expect(gameState.getSnapshot().resources.values['credits']).toBe(150);
     expect(gameState.getSnapshot().demo).toEqual({
       phase: 'guided_run',
       objectiveContractInstanceId: DEMO_FINALE_CONTRACT_INSTANCE_ID,
@@ -148,7 +148,7 @@ describe('DemoFlowService', () => {
 
     service.startNewDemo();
     gameState.updateTutorial(() => ({
-      completedStepIds: ['accept_first_contract', 'buy_seeds', 'receive_seeds', 'plant_crop', 'harvest_crop', 'process_product', 'deliver_contract'],
+      completedStepIds: ['accept_first_contract', 'buy_seeds', 'receive_seeds', 'plant_crop', 'harvest_crop', 'deliver_contract', 'process_product'],
       activeStepId: undefined,
     }));
     service.syncProgressFromState();
@@ -182,7 +182,7 @@ describe('DemoFlowService', () => {
 
     service.startNewDemo();
     gameState.updateTutorial(() => ({
-      completedStepIds: ['accept_first_contract', 'buy_seeds', 'receive_seeds', 'plant_crop', 'harvest_crop', 'process_product', 'deliver_contract'],
+      completedStepIds: ['accept_first_contract', 'buy_seeds', 'receive_seeds', 'plant_crop', 'harvest_crop', 'deliver_contract', 'process_product'],
       activeStepId: undefined,
     }));
     service.syncProgressFromState();

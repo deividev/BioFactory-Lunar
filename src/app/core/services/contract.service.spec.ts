@@ -10,7 +10,9 @@ import { TutorialService } from './tutorial.service';
 
 // Instance IDs follow the pattern: contract_${definitionId}_01
 const STARTER_BIOFOOD_ID = 'contract_contract_starter_biofood_01';
+const OPEN_PROTEIN_BUYBACK_ID = 'contract_contract_open_protein_buyback_01';
 const GREENHOUSE_PROTEIN_ID = 'contract_contract_greenhouse_protein_01';
+const NUTRIENT_MIX_CONTRACT_INSTANCE_ID = 'contract_contract_nutrient_mix_01';
 const MIXED_BIO_SAMPLE_ID = 'contract_contract_mixed_bio_sample_01';
 
 describe('ContractService', () => {
@@ -39,6 +41,15 @@ describe('ContractService', () => {
       expect(result.success).toBe(true);
       const updated = gameState.contracts().find((c) => c.id === STARTER_BIOFOOD_ID);
       expect(updated!.state).toBe(ContractState.Active);
+    });
+
+    it('returns locked_contract when trying to accept a contract that is not unlocked yet', () => {
+      const result = service.acceptContract(GREENHOUSE_PROTEIN_ID);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.code).toBe('locked_contract');
+      }
     });
 
     it('does not mutate other contracts when accepting one', () => {
@@ -111,6 +122,14 @@ describe('ContractService', () => {
     it('does not advance the tutorial when accepting a non-starter contract succeeds', () => {
       const stepSpy = vi.spyOn(tutorial, 'completeStep');
 
+      gameState.updateContracts((contracts) =>
+        contracts.map((contract) =>
+          contract.id === STARTER_BIOFOOD_ID
+            ? { ...contract, state: ContractState.Completed }
+            : contract,
+        ),
+      );
+
       service.acceptContract(GREENHOUSE_PROTEIN_ID);
 
       expect(stepSpy).not.toHaveBeenCalled();
@@ -133,17 +152,44 @@ describe('ContractService', () => {
       service.acceptContract(STARTER_BIOFOOD_ID);
       gameState.updateInventory((inv) => ({
         ...inv,
-        items: { ...inv.items, biofood_pack: 1 },
+        items: { ...inv.items, protein_leaf: 2 },
       }));
       const creditsBefore = resources.getAmount('credits');
 
       const result = service.deliverContract(STARTER_BIOFOOD_ID);
 
       expect(result.success).toBe(true);
-      expect(inventory.getQuantity('biofood_pack')).toBe(0);
+      expect(inventory.getQuantity('protein_leaf')).toBe(0);
       expect(resources.getAmount('credits')).toBe(creditsBefore + 80);
       const contract = gameState.contracts().find((c) => c.id === STARTER_BIOFOOD_ID);
       expect(contract!.state).toBe(ContractState.Completed);
+    });
+
+    it('reopens repeatable fallback contracts after delivery so they can be accepted again', () => {
+      gameState.updateContracts((contracts) =>
+        contracts.map((contract) => (
+          contract.id === STARTER_BIOFOOD_ID
+            ? { ...contract, state: ContractState.Completed }
+            : contract
+        )),
+      );
+
+      const acceptResult = service.acceptContract(OPEN_PROTEIN_BUYBACK_ID);
+      expect(acceptResult.success).toBe(true);
+
+      gameState.updateInventory((inv) => ({
+        ...inv,
+        items: { ...inv.items, protein_leaf: 2 },
+      }));
+      const creditsBefore = resources.getAmount('credits');
+
+      const deliverResult = service.deliverContract(OPEN_PROTEIN_BUYBACK_ID);
+
+      expect(deliverResult.success).toBe(true);
+      expect(resources.getAmount('credits')).toBe(creditsBefore + 12);
+      expect(inventory.getQuantity('protein_leaf')).toBe(0);
+      expect(gameState.contracts().find((c) => c.id === OPEN_PROTEIN_BUYBACK_ID)!.state).toBe(ContractState.Available);
+      expect(service.acceptContract(OPEN_PROTEIN_BUYBACK_ID).success).toBe(true);
     });
 
     it('returns unknown_contract when the instance ID does not exist', () => {
@@ -173,7 +219,7 @@ describe('ContractService', () => {
     it('returns invalid_state when contract is Available (not Active)', () => {
       gameState.updateInventory((inv) => ({
         ...inv,
-        items: { ...inv.items, biofood_pack: 1 },
+        items: { ...inv.items, protein_leaf: 2 },
       }));
 
       const result = service.deliverContract(STARTER_BIOFOOD_ID);
@@ -200,9 +246,9 @@ describe('ContractService', () => {
 
     it('returns insufficient_items and does NOT mutate inventory, resources, or contract state when items are missing', () => {
       service.acceptContract(STARTER_BIOFOOD_ID);
-      // No biofood_pack in inventory
+      // No protein_leaf in inventory
       const creditsBefore = resources.getAmount('credits');
-      const biofoodBefore = inventory.getQuantity('biofood_pack');
+      const proteinBefore = inventory.getQuantity('protein_leaf');
 
       const result = service.deliverContract(STARTER_BIOFOOD_ID);
 
@@ -210,13 +256,20 @@ describe('ContractService', () => {
       if (!result.success) {
         expect(result.code).toBe('insufficient_items');
       }
-      expect(inventory.getQuantity('biofood_pack')).toBe(biofoodBefore);
+      expect(inventory.getQuantity('protein_leaf')).toBe(proteinBefore);
       expect(resources.getAmount('credits')).toBe(creditsBefore);
       const contract = gameState.contracts().find((c) => c.id === STARTER_BIOFOOD_ID);
       expect(contract!.state).toBe(ContractState.Active);
     });
 
     it('returns insufficient_items when partially meeting a multi-item contract', () => {
+      gameState.updateContracts((contracts) =>
+        contracts.map((contract) =>
+          contract.id === NUTRIENT_MIX_CONTRACT_INSTANCE_ID
+            ? { ...contract, state: ContractState.Completed }
+            : contract,
+        ),
+      );
       service.acceptContract(MIXED_BIO_SAMPLE_ID);
       // Provide biofood_pack but not nutrient_mix
       gameState.updateInventory((inv) => ({
@@ -235,6 +288,13 @@ describe('ContractService', () => {
     });
 
     it('consumes all items for a multi-item contract and grants the correct reward', () => {
+      gameState.updateContracts((contracts) =>
+        contracts.map((contract) =>
+          contract.id === NUTRIENT_MIX_CONTRACT_INSTANCE_ID
+            ? { ...contract, state: ContractState.Completed }
+            : contract,
+        ),
+      );
       service.acceptContract(MIXED_BIO_SAMPLE_ID);
       gameState.updateInventory((inv) => ({
         ...inv,
@@ -254,7 +314,7 @@ describe('ContractService', () => {
       service.acceptContract(STARTER_BIOFOOD_ID);
       gameState.updateInventory((inv) => ({
         ...inv,
-        items: { ...inv.items, biofood_pack: 1 },
+        items: { ...inv.items, protein_leaf: 2 },
       }));
 
       service.deliverContract(STARTER_BIOFOOD_ID);
@@ -267,7 +327,7 @@ describe('ContractService', () => {
       service.acceptContract(STARTER_BIOFOOD_ID);
       gameState.updateInventory((inv) => ({
         ...inv,
-        items: { ...inv.items, biofood_pack: 1 },
+        items: { ...inv.items, protein_leaf: 2 },
       }));
       const successSpy = vi.spyOn(alerts, 'addSuccess');
 
@@ -298,7 +358,7 @@ describe('ContractService', () => {
       service.acceptContract(STARTER_BIOFOOD_ID);
       gameState.updateInventory((inv) => ({
         ...inv,
-        items: { ...inv.items, biofood_pack: 1 },
+        items: { ...inv.items, protein_leaf: 2 },
       }));
       const stepSpy = vi.spyOn(tutorial, 'completeStep');
 
@@ -311,7 +371,7 @@ describe('ContractService', () => {
       service.acceptContract(GREENHOUSE_PROTEIN_ID);
       gameState.updateInventory((inv) => ({
         ...inv,
-        items: { ...inv.items, protein_leaf: 2 },
+        items: { ...inv.items, biofood_pack: 1 },
       }));
       const stepSpy = vi.spyOn(tutorial, 'completeStep');
 
@@ -345,18 +405,18 @@ describe('ContractService', () => {
       expect(result!.instanceId).toBe(STARTER_BIOFOOD_ID);
       expect(result!.definitionId).toBe('contract_starter_biofood');
       expect(result!.state).toBe(ContractState.Available);
-      expect(result!.items).toEqual([{ itemId: 'biofood_pack', required: 1, available: 0 }]);
+      expect(result!.items).toEqual([{ itemId: 'protein_leaf', required: 2, available: 0 }]);
     });
 
     it('reflects current inventory quantities in available counts', () => {
       gameState.updateInventory((inv) => ({
         ...inv,
-        items: { ...inv.items, biofood_pack: 1 },
+        items: { ...inv.items, protein_leaf: 2 },
       }));
 
       const result = service.getProgress(STARTER_BIOFOOD_ID);
 
-      expect(result!.items).toEqual([{ itemId: 'biofood_pack', required: 1, available: 1 }]);
+      expect(result!.items).toEqual([{ itemId: 'protein_leaf', required: 2, available: 2 }]);
     });
 
     it('reflects the contract state in the progress report', () => {
@@ -392,7 +452,7 @@ describe('ContractService', () => {
     it('returns false when contract is Available (not Active)', () => {
       gameState.updateInventory((inv) => ({
         ...inv,
-        items: { ...inv.items, biofood_pack: 1 },
+        items: { ...inv.items, protein_leaf: 2 },
       }));
 
       expect(service.isCompletable(STARTER_BIOFOOD_ID)).toBe(false);
@@ -408,7 +468,7 @@ describe('ContractService', () => {
       service.acceptContract(STARTER_BIOFOOD_ID);
       gameState.updateInventory((inv) => ({
         ...inv,
-        items: { ...inv.items, biofood_pack: 1 },
+        items: { ...inv.items, protein_leaf: 2 },
       }));
 
       expect(service.isCompletable(STARTER_BIOFOOD_ID)).toBe(true);
@@ -418,7 +478,7 @@ describe('ContractService', () => {
       service.acceptContract(STARTER_BIOFOOD_ID);
       gameState.updateInventory((inv) => ({
         ...inv,
-        items: { ...inv.items, biofood_pack: 1 },
+        items: { ...inv.items, protein_leaf: 2 },
       }));
       service.deliverContract(STARTER_BIOFOOD_ID);
 
@@ -426,6 +486,13 @@ describe('ContractService', () => {
     });
 
     it('returns true for multi-item contract only when ALL required items are present', () => {
+      gameState.updateContracts((contracts) =>
+        contracts.map((contract) =>
+          contract.id === NUTRIENT_MIX_CONTRACT_INSTANCE_ID
+            ? { ...contract, state: ContractState.Completed }
+            : contract,
+        ),
+      );
       service.acceptContract(MIXED_BIO_SAMPLE_ID);
       gameState.updateInventory((inv) => ({
         ...inv,
@@ -448,7 +515,7 @@ describe('ContractService', () => {
       service.acceptContract(STARTER_BIOFOOD_ID);
       gameState.updateInventory((inv) => ({
         ...inv,
-        items: { ...inv.items, biofood_pack: 1 },
+        items: { ...inv.items, protein_leaf: 2 },
       }));
 
       const saveData = gameState.toSaveData('2026-05-23T10:00:00.000Z');
@@ -470,10 +537,17 @@ describe('ContractService', () => {
     });
 
     it('preserves Completed contract state after save/load without allowing re-delivery', () => {
+      gameState.updateContracts((contracts) =>
+        contracts.map((contract) =>
+          contract.id === STARTER_BIOFOOD_ID
+            ? { ...contract, state: ContractState.Completed }
+            : contract,
+        ),
+      );
       service.acceptContract(GREENHOUSE_PROTEIN_ID);
       gameState.updateInventory((inv) => ({
         ...inv,
-        items: { ...inv.items, protein_leaf: 4 },
+        items: { ...inv.items, biofood_pack: 1 },
       }));
       service.deliverContract(GREENHOUSE_PROTEIN_ID);
 

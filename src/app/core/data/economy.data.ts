@@ -1,41 +1,61 @@
 import type { ContractDefinition, ShipmentCatalogItem } from '../models';
 
+const STARTER_CONTRACT_INSTANCE_ID = 'contract_contract_starter_biofood_01' as const;
+const HYDROPONIC_SAMPLES_CONTRACT_INSTANCE_ID = 'contract_contract_hydroponic_samples_01' as const;
+const NUTRIENT_MIX_CONTRACT_INSTANCE_ID = 'contract_contract_nutrient_mix_01' as const;
+const LUMA_PIGMENT_CONTRACT_INSTANCE_ID = 'contract_contract_luma_pigment_01' as const;
+
 export const CONTRACT_DEFINITIONS: readonly ContractDefinition[] = [
   {
     id: 'contract_starter_biofood',
-    name: 'Starter Biofood Delivery',
-    requiredItems: [{ itemId: 'biofood_pack', quantity: 1 }],
+    name: 'Starter Protein Delivery',
+    description: 'Order Protein Leaf seeds, then plant and harvest 2 Protein Leaf for the first delivery.',
+    requiredItems: [{ itemId: 'protein_leaf', quantity: 2 }],
     rewards: [{ resourceId: 'credits', quantity: 80 }],
   },
   {
-    id: 'contract_greenhouse_protein',
-    name: 'Greenhouse Protein Batch',
+    id: 'contract_open_protein_buyback',
+    name: 'Open Protein Buyback',
+    description: 'Repeatable standing order. Deliver 2 Protein Leaf for a small credit cushion whenever you need to keep the colony running.',
     requiredItems: [{ itemId: 'protein_leaf', quantity: 2 }],
+    rewards: [{ resourceId: 'credits', quantity: 12 }],
+    unlockRequirementIds: [`contract:${STARTER_CONTRACT_INSTANCE_ID}`],
+    repeatable: true,
+  },
+  {
+    id: 'contract_greenhouse_protein',
+    name: 'Processed Biofood Batch',
+    requiredItems: [{ itemId: 'biofood_pack', quantity: 1 }],
     rewards: [{ resourceId: 'credits', quantity: 55 }],
+    unlockRequirementIds: [`contract:${STARTER_CONTRACT_INSTANCE_ID}`],
   },
   {
     id: 'contract_hydroponic_samples',
     name: 'Hydroponic Sample Request',
     requiredItems: [{ itemId: 'aqua_sprout', quantity: 2 }],
     rewards: [{ resourceId: 'credits', quantity: 70 }],
+    unlockRequirementIds: [`contract:${STARTER_CONTRACT_INSTANCE_ID}`],
   },
   {
     id: 'contract_nutrient_mix',
     name: 'Nutrient Mix Supply',
     requiredItems: [{ itemId: 'nutrient_mix', quantity: 1 }],
     rewards: [{ resourceId: 'credits', quantity: 90 }],
+    unlockRequirementIds: [`contract:${HYDROPONIC_SAMPLES_CONTRACT_INSTANCE_ID}`],
   },
   {
     id: 'contract_orbital_meal_reserve',
     name: 'Orbital Meal Reserve',
     requiredItems: [{ itemId: 'biofood_pack', quantity: 1 }],
     rewards: [{ resourceId: 'credits', quantity: 110 }],
+    unlockRequirementIds: ['infrastructure:storage_bay_ii'],
   },
   {
     id: 'contract_luma_pigment',
     name: 'Luma Pigment Order',
     requiredItems: [{ itemId: 'glow_pigment', quantity: 1 }],
     rewards: [{ resourceId: 'credits', quantity: 125 }],
+    unlockRequirementIds: ['infrastructure:water_recycler_ii'],
   },
   {
     id: 'contract_mixed_bio_sample',
@@ -45,6 +65,7 @@ export const CONTRACT_DEFINITIONS: readonly ContractDefinition[] = [
       { itemId: 'nutrient_mix', quantity: 1 },
     ],
     rewards: [{ resourceId: 'credits', quantity: 155 }],
+    unlockRequirementIds: [`contract:${NUTRIENT_MIX_CONTRACT_INSTANCE_ID}`],
   },
   {
     id: 'contract_habitat_growth_booster',
@@ -54,6 +75,7 @@ export const CONTRACT_DEFINITIONS: readonly ContractDefinition[] = [
       { itemId: 'protein_leaf', quantity: 2 },
     ],
     rewards: [{ resourceId: 'credits', quantity: 180 }],
+    unlockRequirementIds: [`contract:${LUMA_PIGMENT_CONTRACT_INSTANCE_ID}`],
   },
   {
     id: 'contract_lunar_habitat_kit',
@@ -81,6 +103,7 @@ export const SHIPMENT_CATALOG: readonly ShipmentCatalogItem[] = [
     item: { itemId: 'seed_aqua_sprout', quantity: 4 },
     cost: { resourceId: 'credits', quantity: 45 },
     durationSeconds: 60,
+    unlockRequirementIds: [`contract:${STARTER_CONTRACT_INSTANCE_ID}`],
   },
   {
     id: 'shipment_spore_luma_moss_pack',
@@ -88,6 +111,7 @@ export const SHIPMENT_CATALOG: readonly ShipmentCatalogItem[] = [
     item: { itemId: 'spore_luma_moss', quantity: 3 },
     cost: { resourceId: 'credits', quantity: 65 },
     durationSeconds: 75,
+    unlockRequirementIds: ['infrastructure:water_recycler_ii'],
   },
   {
     id: 'shipment_water_supply',

@@ -28,7 +28,7 @@ describe('InventoryService', () => {
     expect(service.getQuantity('biofood_pack')).toBe(0);
     expect(service.getQuantity('unknown_item')).toBe(0);
     expect(service.usedCapacity()).toBe(2);
-    expect(service.remainingCapacity()).toBe(98);
+    expect(service.remainingCapacity()).toBe(10);
     expect(service.hasItems([{ itemId: 'seed_protein_leaf', quantity: 2 }])).toBe(true);
     expect(service.hasItems([{ itemId: 'seed_protein_leaf', quantity: 3 }])).toBe(false);
     expect(
@@ -55,7 +55,7 @@ describe('InventoryService', () => {
       biofood_pack: 3,
     });
     expect(service.usedCapacity()).toBe(3);
-    expect(service.remainingCapacity()).toBe(97);
+    expect(service.remainingCapacity()).toBe(9);
 
     expect(service.addItem('seed_protein_leaf', 4)).toEqual({ success: true });
     expect(snapshotItems()).toEqual({
@@ -83,7 +83,7 @@ describe('InventoryService', () => {
     expect(snapshotItems()).toEqual({});
     expect(service.getQuantity('seed_protein_leaf')).toBe(0);
     expect(service.usedCapacity()).toBe(0);
-    expect(service.remainingCapacity()).toBe(100);
+    expect(service.remainingCapacity()).toBe(12);
   });
 
   it('rejects unknown item IDs and invalid quantities without changing state', () => {
@@ -121,7 +121,7 @@ describe('InventoryService', () => {
     expect(service.addItem('biofood_pack', 101)).toEqual({
       success: false,
       code: 'inventory_capacity_exceeded',
-      message: 'Adding 101 biofood_pack would exceed inventory capacity of 100.',
+      message: 'Adding 101 biofood_pack would exceed inventory capacity of 12.',
     });
     expect(snapshotItems()).toEqual(beforeCapacityOverflow);
     expect(service.usedCapacity()).toBe(0);

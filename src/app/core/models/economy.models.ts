@@ -8,6 +8,7 @@ export interface ContractDefinition {
   requiredItems: ItemAmount[];
   rewards: ResourceAmount[];
   unlockRequirementIds?: string[];
+  repeatable?: boolean;
 }
 
 export interface ContractInstance {
@@ -24,6 +25,7 @@ export interface ShipmentCatalogItem {
   resource?: ResourceAmount;
   cost: ResourceAmount;
   durationSeconds: number;
+  unlockRequirementIds?: string[];
 }
 
 export interface ShipmentInstance {

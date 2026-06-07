@@ -1,7 +1,7 @@
 import { signal } from '@angular/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { GameSpeed, MachineState } from '../enums';
+import { ContractState, GameSpeed, MachineState } from '../enums';
 import { AlertService } from './alert.service';
 import { type GameClockTick } from './game-clock.service';
 import { GameStateService } from './game-state.service';
@@ -55,6 +55,16 @@ describe('ProductionService', () => {
     gameState.updateInventory((inv) => ({ ...inv, items: { ...inv.items, aqua_sprout: 2 } }));
   }
 
+  function unlockAquaRecipe(): void {
+    gameState.updateContracts((contracts) =>
+      contracts.map((contract) =>
+        contract.id === 'contract_contract_starter_biofood_01'
+          ? { ...contract, state: ContractState.Completed }
+          : contract,
+      ),
+    );
+  }
+
   beforeEach(() => {
     lastEffectFn = undefined;
     untrackedSpy.mockClear();
@@ -85,9 +95,9 @@ describe('ProductionService', () => {
       // Inputs deducted (key removed when quantity reaches 0)
       expect(gameState.getSnapshot().inventory.items['protein_leaf']).toBeUndefined();
       // Resources deducted: water -1, energy -4, nutrients -1
-      expect(gameState.getSnapshot().resources.values['water']).toBe(99);
-      expect(gameState.getSnapshot().resources.values['energy']).toBe(96);
-      expect(gameState.getSnapshot().resources.values['nutrients']).toBe(19);
+      expect(gameState.getSnapshot().resources.values['water']).toBe(59);
+      expect(gameState.getSnapshot().resources.values['energy']).toBe(51);
+      expect(gameState.getSnapshot().resources.values['nutrients']).toBe(34);
     });
 
     it('fails with machine_not_found when machineId does not exist', () => {
@@ -123,6 +133,7 @@ describe('ProductionService', () => {
     });
 
     it('fails with recipe_not_compatible when recipe belongs to a different machine', () => {
+      unlockAquaRecipe();
       seedInputsForExtractor();
       // RECIPE_AQUA_SPROUT requires botanical_extractor, not orbital_packager
       const result = service.startRecipe(MACHINE_PACKAGER_ID, RECIPE_AQUA_SPROUT);
@@ -130,12 +141,20 @@ describe('ProductionService', () => {
       expect(result).toEqual({ success: false, code: 'recipe_not_compatible', message: expect.any(String) });
     });
 
+    it('fails with locked_recipe when recipe progression is not unlocked yet', () => {
+      seedInputsForExtractor();
+
+      const result = service.startRecipe(MACHINE_EXTRACTOR_ID, RECIPE_AQUA_SPROUT);
+
+      expect(result).toEqual({ success: false, code: 'locked_recipe', message: 'Aqua Sprout to Nutrient Mix is not unlocked yet.' });
+    });
+
     it('fails with insufficient_inputs when inventory lacks required items, does not consume resources', () => {
       // Initial inventory has no protein_leaf
       const result = service.startRecipe(MACHINE_PACKAGER_ID, RECIPE_PROTEIN_LEAF);
 
       expect(result).toEqual({ success: false, code: 'insufficient_inputs', message: expect.any(String) });
-      expect(gameState.getSnapshot().resources.values['energy']).toBe(100);
+      expect(gameState.getSnapshot().resources.values['energy']).toBe(55);
     });
 
     it('fails with insufficient_resources when resources cannot cover costs, does not consume inputs', () => {
@@ -217,6 +236,7 @@ describe('ProductionService', () => {
     it('processes multiple Running machines in a single tick independently', () => {
       seedInputsForPackager();
       service.startRecipe(MACHINE_PACKAGER_ID, RECIPE_PROTEIN_LEAF); // 60s
+      unlockAquaRecipe();
       seedInputsForExtractor();
       service.startRecipe(MACHINE_EXTRACTOR_ID, RECIPE_AQUA_SPROUT); // 75s
 
@@ -237,6 +257,7 @@ describe('ProductionService', () => {
       const completedSnapshot = gameState.machines().find((m) => m.id === MACHINE_PACKAGER_ID)!;
 
       // Force a Running machine so processTick runs the update path
+      unlockAquaRecipe();
       seedInputsForExtractor();
       service.startRecipe(MACHINE_EXTRACTOR_ID, RECIPE_AQUA_SPROUT);
       service.processTick(10);
@@ -272,6 +293,7 @@ describe('ProductionService', () => {
 
       const successSpy = vi.spyOn(alerts, 'addSuccess');
       // Run a second tick; needs at least one Running machine to enter the update path
+      unlockAquaRecipe();
       seedInputsForExtractor();
       service.startRecipe(MACHINE_EXTRACTOR_ID, RECIPE_AQUA_SPROUT);
       service.processTick(10);
@@ -293,6 +315,7 @@ describe('ProductionService', () => {
     });
 
     it('does not advance the tutorial when a non-starter recipe starts successfully', () => {
+      unlockAquaRecipe();
       seedInputsForExtractor();
       const stepSpy = vi.spyOn(tutorial, 'completeStep');
 

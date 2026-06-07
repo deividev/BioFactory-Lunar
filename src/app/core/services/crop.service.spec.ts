@@ -1,7 +1,7 @@
 import { signal } from '@angular/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { CropSlotState, GameSpeed } from '../enums';
+import { ContractState, CropSlotState, GameSpeed } from '../enums';
 import { AlertService } from './alert.service';
 import { CropService } from './crop.service';
 import { type GameClockTick } from './game-clock.service';
@@ -62,6 +62,16 @@ describe('CropService', () => {
     service = new CropService(gameState, mockGameClock as never, inventory, resources, alerts, bridge, tutorial);
   });
 
+  function unlockAquaSprout(): void {
+    gameState.updateContracts((contracts) =>
+      contracts.map((contract) =>
+        contract.id === 'contract_contract_starter_biofood_01'
+          ? { ...contract, state: ContractState.Completed }
+          : contract,
+      ),
+    );
+  }
+
   // ── plantCrop ──────────────────────────────────────────────────────────────
 
   it('plants a crop: deducts seed and resources, sets slot to Planted with remainingSeconds', () => {
@@ -76,10 +86,10 @@ describe('CropService', () => {
     expect(slot.remainingSeconds).toBe(90);
 
     expect(snapshot.inventory.items['seed_protein_leaf']).toBe(1);
-    expect(snapshot.resources.values['water']).toBe(95);
-    expect(snapshot.resources.values['energy']).toBe(99);
-    expect(snapshot.resources.values['nutrients']).toBe(19);
-    expect(snapshot.resources.values['oxygen']).toBe(99);
+    expect(snapshot.resources.values['water']).toBe(55);
+    expect(snapshot.resources.values['energy']).toBe(54);
+    expect(snapshot.resources.values['nutrients']).toBe(34);
+    expect(snapshot.resources.values['oxygen']).toBe(44);
   });
 
   it('returns failure and does not mutate state when slot is not Empty', () => {
@@ -102,6 +112,32 @@ describe('CropService', () => {
     const result = service.plantCrop('crop_slot_01', 'unknown_crop');
 
     expect(result).toEqual({ success: false, code: 'crop_not_found', message: expect.any(String) });
+  });
+
+  it('returns failure when the crop is still locked', () => {
+    gameState.updateInventory((inv) => ({
+      ...inv,
+      items: { ...inv.items, seed_aqua_sprout: 2 },
+    }));
+
+    const result = service.plantCrop('crop_slot_01', 'aqua_sprout');
+
+    expect(result).toEqual({ success: false, code: 'locked_crop', message: 'Aqua Sprout is not unlocked yet.' });
+  });
+
+  it('reports unlock state for gated crops from completed contracts and infrastructure', () => {
+    expect(service.isCropUnlocked('protein_leaf')).toBe(true);
+    expect(service.isCropUnlocked('aqua_sprout')).toBe(false);
+    expect(service.isCropUnlocked('luma_moss')).toBe(false);
+
+    unlockAquaSprout();
+    expect(service.isCropUnlocked('aqua_sprout')).toBe(true);
+
+    gameState.updateInfrastructure((infrastructure) => ({
+      ...infrastructure,
+      colonySupportUpgradeIds: ['water_recycler_i', 'water_recycler_ii'],
+    }));
+    expect(service.isCropUnlocked('luma_moss')).toBe(true);
   });
 
   it('returns failure when seed is not available in inventory', () => {
@@ -301,6 +337,7 @@ describe('CropService', () => {
   });
 
   it('does not advance tutorial when planting a non-starter crop succeeds', () => {
+    unlockAquaSprout();
     gameState.updateInventory((inventoryState) => ({
       ...inventoryState,
       items: { ...inventoryState.items, seed_aqua_sprout: 2 },
@@ -331,6 +368,7 @@ describe('CropService', () => {
   });
 
   it('does not advance tutorial when harvesting a non-starter crop succeeds', () => {
+    unlockAquaSprout();
     gameState.updateInventory((inventoryState) => ({
       ...inventoryState,
       items: { ...inventoryState.items, seed_aqua_sprout: 2 },

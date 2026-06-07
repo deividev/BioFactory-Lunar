@@ -1,5 +1,7 @@
 import type { MachineDefinition, RecipeDefinition } from '../models';
 
+const STARTER_CONTRACT_INSTANCE_ID = 'contract_contract_starter_biofood_01' as const;
+
 export const MACHINE_DEFINITIONS: readonly MachineDefinition[] = [
   {
     id: 'botanical_extractor',
@@ -41,6 +43,7 @@ export const RECIPE_DEFINITIONS: readonly RecipeDefinition[] = [
       { resourceId: 'energy', quantity: 5 },
       { resourceId: 'nutrients', quantity: 1 },
     ],
+    unlockRequirementIds: [`contract:${STARTER_CONTRACT_INSTANCE_ID}`],
   },
   {
     id: 'recipe_luma_moss_to_glow_pigment',
@@ -54,5 +57,6 @@ export const RECIPE_DEFINITIONS: readonly RecipeDefinition[] = [
       { resourceId: 'energy', quantity: 5 },
       { resourceId: 'nutrients', quantity: 2 },
     ],
+    unlockRequirementIds: ['infrastructure:water_recycler_ii'],
   },
 ] as const;

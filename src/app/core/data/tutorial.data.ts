@@ -13,7 +13,7 @@ export const TUTORIAL_STEPS: readonly TutorialStepDefinition[] = [
   {
     id: 'accept_first_contract',
     label: 'Accept a Contract',
-    description: 'Open the Contracts panel and accept Starter Biofood Delivery to lock in the first payout.',
+    description: 'Open the Contracts panel and accept Starter Protein Delivery to lock in the first payout.',
   },
   {
     id: 'buy_seeds',
@@ -36,14 +36,14 @@ export const TUTORIAL_STEPS: readonly TutorialStepDefinition[] = [
     description: 'Wait for the crop to finish growing, then harvest the Protein Leaf yield.',
   },
   {
-    id: 'process_product',
-    label: 'Process a Product',
-    description: 'Open the Processing panel and run Protein Leaf to Biofood Pack in the Orbital Packager.',
-  },
-  {
     id: 'deliver_contract',
     label: 'Deliver the Contract',
-    description: 'Return to the Contracts panel and deliver the starter contract to unlock the finale contract.',
+    description: 'Return to the Contracts panel and deliver 2 Protein Leaf to clear the starter order.',
+  },
+  {
+    id: 'process_product',
+    label: 'Process a Product',
+    description: 'Open the Processing panel and run Protein Leaf to Biofood Pack in the Orbital Packager to finish onboarding and unlock the finale contract.',
   },
 ] as const;
 
