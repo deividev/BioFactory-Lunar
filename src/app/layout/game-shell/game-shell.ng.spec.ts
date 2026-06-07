@@ -289,7 +289,7 @@ describe('GameShell Angular component', () => {
 
     await continueDemo(fixture);
 
-    expect(gameState.getSnapshot().resources.values).toEqual({ credits: 480, energy: 100, water: 75, nutrients: 20, oxygen: 100 });
+    expect(gameState.getSnapshot().resources.values).toEqual({ credits: 480, energy: 55, water: 75, nutrients: 35, oxygen: 45 });
     expect(gameState.getSnapshot().inventory.items).toEqual({ biofood_pack: 4 });
     expect(fixture.nativeElement.textContent).toContain('480');
     expect(fixture.nativeElement.textContent).toContain('75 / 100');
@@ -319,8 +319,8 @@ describe('GameShell Angular component', () => {
     resourceService.add('credits', 25);
     fixture.detectChanges();
 
-    expect(resourceService.getAmount('credits')).toBe(225);
-    expect(fixture.nativeElement.textContent).toContain('225');
+    expect(resourceService.getAmount('credits')).toBe(175);
+    expect(fixture.nativeElement.textContent).toContain('175');
   });
 
   it('shows manual save and load feedback through the alerts panel during gameplay', async () => {
@@ -381,7 +381,7 @@ describe('GameShell Angular component', () => {
 
     expect(gameState.getSnapshot().ui).toEqual({ activePanel: PanelType.Contracts });
     expect(activePanel?.textContent).toContain('Contracts');
-    expect(activeStatePanel?.textContent).toContain('Starter Biofood Delivery');
+    expect(activeStatePanel?.textContent).toContain('Starter Protein Delivery');
   });
 
   it('keeps storage selection state-backed without mutating inventory during gameplay', async () => {

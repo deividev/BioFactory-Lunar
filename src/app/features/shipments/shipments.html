@@ -11,8 +11,8 @@
   <section class="shipments__section" aria-label="Shipment catalog">
     <h3 class="shipments__section-title">Order from Earth</h3>
     <ul class="shipments__catalog-list">
-      @for (item of catalog; track item.id) {
-        <li class="shipments__catalog-row">
+      @for (item of catalog(); track item.id) {
+        <li class="shipments__catalog-row" data-testid="catalog-row" [attr.data-item-id]="item.id">
           <span class="shipments__item-name">{{ item.name }}</span>
           <div class="shipments__item-meta">
             <span class="shipments__item-reward" data-testid="item-reward">{{ getRewardLabel(item) }}</span>

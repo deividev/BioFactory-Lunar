@@ -1,6 +1,7 @@
 export * from './crops.data';
 export * from './demo-session.data';
 export * from './economy.data';
+export * from './infrastructure.data';
 export * from './module-panel-routes.data';
 export * from './modules.data';
 export * from './production.data';

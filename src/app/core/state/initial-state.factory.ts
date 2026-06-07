@@ -7,6 +7,7 @@ import type {
   DemoFlowState,
   GameState,
   GreenhouseState,
+  InfrastructureState,
   InventoryState,
   MachineInstance,
   ResourceState,
@@ -35,17 +36,17 @@ export function createInitialClockState(): ClockState {
 export function createInitialResourceState(): ResourceState {
   return {
     values: {
-      credits: 200,
-      energy: 100,
-      water: 100,
-      nutrients: 20,
-      oxygen: 100,
+      credits: 150,
+      energy: 55,
+      water: 60,
+      nutrients: 35,
+      oxygen: 45,
     },
     maxValues: {
-      energy: 100,
-      water: 100,
+      energy: 120,
+      water: 124,
       nutrients: 100,
-      oxygen: 100,
+      oxygen: 116,
     },
   };
 }
@@ -53,7 +54,14 @@ export function createInitialResourceState(): ResourceState {
 export function createInitialInventoryState(): InventoryState {
   return {
     items: {},
-    capacity: 100,
+    capacity: 12,
+  };
+}
+
+export function createInitialInfrastructureState(): InfrastructureState {
+  return {
+    colonySupportUpgradeIds: ['solar_array_i', 'water_recycler_i', 'oxygen_recycler_i'],
+    storageUpgradeIds: [],
   };
 }
 
@@ -121,6 +129,7 @@ export function createInitialGameState(): GameState {
     clock: createInitialClockState(),
     resources: createInitialResourceState(),
     inventory: createInitialInventoryState(),
+    infrastructure: createInitialInfrastructureState(),
     greenhouse: createInitialGreenhouseState(),
     machines: createInitialMachineInstances(),
     contracts: createInitialContractInstances(),

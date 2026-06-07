@@ -13,22 +13,22 @@ describe('GameStateService', () => {
 
     expect(snapshot.resources).toEqual({
       values: {
-        credits: 200,
-        energy: 100,
-        water: 100,
-        nutrients: 20,
-        oxygen: 100,
+        credits: 150,
+        energy: 55,
+        water: 60,
+        nutrients: 35,
+        oxygen: 45,
       },
       maxValues: {
-        energy: 100,
-        water: 100,
+        energy: 120,
+        water: 124,
         nutrients: 100,
-        oxygen: 100,
+        oxygen: 116,
       },
     });
     expect(snapshot.inventory).toEqual({
       items: {},
-      capacity: 100,
+      capacity: 12,
     });
     expect(snapshot.demo).toEqual({
       phase: 'menu',
@@ -69,7 +69,7 @@ describe('GameStateService', () => {
     snapshot.contracts[0]!.id = 'mutated_contract';
     snapshot.ui.activePanel = PanelType.Storage;
 
-    expect(service.getSnapshot().resources.values['credits']).toBe(200);
+    expect(service.getSnapshot().resources.values['credits']).toBe(150);
     expect(service.getSnapshot().inventory.items['seed_protein_leaf']).toBeUndefined();
     expect(service.getSnapshot().greenhouse.slots[0]!.id).toBe('crop_slot_01');
     expect(service.getSnapshot().ui.activePanel).toBe(PanelType.CommandCenter);
@@ -109,7 +109,7 @@ describe('GameStateService', () => {
     expect(() => {
       (greenhouseView.slots[0] as { id: string }).id = 'leaked_slot';
     }).toThrow(TypeError);
-    expect(service.getSnapshot().resources.values['credits']).toBe(200);
+    expect(service.getSnapshot().resources.values['credits']).toBe(150);
     expect(service.getSnapshot().inventory.items['seed_protein_leaf']).toBeUndefined();
     expect(service.getSnapshot().clock.elapsedSeconds).toBe(0);
     expect(service.getSnapshot().greenhouse.slots[0]!.id).toBe('crop_slot_01');
@@ -221,7 +221,7 @@ describe('GameStateService', () => {
     target.loadFromSave(saveData);
 
     const restored = target.getSnapshot();
-    expect(restored.resources.values).toEqual({ credits: 450, energy: 100, water: 80, nutrients: 20, oxygen: 100 });
+    expect(restored.resources.values).toEqual({ credits: 450, energy: 55, water: 80, nutrients: 35, oxygen: 45 });
     expect(restored.inventory.items).toEqual({ seed_protein_leaf: 5, biofood_pack: 1 });
     expect(restored.clock).toEqual({ elapsedSeconds: 240, day: 2, speed: GameSpeed.X4 });
     expect(restored.ui).toEqual({ activePanel: PanelType.CommandCenter });
@@ -229,6 +229,31 @@ describe('GameStateService', () => {
 
     saveData.inventory.items['biofood_pack'] = 99;
     expect(target.getSnapshot().inventory.items['biofood_pack']).toBe(1);
+  });
+
+  it('persists infrastructure progression through a save/load round-trip while backfilling it for runtime selectors', () => {
+    const source = new GameStateService();
+
+    source.updateInfrastructure((infrastructure) => ({
+      ...infrastructure,
+      colonySupportUpgradeIds: ['solar_array_i'],
+      storageUpgradeIds: ['storage_bay_ii'],
+    }));
+    source.updateInventory((inventory) => ({
+      ...inventory,
+      capacity: 20,
+    }));
+
+    const saveData = source.toSaveData('2026-05-26T20:00:00.000Z');
+    const target = new GameStateService();
+
+    target.loadFromSave(saveData);
+
+    expect(target.getSnapshot().infrastructure).toEqual({
+      colonySupportUpgradeIds: ['solar_array_i'],
+      storageUpgradeIds: ['storage_bay_ii'],
+    });
+    expect(target.getSnapshot().inventory.capacity).toBe(20);
   });
 
   it('hydrates legacy saves without a demo branch back to the default demo flow state', () => {
@@ -261,17 +286,17 @@ describe('GameStateService', () => {
     target.loadFromSave(saveData);
 
     expect(target.getSnapshot().resources.values).toEqual({
-      credits: 200,
-      energy: 100,
+      credits: 150,
+      energy: 55,
       water: 75,
-      nutrients: 20,
-      oxygen: 100,
+      nutrients: 35,
+      oxygen: 45,
     });
     expect(target.getSnapshot().resources.maxValues).toEqual({
-      energy: 100,
-      water: 100,
+      energy: 120,
+      water: 124,
       nutrients: 100,
-      oxygen: 100,
+      oxygen: 116,
     });
   });
 

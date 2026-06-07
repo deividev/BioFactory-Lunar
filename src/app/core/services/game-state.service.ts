@@ -7,6 +7,7 @@ import type {
   DemoFlowState,
   GameState,
   GreenhouseState,
+  InfrastructureState,
   InventoryState,
   MachineInstance,
   ResourceState,
@@ -50,6 +51,9 @@ export class GameStateService {
 
   readonly resources: Signal<DeepReadonly<ResourceState>> = computed(() => deepFreeze(cloneState(this.#state().resources)));
   readonly inventory: Signal<DeepReadonly<InventoryState>> = computed(() => deepFreeze(cloneState(this.#state().inventory)));
+  readonly infrastructure: Signal<DeepReadonly<InfrastructureState>> = computed(() =>
+    deepFreeze(cloneState(this.#state().infrastructure)),
+  );
   readonly clock: Signal<DeepReadonly<ClockState>> = computed(() => deepFreeze(cloneState(this.#state().clock)));
   readonly ui: Signal<DeepReadonly<UIState>> = computed(() => deepFreeze(cloneState(this.#state().ui)));
   readonly greenhouse: Signal<DeepReadonly<GreenhouseState>> = computed(() => deepFreeze(cloneState(this.#state().greenhouse)));
@@ -78,6 +82,7 @@ export class GameStateService {
       clock: state.clock,
       resources: state.resources,
       inventory: state.inventory,
+      infrastructure: state.infrastructure,
       greenhouse: state.greenhouse,
       machines: state.machines,
       contracts: state.contracts,
@@ -113,6 +118,7 @@ export class GameStateService {
           },
         },
         inventory: saveData.inventory,
+        infrastructure: cloneState(saveData.infrastructure ?? initialState.infrastructure),
         greenhouse: saveData.greenhouse,
         machines: saveData.machines,
         contracts: saveData.contracts,
@@ -148,6 +154,13 @@ export class GameStateService {
     this.#state.update((state) => ({
       ...state,
       inventory: cloneState(updater(cloneState(state.inventory))),
+    }));
+  }
+
+  updateInfrastructure(updater: (infrastructure: InfrastructureState) => InfrastructureState): void {
+    this.#state.update((state) => ({
+      ...state,
+      infrastructure: cloneState(updater(cloneState(state.infrastructure))),
     }));
   }
 

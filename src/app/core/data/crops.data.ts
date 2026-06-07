@@ -1,6 +1,8 @@
 import { QualityTier } from '../enums';
 import type { CropDefinition } from '../models';
 
+const STARTER_CONTRACT_INSTANCE_ID = 'contract_contract_starter_biofood_01' as const;
+
 export const CROP_DEFINITIONS: readonly CropDefinition[] = [
   {
     id: 'protein_leaf',
@@ -31,6 +33,7 @@ export const CROP_DEFINITIONS: readonly CropDefinition[] = [
     ],
     baseYield: { itemId: 'aqua_sprout', quantity: 2 },
     qualityTier: QualityTier.Standard,
+    unlockRequirementIds: [`contract:${STARTER_CONTRACT_INSTANCE_ID}`],
   },
   {
     id: 'luma_moss',
@@ -46,5 +49,6 @@ export const CROP_DEFINITIONS: readonly CropDefinition[] = [
     ],
     baseYield: { itemId: 'luma_moss', quantity: 1 },
     qualityTier: QualityTier.Standard,
+    unlockRequirementIds: ['infrastructure:water_recycler_ii'],
   },
 ] as const;

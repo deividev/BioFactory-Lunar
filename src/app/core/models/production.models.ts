@@ -26,4 +26,5 @@ export interface RecipeDefinition {
   output: ItemAmount;
   durationSeconds: number;
   resourceCosts: ResourceAmount[];
+  unlockRequirementIds?: string[];
 }

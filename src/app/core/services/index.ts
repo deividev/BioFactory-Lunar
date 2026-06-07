@@ -2,6 +2,8 @@ export * from './electron-bridge.service';
 export * from './demo-flow.service';
 export * from './game-clock.service';
 export * from './game-state.service';
+export * from './colony-support-runtime.service';
+export * from './infrastructure.service';
 export * from './inventory.service';
 export * from './module-selection.service';
 export * from './resource.service';

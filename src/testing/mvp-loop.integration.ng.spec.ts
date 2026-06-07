@@ -9,7 +9,7 @@
 import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { CropSlotState, MachineState, ShipmentState } from '../app/core/enums';
+import { CropSlotState, ShipmentState } from '../app/core/enums';
 import {
   ContractService,
   CropService,
@@ -166,13 +166,39 @@ describe('MVP loop integration', () => {
     const result = cropService.harvestCrop(CROP_SLOT_ID);
     expect(result.success).toBe(true);
     expect(tutorial.tutorial().completedStepIds).toContain('harvest_crop');
-    expect(tutorial.tutorial().activeStepId).toBe('process_product');
+    expect(tutorial.tutorial().activeStepId).toBe('deliver_contract');
     expect(gameState.inventory().items['protein_leaf']).toBeGreaterThan(0);
   });
 
-  // ── step 6: process product ───────────────────────────────────────────────
+  // ── step 6: deliver contract ──────────────────────────────────────────────
 
-  it('step 6 — starting a recipe completes process_product', () => {
+  it('step 6 — delivering with sufficient inventory completes deliver_contract', () => {
+    const { contractService, shipmentService, gameState, cropService, tutorial } = getServices();
+    contractService.acceptContract(CONTRACT_ID);
+    shipmentService.buyShipment(SHIPMENT_CATALOG_ID);
+    const shipmentId = gameState.shipments()[0]!.id;
+    gameState.updateShipments((list) =>
+      list.map((s) => (s.id === shipmentId ? { ...s, remainingSeconds: 0, state: ShipmentState.Delivered } : s)),
+    );
+    shipmentService.receiveShipment(shipmentId);
+    cropService.plantCrop(CROP_SLOT_ID, CROP_ID);
+    gameState.updateGreenhouse((gh) => ({
+      ...gh,
+      slots: gh.slots.map((s) =>
+        s.id === CROP_SLOT_ID ? { ...s, state: CropSlotState.Ready, remainingSeconds: 0 } : s,
+      ),
+    }));
+    cropService.harvestCrop(CROP_SLOT_ID);
+
+    const result = contractService.deliverContract(CONTRACT_ID);
+    expect(result.success).toBe(true);
+    expect(tutorial.tutorial().completedStepIds).toContain('deliver_contract');
+    expect(tutorial.tutorial().activeStepId).toBe('process_product');
+  });
+
+  // ── step 7: process product ───────────────────────────────────────────────
+
+  it('step 7 — starting a recipe after the starter delivery completes process_product and finishes the tutorial', () => {
     const { contractService, shipmentService, gameState, cropService, productionService, tutorial } = getServices();
     contractService.acceptContract(CONTRACT_ID);
     shipmentService.buyShipment(SHIPMENT_CATALOG_ID);
@@ -190,7 +216,9 @@ describe('MVP loop integration', () => {
     }));
     cropService.harvestCrop(CROP_SLOT_ID);
 
-    // ensure enough protein_leaf for recipe (requires 2)
+    const deliverResult = contractService.deliverContract(CONTRACT_ID);
+    expect(deliverResult.success).toBe(true);
+
     gameState.updateInventory((inv) => ({
       ...inv,
       items: { ...inv.items, protein_leaf: 2 },
@@ -199,48 +227,6 @@ describe('MVP loop integration', () => {
     const result = productionService.startRecipe(MACHINE_ID, RECIPE_ID);
     expect(result.success).toBe(true);
     expect(tutorial.tutorial().completedStepIds).toContain('process_product');
-    expect(tutorial.tutorial().activeStepId).toBe('deliver_contract');
-  });
-
-  // ── step 7: deliver contract ──────────────────────────────────────────────
-
-  it('step 7 — delivering with sufficient inventory completes deliver_contract and finishes the tutorial', () => {
-    const { contractService, shipmentService, gameState, cropService, productionService, tutorial } = getServices();
-    contractService.acceptContract(CONTRACT_ID);
-    shipmentService.buyShipment(SHIPMENT_CATALOG_ID);
-    const shipmentId = gameState.shipments()[0]!.id;
-    gameState.updateShipments((list) =>
-      list.map((s) => (s.id === shipmentId ? { ...s, remainingSeconds: 0, state: ShipmentState.Delivered } : s)),
-    );
-    shipmentService.receiveShipment(shipmentId);
-    cropService.plantCrop(CROP_SLOT_ID, CROP_ID);
-    gameState.updateGreenhouse((gh) => ({
-      ...gh,
-      slots: gh.slots.map((s) =>
-        s.id === CROP_SLOT_ID ? { ...s, state: CropSlotState.Ready, remainingSeconds: 0 } : s,
-      ),
-    }));
-    cropService.harvestCrop(CROP_SLOT_ID);
-    gameState.updateInventory((inv) => ({
-      ...inv,
-      items: { ...inv.items, protein_leaf: 2 },
-    }));
-    productionService.startRecipe(MACHINE_ID, RECIPE_ID);
-
-    // force machine to completed and add biofood_pack directly for delivery
-    gameState.updateMachines((machines) =>
-      machines.map((m) =>
-        m.id === MACHINE_ID
-          ? { ...m, state: MachineState.Completed, remainingSeconds: 0, outputPending: [{ itemId: 'biofood_pack', quantity: 1 }] }
-          : m,
-      ),
-    );
-    productionService.collectOutput(MACHINE_ID);
-
-    // deliver contract
-    const result = contractService.deliverContract(CONTRACT_ID);
-    expect(result.success).toBe(true);
-    expect(tutorial.tutorial().completedStepIds).toContain('deliver_contract');
     expect(tutorial.tutorial().activeStepId).toBeUndefined();
     expect(tutorial.isComplete()).toBe(true);
   });
@@ -291,20 +277,12 @@ describe('MVP loop integration', () => {
       ),
     }));
     cropService.harvestCrop(CROP_SLOT_ID);
+    contractService.deliverContract(CONTRACT_ID);
     gameState.updateInventory((inv) => ({
       ...inv,
       items: { ...inv.items, protein_leaf: 2 },
     }));
     productionService.startRecipe(MACHINE_ID, RECIPE_ID);
-    gameState.updateMachines((machines) =>
-      machines.map((m) =>
-        m.id === MACHINE_ID
-          ? { ...m, state: MachineState.Completed, remainingSeconds: 0, outputPending: [{ itemId: 'biofood_pack', quantity: 1 }] }
-          : m,
-      ),
-    );
-    productionService.collectOutput(MACHINE_ID);
-    contractService.deliverContract(CONTRACT_ID);
 
     expect(tutorial.isComplete()).toBe(true);
 

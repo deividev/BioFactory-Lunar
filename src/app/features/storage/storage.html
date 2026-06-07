@@ -34,6 +34,30 @@
     </ol>
   </section>
 
+  <section class="storage__upgrades" aria-label="Storage upgrades">
+    <h3>Storage upgrades</h3>
+    <ul class="storage__upgrade-list">
+      @for (upgrade of storageUpgrades(); track upgrade.id) {
+        <li class="storage__upgrade-card" [attr.data-installed]="upgrade.purchased">
+          <div>
+            <strong>{{ upgrade.name }}</strong>
+            <p>{{ upgrade.description }}</p>
+            <p class="storage__upgrade-meta">+{{ upgrade.capacityDelta }} capacity · {{ upgrade.cost[0]?.quantity }} credits</p>
+          </div>
+
+          <button
+            type="button"
+            [attr.data-testid]="'storage-upgrade-' + upgrade.id"
+            [disabled]="upgrade.purchased || !upgrade.canBuy"
+            (click)="buyStorageUpgrade(upgrade.id, upgrade.name)"
+          >
+            {{ upgrade.purchased ? 'Installed' : 'Install' }}
+          </button>
+        </li>
+      }
+    </ul>
+  </section>
+
   @if (devMode) {
   <section class="storage__actions" aria-label="Storage actions">
     <h3>Storage actions</h3>

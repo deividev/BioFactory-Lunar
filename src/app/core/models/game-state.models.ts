@@ -2,6 +2,7 @@ import type { GameSpeed, PanelType } from '../enums';
 import type { ContractInstance, ShipmentInstance } from './economy.models';
 import type { GreenhouseState } from './crop.models';
 import type { BaseModuleInstance } from './module.models';
+import type { InfrastructureState } from './infrastructure.models';
 import type { MachineInstance } from './production.models';
 import type { Alert, GameEventInstance, ResearchNodeInstance, RobotInstance } from './progression.models';
 import type { InventoryState, ResourceState } from './resource.models';
@@ -51,6 +52,7 @@ export interface GameState {
   clock: ClockState;
   resources: ResourceState;
   inventory: InventoryState;
+  infrastructure: InfrastructureState;
   greenhouse: GreenhouseState;
   machines: MachineInstance[];
   contracts: ContractInstance[];
@@ -76,6 +78,7 @@ export interface SaveData {
   clock: ClockState;
   resources: ResourceState;
   inventory: InventoryState;
+  infrastructure?: InfrastructureState;
   greenhouse: GreenhouseState;
   machines: MachineInstance[];
   contracts: ContractInstance[];

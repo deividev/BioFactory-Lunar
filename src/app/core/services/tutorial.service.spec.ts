@@ -58,6 +58,13 @@ describe('TutorialService', () => {
     expect(plantIdx).toBe(receiveIdx + 1);
   });
 
+  it('deliver_contract step precedes process_product in the ordered sequence', () => {
+    const ids = TUTORIAL_STEPS.map((s) => s.id);
+    const deliverIdx = ids.indexOf('deliver_contract');
+    const processIdx = ids.indexOf('process_product');
+    expect(processIdx).toBe(deliverIdx + 1);
+  });
+
   it('completeStep advances through each sequential step correctly', () => {
     const orderedIds = TUTORIAL_STEPS.map((s) => s.id);
 

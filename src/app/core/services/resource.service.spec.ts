@@ -19,21 +19,21 @@ describe('ResourceService', () => {
 
   it('reads balances and checks affordability for known resources from game state', () => {
     expect(service.balances()).toEqual({
-      credits: 200,
-      energy: 100,
-      water: 100,
-      nutrients: 20,
-      oxygen: 100,
+      credits: 150,
+      energy: 55,
+      water: 60,
+      nutrients: 35,
+      oxygen: 45,
     });
-    expect(service.getAmount('credits')).toBe(200);
-    expect(service.getAmount('water')).toBe(100);
-    expect(service.has('nutrients', 20)).toBe(true);
-    expect(service.has('nutrients', 21)).toBe(false);
+    expect(service.getAmount('credits')).toBe(150);
+    expect(service.getAmount('water')).toBe(60);
+    expect(service.has('nutrients', 10)).toBe(true);
+    expect(service.has('nutrients', 36)).toBe(false);
     expect(service.canAfford([{ resourceId: 'water', quantity: 10 }])).toBe(true);
     expect(
       service.canAfford([
         { resourceId: 'water', quantity: 10 },
-        { resourceId: 'nutrients', quantity: 21 },
+        { resourceId: 'nutrients', quantity: 36 },
       ]),
     ).toBe(false);
   });
@@ -45,20 +45,20 @@ describe('ResourceService', () => {
 
     expect(result).toEqual({ success: true });
     expect(snapshotResources()).toEqual({
-      credits: 200,
-      energy: 100,
-      water: 85,
-      nutrients: 20,
-      oxygen: 100,
+      credits: 150,
+      energy: 55,
+      water: 45,
+      nutrients: 35,
+      oxygen: 45,
     });
 
     expect(service.add('credits', 50)).toEqual({ success: true });
     expect(snapshotResources()).toEqual({
-      credits: 250,
-      energy: 100,
-      water: 85,
-      nutrients: 20,
-      oxygen: 100,
+      credits: 200,
+      energy: 55,
+      water: 45,
+      nutrients: 35,
+      oxygen: 45,
     });
   });
 
@@ -66,9 +66,9 @@ describe('ResourceService', () => {
     const result = service.consume('credits', 75);
 
     expect(result).toEqual({ success: true });
-    expect(service.getAmount('credits')).toBe(125);
-    expect(service.has('credits', 126)).toBe(false);
-    expect(service.canAfford([{ resourceId: 'credits', quantity: 125 }])).toBe(true);
+    expect(service.getAmount('credits')).toBe(75);
+    expect(service.has('credits', 76)).toBe(false);
+    expect(service.canAfford([{ resourceId: 'credits', quantity: 75 }])).toBe(true);
   });
 
   it('rejects unknown resource IDs and invalid amounts without changing state', () => {
@@ -106,24 +106,24 @@ describe('ResourceService', () => {
   it('rejects cap overflow and insufficient balances without changing state', () => {
     const beforeCapOverflow = snapshotResources();
 
-    expect(service.add('water', 1)).toEqual({
+    expect(service.add('water', 65)).toEqual({
       success: false,
       code: 'resource_cap_exceeded',
-      message: 'Adding 1 water would exceed the cap of 100.',
+      message: 'Adding 65 water would exceed the cap of 124.',
     });
-    expect(service.add('oxygen', 1)).toEqual({
+    expect(service.add('oxygen', 105)).toEqual({
       success: false,
       code: 'resource_cap_exceeded',
-      message: 'Adding 1 oxygen would exceed the cap of 100.',
+      message: 'Adding 105 oxygen would exceed the cap of 116.',
     });
     expect(snapshotResources()).toEqual(beforeCapOverflow);
 
     const beforeInsufficient = snapshotResources();
 
-    expect(service.consume('nutrients', 25)).toEqual({
+    expect(service.consume('nutrients', 36)).toEqual({
       success: false,
       code: 'insufficient_resource',
-      message: 'Not enough nutrients: requires 25, available 20.',
+      message: 'Not enough nutrients: requires 36, available 35.',
     });
     expect(snapshotResources()).toEqual(beforeInsufficient);
   });

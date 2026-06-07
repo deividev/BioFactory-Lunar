@@ -71,17 +71,48 @@ h2 {
   }
 }
 
+.contracts__copy {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+  flex: 1;
+}
+
 .contracts__row-header {
   display: flex;
-  align-items: center;
+  align-items: start;
   gap: 0.5rem;
 }
 
 .contracts__name {
-  flex: 1;
   font-size: 0.83rem;
   font-weight: 600;
   line-height: 1.25;
+}
+
+.contracts__description,
+.contracts__requirements {
+  font-size: 0.73rem;
+  line-height: 1.35;
+  color: var(--bf-text-muted);
+}
+
+.contracts__sources {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.15rem;
+}
+
+.contracts__source-hint {
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: var(--bf-accent-info);
+}
+
+.contracts__requirements {
+  color: var(--bf-text-primary);
 }
 
 .contracts__reward {
@@ -89,6 +120,7 @@ h2 {
   font-weight: 700;
   color: var(--bf-accent-success);
   white-space: nowrap;
+  align-self: start;
 }
 
 .contracts__progress {

@@ -16,7 +16,9 @@ export class Shipments {
   private readonly shipmentSvc = inject(ShipmentService);
 
   protected readonly ShipmentState = ShipmentState;
-  protected readonly catalog: readonly ShipmentCatalogItem[] = SHIPMENT_CATALOG;
+  protected readonly catalog = computed<readonly ShipmentCatalogItem[]>(() =>
+    SHIPMENT_CATALOG.filter((item) => this.shipmentSvc.isShipmentUnlocked(item.id)),
+  );
   protected readonly activeShipments = computed<readonly ShipmentInstance[]>(() =>
     this.gameState.shipments().filter((s) => s.state === ShipmentState.InTransit),
   );

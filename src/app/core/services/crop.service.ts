@@ -1,7 +1,7 @@
 import { effect, Injectable, untracked } from '@angular/core';
 
-import { CROP_DEFINITIONS, TUTORIAL_STARTER_CROP_ID } from '../data';
-import { CropSlotState } from '../enums';
+import { areDemoUnlockRequirementsMet, CROP_DEFINITIONS, TUTORIAL_STARTER_CROP_ID } from '../data';
+import { ContractState, CropSlotState } from '../enums';
 import type { ActionResult, CropSlot } from '../models';
 import { AlertService } from './alert.service';
 import { GameClockService } from './game-clock.service';
@@ -16,6 +16,7 @@ export type CropActionFailureCode =
   | 'slot_not_empty'
   | 'slot_not_ready'
   | 'crop_not_found'
+  | 'locked_crop'
   | 'insufficient_seed'
   | 'insufficient_resources'
   | 'inventory_full';
@@ -64,6 +65,10 @@ export class CropService {
       return { success: false, code: 'crop_not_found', message: `Unknown crop: ${cropId}` };
     }
 
+    if (!this.isCropUnlocked(cropId)) {
+      return { success: false, code: 'locked_crop', message: `${cropDef.name} is not unlocked yet.` };
+    }
+
     if (this.inventory.getQuantity(cropDef.seedItemId) < 1) {
       return {
         success: false,
@@ -103,6 +108,12 @@ export class CropService {
     }
 
     return SUCCESS;
+  }
+
+  isCropUnlocked(cropId: string): boolean {
+    const cropDef = CROP_DEFINITION_BY_ID.get(cropId);
+
+    return cropDef !== undefined && areDemoUnlockRequirementsMet(cropDef.unlockRequirementIds, this.getUnlockContext());
   }
 
   processTick(deltaGameSeconds: number): void {
@@ -202,5 +213,17 @@ export class CropService {
     }
 
     return SUCCESS;
+  }
+
+  private getUnlockContext() {
+    return {
+      completedContractIds: this.gameState.contracts()
+        .filter((contract) => contract.state === ContractState.Completed)
+        .map((contract) => contract.id),
+      infrastructureUpgradeIds: [
+        ...this.gameState.infrastructure().colonySupportUpgradeIds,
+        ...this.gameState.infrastructure().storageUpgradeIds,
+      ],
+    };
   }
 }

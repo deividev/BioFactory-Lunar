@@ -1,7 +1,12 @@
 import { effect, Injectable, untracked } from '@angular/core';
 
-import { MACHINE_DEFINITIONS, RECIPE_DEFINITIONS, TUTORIAL_STARTER_RECIPE_ID } from '../data';
-import { MachineState } from '../enums';
+import {
+  areDemoUnlockRequirementsMet,
+  MACHINE_DEFINITIONS,
+  RECIPE_DEFINITIONS,
+  TUTORIAL_STARTER_RECIPE_ID,
+} from '../data';
+import { ContractState, MachineState } from '../enums';
 import type { ActionResult, ItemAmount } from '../models';
 import { AlertService } from './alert.service';
 import { GameClockService } from './game-clock.service';
@@ -13,6 +18,7 @@ import { TutorialService } from './tutorial.service';
 export type ProductionActionFailureCode =
   | 'machine_not_found'
   | 'recipe_not_found'
+  | 'locked_recipe'
   | 'recipe_not_compatible'
   | 'machine_not_idle'
   | 'machine_not_completed'
@@ -60,6 +66,10 @@ export class ProductionService {
 
     if (recipe === undefined) {
       return { success: false, code: 'recipe_not_found', message: `Recipe not found: ${recipeId}` };
+    }
+
+    if (!this.isRecipeUnlocked(recipeId)) {
+      return { success: false, code: 'locked_recipe', message: `${recipe.name} is not unlocked yet.` };
     }
 
     const machineDef = MACHINE_DEFINITION_BY_ID.get(machine.definitionId);
@@ -115,6 +125,12 @@ export class ProductionService {
     }
 
     return SUCCESS;
+  }
+
+  isRecipeUnlocked(recipeId: string): boolean {
+    const recipe = RECIPE_DEFINITION_BY_ID.get(recipeId);
+
+    return recipe !== undefined && areDemoUnlockRequirementsMet(recipe.unlockRequirementIds, this.getUnlockContext());
   }
 
   processTick(deltaGameSeconds: number): void {
@@ -223,5 +239,17 @@ export class ProductionService {
     );
 
     return SUCCESS;
+  }
+
+  private getUnlockContext() {
+    return {
+      completedContractIds: this.gameState.contracts()
+        .filter((contract) => contract.state === ContractState.Completed)
+        .map((contract) => contract.id),
+      infrastructureUpgradeIds: [
+        ...this.gameState.infrastructure().colonySupportUpgradeIds,
+        ...this.gameState.infrastructure().storageUpgradeIds,
+      ],
+    };
   }
 }

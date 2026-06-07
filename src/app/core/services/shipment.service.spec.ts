@@ -1,7 +1,7 @@
 import { signal } from '@angular/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { GameSpeed, ShipmentState } from '../enums';
+import { ContractState, GameSpeed, ShipmentState } from '../enums';
 import type { ShipmentCatalogItem, ShipmentInstance } from '../models';
 import { AlertService } from './alert.service';
 import { type GameClockTick } from './game-clock.service';
@@ -95,7 +95,7 @@ describe('ShipmentService', () => {
     service.buyShipment('shipment_seed_protein_leaf_pack');
 
     const snapshot = gameState.getSnapshot();
-    expect(snapshot.resources.values['credits']).toBe(165); // 200 - 35
+    expect(snapshot.resources.values['credits']).toBe(115); // 150 - 35
     expect(snapshot.shipments).toHaveLength(1);
     const shipment = snapshot.shipments[0]!;
     expect(shipment.catalogItemId).toBe('shipment_seed_protein_leaf_pack');
@@ -134,7 +134,34 @@ describe('ShipmentService', () => {
 
     expect(warnSpy).toHaveBeenCalledWith('Shipment not found.');
     expect(gameState.getSnapshot().shipments).toHaveLength(0);
-    expect(gameState.getSnapshot().resources.values['credits']).toBe(200);
+    expect(gameState.getSnapshot().resources.values['credits']).toBe(150);
+  });
+
+  it('blocks locked seed shipments until their unlock requirement is met', () => {
+    const warnSpy = vi.spyOn(alerts, 'addWarning');
+
+    service.buyShipment('shipment_seed_aqua_sprout_pack');
+
+    expect(warnSpy).toHaveBeenCalledWith('This shipment is not unlocked yet.');
+    expect(gameState.getSnapshot().shipments).toHaveLength(0);
+    expect(gameState.getSnapshot().resources.values['credits']).toBe(150);
+  });
+
+  it('unlocks the aqua sprout seed pack after the starter contract is completed', () => {
+    gameState.updateContracts((contracts) =>
+      contracts.map((contract) =>
+        contract.id === 'contract_contract_starter_biofood_01'
+          ? { ...contract, state: ContractState.Completed }
+          : contract,
+      ),
+    );
+
+    expect(service.isShipmentUnlocked('shipment_seed_aqua_sprout_pack')).toBe(true);
+
+    service.buyShipment('shipment_seed_aqua_sprout_pack');
+
+    expect(gameState.getSnapshot().resources.values['credits']).toBe(105);
+    expect(gameState.getSnapshot().shipments).toHaveLength(1);
   });
 
   // ── T-04: tick behavior tests ──────────────────────────────────────────────
@@ -233,7 +260,7 @@ describe('ShipmentService', () => {
 
     service.receiveShipment('ship_nutrient_01');
 
-    expect(gameState.getSnapshot().resources.values['nutrients']).toBe(40); // 20 + 20
+    expect(gameState.getSnapshot().resources.values['nutrients']).toBe(55); // 35 + 20
     expect(gameState.getSnapshot().inventory.items['nutrient_mix']).toBeUndefined();
     expect(gameState.getSnapshot().shipments).toHaveLength(0);
   });
@@ -260,6 +287,10 @@ describe('ShipmentService', () => {
   });
 
   it('keeps a delivered resource shipment pending when receiving it would exceed the resource cap', () => {
+    gameState.updateResources((resourcesState) => ({
+      ...resourcesState,
+      values: { ...resourcesState.values, water: 110 },
+    }));
     const delivered: ShipmentInstance = {
       id: 'ship_capped_water_01',
       catalogItemId: 'shipment_water_supply',
@@ -271,9 +302,9 @@ describe('ShipmentService', () => {
 
     service.receiveShipment('ship_capped_water_01');
 
-    expect(warnSpy).toHaveBeenCalledWith('Adding 25 water would exceed the cap of 100.');
+    expect(warnSpy).toHaveBeenCalledWith('Adding 25 water would exceed the cap of 124.');
     expect(gameState.getSnapshot().shipments).toHaveLength(1);
-    expect(gameState.getSnapshot().resources.values['water']).toBe(100);
+    expect(gameState.getSnapshot().resources.values['water']).toBe(110);
   });
 
   it('does not change state or fire alerts for an InTransit shipment', () => {
@@ -426,6 +457,14 @@ describe('ShipmentService', () => {
     const spy = vi.spyOn(tutorialService, 'completeStep');
 
     service.buyShipment('shipment_oxygen_tank');
+
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it('does not advance tutorial when a shipment buy fails because it is still locked', () => {
+    const spy = vi.spyOn(tutorialService, 'completeStep');
+
+    service.buyShipment('shipment_seed_aqua_sprout_pack');
 
     expect(spy).not.toHaveBeenCalled();
   });

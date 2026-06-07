@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 
-import { InventoryService } from '../../core/services';
+import { InfrastructureService, InventoryService } from '../../core/services';
 import { Storage } from './storage';
 
 describe('Storage Angular component', () => {
@@ -10,10 +10,11 @@ describe('Storage Angular component', () => {
     }).compileComponents();
 
     const fixture = TestBed.createComponent(Storage);
+    const infrastructureService = TestBed.inject(InfrastructureService);
     const inventoryService = TestBed.inject(InventoryService);
     fixture.detectChanges();
 
-    return { fixture, inventoryService };
+    return { fixture, infrastructureService, inventoryService };
   }
 
   function textContent(fixture: ReturnType<typeof TestBed.createComponent<Storage>>): string {
@@ -46,7 +47,8 @@ describe('Storage Angular component', () => {
     expect(text).toContain('Inventory');
     expect(text).toContain('Used capacity');
     expect(text).toContain('Shipments');
-    expect(text).toContain('0 / 100');
+    expect(text).toContain('0 / 12');
+    expect(text).toContain('Storage Bay II');
     expect(text).toContain('Protein Leaf Seed');
     expect(text).toContain('0');
     expect(text).toContain('Biofood Pack');
@@ -85,15 +87,31 @@ describe('Storage Angular component', () => {
 
     expect(addSpy).toHaveBeenCalledWith('seed_protein_leaf', 3);
     expect(inventoryService.getQuantity('seed_protein_leaf')).toBe(3);
-    expect(textContent(fixture)).toContain('3 / 100');
+    expect(textContent(fixture)).toContain('3 / 12');
     expect(textContent(fixture)).toContain('Add 3 protein seeds applied.');
 
     clickButton(fixture, 'Consume 1 protein seed');
 
     expect(consumeSpy).toHaveBeenCalledWith('seed_protein_leaf', 1);
     expect(inventoryService.getQuantity('seed_protein_leaf')).toBe(2);
-    expect(textContent(fixture)).toContain('2 / 100');
+    expect(textContent(fixture)).toContain('2 / 12');
     expect(textContent(fixture)).toContain('Consume 1 protein seed applied.');
+  });
+
+  it('installs the first storage upgrade and reflects the new capacity in the UI', async () => {
+    const { fixture, infrastructureService } = await renderStorage();
+    const buySpy = vi.spyOn(infrastructureService, 'buyStorageUpgrade');
+
+    const button = fixture.nativeElement.querySelector('[data-testid="storage-upgrade-storage_bay_ii"]') as HTMLButtonElement | null;
+
+    expect(button).toBeInstanceOf(HTMLButtonElement);
+
+    button?.click();
+    fixture.detectChanges();
+
+    expect(buySpy).toHaveBeenCalledWith('storage_bay_ii');
+    expect(textContent(fixture)).toContain('0 / 20');
+    expect(textContent(fixture)).toContain('Storage Bay II installed.');
   });
 
   it('preserves inventory state and exposes feedback after rejected storage actions', async () => {
@@ -105,9 +123,9 @@ describe('Storage Angular component', () => {
 
     expect(inventoryService.getQuantity('biofood_pack')).toBe(0);
     expect(inventoryService.usedCapacity()).toBe(2);
-    expect(textContent(fixture)).toContain('2 / 100');
+    expect(textContent(fixture)).toContain('2 / 12');
     expect(fixture.nativeElement.querySelector('[role="alert"]')?.textContent).toContain(
-      'Adding 99 biofood_pack would exceed inventory capacity of 100.',
+      'Adding 99 biofood_pack would exceed inventory capacity of 12.',
     );
     expect(iconSources(fixture, '.storage__feedback-icon')).toEqual(['assets/ui/icons/ui_icon_state_warning.png']);
   });
